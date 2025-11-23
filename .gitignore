@@ -1,0 +1,7 @@
+.env
+brain_data/
+pycache/
+*.zip
+influxdb_data/
+grafana_data/
+

@@ -1,0 +1,72 @@
+services:
+  influxdb:
+    image: influxdb:2
+    container_name: influxdb
+    restart: unless-stopped
+    environment:
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME: ${INFLUX_USER}
+      DOCKER_INFLUXDB_INIT_PASSWORD: ${INFLUX_PASS}
+      DOCKER_INFLUXDB_INIT_ORG: homebrew
+      DOCKER_INFLUXDB_INIT_BUCKET: fermentation
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: ${INFLUX_TOKEN}
+    ports:
+      - "8086:8086"
+    volumes:
+      - ./influxdb_data:/var/lib/influxdb2
+    networks:
+      - brewery-net
+
+  telegraf:
+    image: telegraf:latest
+    container_name: telegraf
+    restart: unless-stopped
+    environment:
+      - INFLUX_TOKEN=${INFLUX_TOKEN}
+      - INFLUX_ORG=homebrew
+      - INFLUX_BUCKET=fermentation
+      - INFLUX_URL=http://influxdb:8086
+    volumes:
+      - ./telegraf.conf:/etc/telegraf/telegraf.conf:ro
+    # Allow Telegraf to reach the Host IP (172.17.0.1)
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - brewery-net
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ALLOW_EMBEDDING=true
+      - GF_SECURITY_COOKIE_SAMESITE=none
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
+    volumes:
+      - ./grafana_data:/var/lib/grafana
+    networks:
+      - brewery-net
+
+  brew-brain:
+    build: ./app
+    container_name: brew-brain
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      - INFLUX_URL=http://influxdb:8086
+      - INFLUX_TOKEN=${INFLUX_TOKEN}
+      - INFLUX_ORG=homebrew
+      - INFLUX_BUCKET=fermentation
+      - TZ=Europe/London
+    volumes:
+      - ./brain_data:/data
+    networks:
+      - brewery-net
+
+networks:
+  brewery-net:
+    driver: bridge

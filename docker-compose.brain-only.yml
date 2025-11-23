@@ -1,0 +1,22 @@
+services:
+  brew-brain:
+    build: ./app
+    container_name: brew-brain
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    privileged: true
+    environment:
+      - INFLUX_URL=http://influxdb:8086
+      - INFLUX_ORG=${INFLUX_ORG}
+      - INFLUX_BUCKET=${INFLUX_BUCKET}
+      - INFLUX_TOKEN=${INFLUX_TOKEN}
+      - TZ=Europe/London
+    volumes:
+      - ./brain_data:/data
+    networks:
+      - tilt-pi-network
+
+networks:
+  tilt-pi-network:
+    external: true
