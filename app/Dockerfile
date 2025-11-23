@@ -2,7 +2,6 @@ FROM python:3.11-bookworm
 
 WORKDIR /app
 
-# Install system dependencies for Scipy/Numpy on ARM64
 RUN apt-get update && apt-get install -y \
     libatlas-base-dev \
     gfortran \

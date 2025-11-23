@@ -28,7 +28,6 @@ services:
       - INFLUX_URL=http://influxdb:8086
     volumes:
       - ./telegraf.conf:/etc/telegraf/telegraf.conf:ro
-    # Allow Telegraf to reach the Host IP (172.17.0.1)
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
