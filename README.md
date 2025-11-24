@@ -6,6 +6,8 @@ Brew Brain is a Dockerized add-on for Raspberry Pi breweries. It sits on top of 
 
 Machine Learning Predictions: Predicts Final Gravity (FG) and completion time based on your specific history.
 
+📊 Instant Dashboard: Comes with a professional, pre-configured Grafana dashboard (ABV, Attenuation, Battery) out of the box. No manual setup required.
+
 Smart Calibration: Corrects noisy Tilt readings with a single manual offset entry.
 
 Safety Watchdog: Monitors Tilt signal health and Raspberry Pi connectivity (reboots WiFi if stuck).
@@ -154,8 +156,44 @@ Add this line to run every 5 minutes:
 */5 * * * * /usr/bin/python3 /home/pi/watchdog.py >> /home/pi/watchdog.log 2>&1
 
 
+📊 Usage Guide
+
+1. The Dashboard (http://<pi-ip>:5000)
+
+Status: Shows Tilt Signal Strength (RSSI) and Pi CPU Temp.
+
+Brewfather Sync: Go to Settings, enter your User ID and API Key. Then click the "Sync" icon on the dashboard to auto-fill your Batch Name and Gravity Targets.
+
+Calibration: Take a reading with your refractometer. Enter it in the "Calibration" box. The system calculates the offset automatically.
+
+Test Mode: Toggle this ON when cleaning. Data will be logged to test_readings instead of calibrated_readings.
+
+2. Installing on Mobile (iOS/Android)
+
+This dashboard is a Progressive Web App (PWA).
+
+Open http://<pi-ip>:5000 in Safari (iOS) or Chrome (Android).
+
+Tap Share -> Add to Home Screen.
+
+It will now open as a fullscreen app with persistent login.
+
+3. Grafana Integration
+
+You don't need to build charts manually!
+
+Open Grafana (:3000).
+
+Go to Dashboards.
+
+Click "Brew Brain Production".
+
+This pre-loaded dashboard compares your raw Tilt data with the ML-corrected calibrated_readings and shows your live Attenuation %.
+
 Acknowledgements
 
 Baron Brew: Creators of the Tilt Hydrometer and the TILTpi software used in this stack.
 
 Stian Josok: Author of the Tilt Pi Monitor Stack Docker Guide which inspired the container architecture.
+
+Tiltpi: Brewing data and ML: Referenced Gemini Project.
