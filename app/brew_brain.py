@@ -6,6 +6,8 @@ import shutil
 import requests
 import logging
 import base64
+import numpy as np
+from scipy.optimize import curve_fit
 from datetime import datetime, timedelta
 from flask import Flask, request, jsonify, send_from_directory, send_file
 from flask_cors import CORS
@@ -91,28 +93,91 @@ def check_alerts():
                         alert_state["last_temp_alert"] = now
         except Exception as e: logger.error(f"Alert Error: {e}")
 
+def sigmoid(t, L, k, t0, C):
+    """
+    The Fermentation Model (Logistic Function).
+    """
+    return C + (L / (1 + np.exp(k * (t - t0))))
+
+def predict_fermentation(times, readings):
+    """
+    Fits the sigmoid curve to the data and returns predicted FG and End Time.
+    """
+    try:
+        if len(times) < 50: return None, None
+        
+        start_time = times[0]
+        x_data = np.array([(t - start_time).total_seconds() / 3600 for t in times])
+        y_data = np.array(readings)
+
+        current_min = min(y_data)
+        current_max = max(y_data)
+        p0 = [current_max - current_min, 0.5, 48, current_min]
+        
+        popt, _ = curve_fit(sigmoid, x_data, y_data, p0=p0, maxfev=10000, 
+                           bounds=([0, 0, 0, 0.900], [0.2, 5, 500, 1.200]))
+        
+        L_fit, k_fit, t0_fit, C_fit = popt
+        predicted_fg = round(C_fit, 3)
+        hours_to_completion = t0_fit - (1/k_fit) * np.log(0.001 / (L_fit - 0.001))
+        
+        if np.isnan(hours_to_completion) or hours_to_completion < 0:
+            return predicted_fg, None
+            
+        completion_date = start_time + timedelta(hours=hours_to_completion)
+        return predicted_fg, completion_date
+
+    except Exception as e:
+        logger.error(f"Prediction Math Error: {e}")
+        return None, None
+
 def process_data():
+    """
+    Main Loop: Reads raw data -> Calibrates -> Predicts -> Saves to DB
+    """
     while True:
         time.sleep(60)
         try:
-            offset = float(get_config("offset"))
+            offset = float(get_config("offset") or 0.0)
             test_mode = get_config("test_mode") == "true"
-            start_time = processing_state["last_processed_time"].isoformat() + "Z"
-            query = f'from(bucket: "{INFLUX_BUCKET}") |> range(start: {start_time}) |> filter(fn: (r) => r["_measurement"] == "sensor_data") |> filter(fn: (r) => r["_field"] == "ferm")'
+            
+            # FIX: Changed "ferm" to "SG" to match standard TILTpi
+            query = f'from(bucket: "{INFLUX_BUCKET}") |> range(start: -21d) |> filter(fn: (r) => r["_measurement"] == "sensor_data") |> filter(fn: (r) => r["_field"] == "SG")'
             tables = query_api.query(query)
-            points = []
-            new_max_time = processing_state["last_processed_time"]
+            
+            times = []
+            readings = []
+            points_to_write = []
+            
             for table in tables:
                 for record in table.records:
                     rec_time = record.get_time()
-                    if rec_time > new_max_time: new_max_time = rec_time
-                    meas_name = "test_readings" if test_mode else "calibrated_readings"
-                    p = Point(meas_name).tag("Color", record.values.get("Color")).field("sg", record.get_value() + offset).time(rec_time)
-                    points.append(p)
-            if points:
-                write_api.write(bucket=INFLUX_BUCKET, org=INFLUX_ORG, record=points)
-                processing_state["last_processed_time"] = new_max_time
-        except Exception as e: logger.error(f"Sync Error: {e}")
+                    val = record.get_value() + offset
+                    times.append(rec_time)
+                    readings.append(val)
+                    if rec_time > processing_state["last_processed_time"]:
+                        meas_name = "test_readings" if test_mode else "calibrated_readings"
+                        p = Point(meas_name).tag("Color", record.values.get("Color")).field("sg", val).time(rec_time)
+                        points_to_write.append(p)
+                        processing_state["last_processed_time"] = rec_time
+
+            if not test_mode and len(readings) > 50:
+                pred_fg, pred_date = predict_fermentation(times, readings)
+                if pred_fg:
+                    p_pred = Point("predictions").field("predicted_fg", pred_fg).time(datetime.utcnow())
+                    if pred_date:
+                        days_left = (pred_date - datetime.utcnow().replace(tzinfo=None)).days
+                        p_pred.field("days_remaining", days_left)
+                        set_config("prediction_end_date", pred_date.strftime("%Y-%m-%d %H:%M"))
+                    points_to_write.append(p_pred)
+
+            if points_to_write:
+                write_api.write(bucket=INFLUX_BUCKET, org=INFLUX_ORG, record=points_to_write)
+                logger.info(f"Wrote {len(points_to_write)} points")
+                
+        except Exception as e:
+            logger.error(f"Sync Loop Error: {e}")
+            time.sleep(60)
 
 @app.route('/')
 def index(): return send_from_directory('static', 'index.html')
@@ -160,7 +225,8 @@ def calibrate():
     if request.json.get('action') == 'reset':
         set_config("offset", "0.0"); return jsonify({"status": "reset"})
     manual = float(request.json.get('sg'))
-    q = f'from(bucket: "{INFLUX_BUCKET}") |> range(start: -1h) |> filter(fn: (r) => r["_measurement"] == "sensor_data") |> filter(fn: (r) => r["_field"] == "ferm") |> last()'
+    # FIX: Changed "ferm" to "SG"
+    q = f'from(bucket: "{INFLUX_BUCKET}") |> range(start: -1h) |> filter(fn: (r) => r["_measurement"] == "sensor_data") |> filter(fn: (r) => r["_field"] == "SG") |> last()'
     tables = query_api.query(q)
     raw = None
     for t in tables:

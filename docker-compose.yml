@@ -46,8 +46,11 @@ services:
       - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
     volumes:
       - ./grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
     networks:
       - brewery-net
+    depends_on:
+      - influxdb
 
   brew-brain:
     build: ./app
@@ -65,6 +68,8 @@ services:
       - ./brain_data:/data
     networks:
       - brewery-net
+    depends_on:
+      - influxdb
 
 networks:
   brewery-net:
