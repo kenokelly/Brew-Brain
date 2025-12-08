@@ -260,3 +260,22 @@ Add a new panel to your Grafana dashboard:
 
 ```
 ```
+# ... (Previous Sections) ...
+
+## 🔒 Security & Best Practices
+
+Since this device monitors physical processes (temperature/fermentation), security is important.
+
+### 1. Hardened Secrets
+The `.gitignore` file includes `.env`. **Do not remove this.** Your `.env` file contains your Database passwords and Telegram tokens. Never commit it to GitHub.
+
+### 2. Grafana Ports
+By default, Grafana is configured with `GF_AUTH_ANONYMOUS_ENABLED=true` to allow the dashboard to load without login on your local network (LAN).
+* **Safe:** If you only access this via `http://192.168.x.x` at home.
+* **Dangerous:** If you port-forward port `3000` to the internet.
+* **Recommendation:** If exposing to the web, set `GF_AUTH_ANONYMOUS_ENABLED=false` in `docker-compose.yml` and use strong passwords.
+
+### 3. API Validation
+The System API (`/api/settings`) enforces strict type checking to prevent injection of invalid data types into the configuration database.
+
+# ... (Rest of README) ...
