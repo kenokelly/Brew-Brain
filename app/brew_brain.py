@@ -64,12 +64,119 @@ def get_pi_temp():
         with open("/sys/class/thermal/thermal_zone0/temp", "r") as f: return round(int(f.read()) / 1000, 1)
     except: return 0.0
 
-def send_telegram(msg):
+def send_telegram(msg, target_chat=None):
+    """
+    Sends a message to Telegram.
+    If target_chat is provided, replies to that user.
+    Otherwise, sends to the configured default alert chat.
+    """
     token = get_config("alert_telegram_token")
-    chat = get_config("alert_telegram_chat")
+    chat = target_chat or get_config("alert_telegram_chat")
+    
     if not token or not chat: return
-    try: requests.post(f"https://api.telegram.org/bot{token}/sendMessage", json={"chat_id": chat, "text": f"🍺 {msg}"}, timeout=5)
+    
+    try: 
+        requests.post(
+            f"https://api.telegram.org/bot{token}/sendMessage", 
+            json={"chat_id": chat, "text": msg, "parse_mode": "Markdown"}, 
+            timeout=5
+        )
+    except Exception as e:
+        logger.error(f"Failed to send Telegram: {e}")
+
+def get_status_dict():
+    """
+    Helper to fetch current status for both API and Telegram Bot
+    """
+    recent_sg, recent_temp = 0.0, 0.0
+    try:
+        q = f'from(bucket: "{INFLUX_BUCKET}") |> range(start: -2h) |> filter(fn: (r) => r["_measurement"] == "calibrated_readings") |> last()'
+        for t in query_api.query(q): 
+            for r in t.records: recent_sg = r.get_value()
+        q_t = f'from(bucket: "{INFLUX_BUCKET}") |> range(start: -2h) |> filter(fn: (r) => r["_measurement"] == "sensor_data") |> filter(fn: (r) => r["_field"] == "Temp") |> last()'
+        for t in query_api.query(q_t): 
+            for r in t.records: recent_temp = r.get_value()
     except: pass
+
+    return {
+        "status": "Online", "pi_temp": get_pi_temp(), "current_sg": recent_sg, "current_temp": recent_temp,
+        "test_mode": get_config("test_mode") == "true", "offset": float(get_config("offset")),
+        "og": float(get_config("og") or 1.050), "target_fg": float(get_config("target_fg") or 1.010),
+        "batch_name": get_config("batch_name"), "batch_notes": get_config("batch_notes"), "start_date": get_config("start_date"),
+        "config": {"telegram_configured": bool(get_config("alert_telegram_token"))}
+    }
+
+def handle_telegram_command(chat_id, command, text):
+    """
+    Decides what to do when the user talks to the bot.
+    """
+    cmd = command.lower().strip()
+    
+    if cmd == "/status":
+        s = get_status_dict()
+        sg = s.get('current_sg', 0)
+        temp = s.get('current_temp', 0)
+        og = s.get('og', 0)
+        fg = s.get('target_fg', 0)
+        
+        # Calculate ABV
+        abv = (og - sg) * 131.25 if sg > 0 else 0
+        
+        msg = (
+            f"🍺 *Brew Brain Status*\n"
+            f"🏷 *Batch:* {s.get('batch_name')}\n"
+            f"🌡 *Temp:* {temp}°C\n"
+            f"⚖️ *Gravity:* {sg:.3f} (Target: {fg:.3f})\n"
+            f"📊 *ABV:* {abv:.1f}%\n"
+            f"💾 *CPU:* {s.get('pi_temp')}°C"
+        )
+        send_telegram(msg, chat_id)
+        
+    elif cmd == "/help":
+        send_telegram("🤖 *Commands:*\n/status - Current readings\n/ping - Check connectivity", chat_id)
+        
+    elif cmd == "/ping":
+        send_telegram("🏓 Pong! I am online.", chat_id)
+
+def telegram_poller():
+    """
+    Background thread that listens for new messages via Long Polling.
+    """
+    logger.info("Telegram Poller Started")
+    last_update_id = 0
+    
+    while True:
+        token = get_config("alert_telegram_token")
+        if not token:
+            time.sleep(30)
+            continue
+            
+        try:
+            url = f"https://api.telegram.org/bot{token}/getUpdates"
+            params = {"offset": last_update_id + 1, "timeout": 30}
+            resp = requests.get(url, params=params, timeout=35)
+            
+            if resp.status_code == 200:
+                data = resp.json()
+                for result in data.get("result", []):
+                    last_update_id = result["update_id"]
+                    message = result.get("message", {})
+                    text = message.get("text", "")
+                    chat_id = message.get("chat", {}).get("id")
+                    
+                    # Security Check: Ignore unknown users
+                    configured_chat = get_config("alert_telegram_chat")
+                    if str(chat_id) != str(configured_chat):
+                        continue
+                        
+                    if text.startswith("/"):
+                        parts = text.split(" ", 1)
+                        cmd = parts[0]
+                        payload = parts[1] if len(parts) > 1 else ""
+                        handle_telegram_command(chat_id, cmd, payload)
+        except Exception as e:
+            logger.error(f"Telegram Poll Error: {e}")
+            time.sleep(15)
 
 def check_alerts():
     while True:
@@ -96,16 +203,9 @@ def check_alerts():
         except Exception as e: logger.error(f"Alert Error: {e}")
 
 def sigmoid(t, L, k, t0, C):
-    """
-    The Fermentation Model (Logistic Function).
-    """
     return C + (L / (1 + np.exp(k * (t - t0))))
 
 def predict_fermentation(times, readings):
-    """
-    Fits the sigmoid curve to the data and returns predicted FG and End Time.
-    Includes Median Filtering and Dynamic Guessing.
-    """
     try:
         if len(times) < 50: return None, None
         
@@ -113,7 +213,7 @@ def predict_fermentation(times, readings):
         x_data = np.array([(t - start_time).total_seconds() / 3600 for t in times])
         y_data = np.array(readings)
 
-        # 1. FILTERING: Apply a 5-point median filter to remove "bubble noise"
+        # 1. Median Filter for Noise
         if len(y_data) > 10:
             y_data_smooth = medfilt(y_data, kernel_size=5)
         else:
@@ -122,19 +222,17 @@ def predict_fermentation(times, readings):
         current_min = min(y_data_smooth)
         current_max = max(y_data_smooth)
         
-        # 2. DYNAMIC GUESSING: Estimate midpoint (t0) based on data shape
+        # 2. Dynamic Guessing
         try:
             mid_gravity = current_max - ((current_max - current_min) / 2)
             idx = (np.abs(y_data_smooth - mid_gravity)).argmin()
             estimated_midpoint = x_data[idx]
-            # Safety clamp for the guess
             if estimated_midpoint < 0: estimated_midpoint = 24
         except:
             estimated_midpoint = 48
 
         p0 = [current_max - current_min, 0.5, estimated_midpoint, current_min]
         
-        # 3. CURVE FIT
         popt, _ = curve_fit(sigmoid, x_data, y_data_smooth, p0=p0, maxfev=20000, 
                            bounds=([0, 0, 0, 0.900], [0.2, 5, 1000, 1.200]))
         
@@ -153,16 +251,13 @@ def predict_fermentation(times, readings):
         return None, None
 
 def process_data():
-    """
-    Main Loop: Reads raw data -> Calibrates -> Predicts -> Saves to DB
-    """
     while True:
         time.sleep(60)
         try:
             offset = float(get_config("offset") or 0.0)
             test_mode = get_config("test_mode") == "true"
             
-            # Use 'SG' to match standard TILTpi output
+            # Using SG instead of ferm
             query = f'from(bucket: "{INFLUX_BUCKET}") |> range(start: -21d) |> filter(fn: (r) => r["_measurement"] == "sensor_data") |> filter(fn: (r) => r["_field"] == "SG")'
             tables = query_api.query(query)
             
@@ -205,22 +300,7 @@ def index(): return send_from_directory('static', 'index.html')
 
 @app.route('/api/status')
 def status():
-    recent_sg, recent_temp = 0.0, 0.0
-    try:
-        q = f'from(bucket: "{INFLUX_BUCKET}") |> range(start: -2h) |> filter(fn: (r) => r["_measurement"] == "calibrated_readings") |> last()'
-        for t in query_api.query(q): 
-            for r in t.records: recent_sg = r.get_value()
-        q_t = f'from(bucket: "{INFLUX_BUCKET}") |> range(start: -2h) |> filter(fn: (r) => r["_measurement"] == "sensor_data") |> filter(fn: (r) => r["_field"] == "Temp") |> last()'
-        for t in query_api.query(q_t): 
-            for r in t.records: recent_temp = r.get_value()
-    except: pass
-    return jsonify({
-        "status": "Online", "pi_temp": get_pi_temp(), "current_sg": recent_sg, "current_temp": recent_temp,
-        "test_mode": get_config("test_mode") == "true", "offset": float(get_config("offset")),
-        "og": float(get_config("og") or 1.050), "target_fg": float(get_config("target_fg") or 1.010),
-        "batch_name": get_config("batch_name"), "batch_notes": get_config("batch_notes"), "start_date": get_config("start_date"),
-        "config": {"telegram_configured": bool(get_config("alert_telegram_token"))}
-    })
+    return jsonify(get_status_dict())
 
 @app.route('/api/sync_brewfather', methods=['POST'])
 def sync_brewfather():
@@ -276,5 +356,7 @@ if __name__ == '__main__':
     init_db()
     threading.Thread(target=process_data, daemon=True).start()
     threading.Thread(target=check_alerts, daemon=True).start()
+    threading.Thread(target=telegram_poller, daemon=True).start()
+    
     logger.info("Starting Production Server (Waitress) on port 5000...")
     serve(app, host='0.0.0.0', port=5000)

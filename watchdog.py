@@ -26,7 +26,6 @@ def check_brew_brain():
 def restart_wifi():
     log("Restarting WiFi via nmcli...")
     try:
-        # Full path for reliability on Pi OS Bookworm
         os.system("/usr/bin/nmcli radio wifi off")
         time.sleep(5)
         os.system("/usr/bin/nmcli radio wifi on")
@@ -36,7 +35,6 @@ def restart_wifi():
 
 def restart_docker():
     log("Restarting Container...")
-    # Use sudo and full paths for Cron
     os.system("/usr/bin/sudo /usr/bin/docker restart brew-brain")
 
 def main():
