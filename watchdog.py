@@ -26,16 +26,18 @@ def check_brew_brain():
 def restart_wifi():
     log("Restarting WiFi via nmcli...")
     try:
-        os.system("nmcli radio wifi off")
+        # Full path for reliability on Pi OS Bookworm
+        os.system("/usr/bin/nmcli radio wifi off")
         time.sleep(5)
-        os.system("nmcli radio wifi on")
+        os.system("/usr/bin/nmcli radio wifi on")
         time.sleep(10)
     except Exception as e:
         log(f"Error: {e}")
 
 def restart_docker():
     log("Restarting Container...")
-    os.system("docker restart brew-brain")
+    # Use sudo and full paths for Cron
+    os.system("/usr/bin/sudo /usr/bin/docker restart brew-brain")
 
 def main():
     fail_count = 0
@@ -45,7 +47,7 @@ def main():
             fail_count += 1
             log(f"Network Down {fail_count}/{MAX_RETRIES}")
             if fail_count == 3: restart_wifi()
-            if fail_count >= MAX_RETRIES: os.system("sudo reboot")
+            if fail_count >= MAX_RETRIES: os.system("/usr/bin/sudo /sbin/reboot")
         else:
             fail_count = 0
             if not check_brew_brain(): restart_docker()

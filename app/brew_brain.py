@@ -8,11 +8,13 @@ import logging
 import base64
 import numpy as np
 from scipy.optimize import curve_fit
+from scipy.signal import medfilt
 from datetime import datetime, timedelta
 from flask import Flask, request, jsonify, send_from_directory, send_file
 from flask_cors import CORS
 from influxdb_client import InfluxDBClient, Point
 from influxdb_client.client.write_api import SYNCHRONOUS
+from waitress import serve
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -102,6 +104,7 @@ def sigmoid(t, L, k, t0, C):
 def predict_fermentation(times, readings):
     """
     Fits the sigmoid curve to the data and returns predicted FG and End Time.
+    Includes Median Filtering and Dynamic Guessing.
     """
     try:
         if len(times) < 50: return None, None
@@ -110,12 +113,30 @@ def predict_fermentation(times, readings):
         x_data = np.array([(t - start_time).total_seconds() / 3600 for t in times])
         y_data = np.array(readings)
 
-        current_min = min(y_data)
-        current_max = max(y_data)
-        p0 = [current_max - current_min, 0.5, 48, current_min]
+        # 1. FILTERING: Apply a 5-point median filter to remove "bubble noise"
+        if len(y_data) > 10:
+            y_data_smooth = medfilt(y_data, kernel_size=5)
+        else:
+            y_data_smooth = y_data
+
+        current_min = min(y_data_smooth)
+        current_max = max(y_data_smooth)
         
-        popt, _ = curve_fit(sigmoid, x_data, y_data, p0=p0, maxfev=10000, 
-                           bounds=([0, 0, 0, 0.900], [0.2, 5, 500, 1.200]))
+        # 2. DYNAMIC GUESSING: Estimate midpoint (t0) based on data shape
+        try:
+            mid_gravity = current_max - ((current_max - current_min) / 2)
+            idx = (np.abs(y_data_smooth - mid_gravity)).argmin()
+            estimated_midpoint = x_data[idx]
+            # Safety clamp for the guess
+            if estimated_midpoint < 0: estimated_midpoint = 24
+        except:
+            estimated_midpoint = 48
+
+        p0 = [current_max - current_min, 0.5, estimated_midpoint, current_min]
+        
+        # 3. CURVE FIT
+        popt, _ = curve_fit(sigmoid, x_data, y_data_smooth, p0=p0, maxfev=20000, 
+                           bounds=([0, 0, 0, 0.900], [0.2, 5, 1000, 1.200]))
         
         L_fit, k_fit, t0_fit, C_fit = popt
         predicted_fg = round(C_fit, 3)
@@ -141,7 +162,7 @@ def process_data():
             offset = float(get_config("offset") or 0.0)
             test_mode = get_config("test_mode") == "true"
             
-            # FIX: Changed "ferm" to "SG" to match standard TILTpi
+            # Use 'SG' to match standard TILTpi output
             query = f'from(bucket: "{INFLUX_BUCKET}") |> range(start: -21d) |> filter(fn: (r) => r["_measurement"] == "sensor_data") |> filter(fn: (r) => r["_field"] == "SG")'
             tables = query_api.query(query)
             
@@ -225,7 +246,6 @@ def calibrate():
     if request.json.get('action') == 'reset':
         set_config("offset", "0.0"); return jsonify({"status": "reset"})
     manual = float(request.json.get('sg'))
-    # FIX: Changed "ferm" to "SG"
     q = f'from(bucket: "{INFLUX_BUCKET}") |> range(start: -1h) |> filter(fn: (r) => r["_measurement"] == "sensor_data") |> filter(fn: (r) => r["_field"] == "SG") |> last()'
     tables = query_api.query(q)
     raw = None
@@ -256,4 +276,5 @@ if __name__ == '__main__':
     init_db()
     threading.Thread(target=process_data, daemon=True).start()
     threading.Thread(target=check_alerts, daemon=True).start()
-    app.run(host='0.0.0.0', port=5000)
+    logger.info("Starting Production Server (Waitress) on port 5000...")
+    serve(app, host='0.0.0.0', port=5000)

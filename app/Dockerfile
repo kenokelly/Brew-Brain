@@ -15,7 +15,8 @@ RUN pip install --no-cache-dir \
     pandas \
     numpy \
     scipy \
-    requests
+    requests \
+    waitress
 
 COPY brew_brain.py app.py
 COPY static static
