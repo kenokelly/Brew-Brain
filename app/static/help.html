@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Brew Brain - User Guide</title>
+    <script src="/static/js/tailwindcss.js"></script>
+    <script src="/static/js/lucide.js"></script>
+    <style>
+        body {
+            background-color: #0f172a;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+    </style>
+</head>
+
+<body class="text-slate-300 font-sans pb-10 select-none">
+
+    <!-- Header -->
+    <div class="fixed top-0 left-0 right-0 bg-slate-900/90 backdrop-blur-md z-50 border-b border-slate-800 safe-top">
+        <div class="max-w-3xl mx-auto px-4 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <a href="/" class="p-2 -ml-2 text-slate-400 hover:text-white transition-colors"><i
+                        data-lucide="arrow-left" class="w-6 h-6"></i></a>
+                <h1 class="font-bold text-xl text-slate-100">User Guide</h1>
+            </div>
+        </div>
+    </div>
+
+    <!-- Content -->
+    <div class="pt-24 px-4 max-w-3xl mx-auto space-y-8">
+
+        <!-- Intro -->
+        <div class="glass-panel p-6 rounded-2xl">
+            <h2 class="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                <i data-lucide="settings-2" class="text-blue-400"></i> Batch Settings
+            </h2>
+            <p class="mb-4">Configure these in the <span class="font-bold text-white">Settings</span> tab to ensure
+                accurate stats.</p>
+            <ul class="space-y-2 list-disc list-inside text-sm">
+                <li><strong class="text-slate-200">Start Date:</strong> When you pitched the yeast.</li>
+                <li><strong class="text-slate-200">OG (Original Gravity):</strong> Measured before fermentation (e.g.,
+                    1.050).</li>
+                <li><strong class="text-slate-200">Target FG:</strong> Expected finishing gravity (e.g., 1.010).</li>
+            </ul>
+        </div>
+
+        <!-- Telegram -->
+        <div class="glass-panel p-6 rounded-2xl">
+            <h2 class="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                <i data-lucide="send" class="text-sky-400"></i> Setup Alerts
+            </h2>
+
+            <div class="space-y-6">
+                <div>
+                    <h3 class="font-bold text-white mb-2">1. Create a Bot</h3>
+                    <p class="text-sm">Talk to <strong class="text-sky-400">@BotFather</strong> on Telegram. Send <code
+                            class="bg-slate-800 px-1 rounded">/newbot</code> and follow instructions to get your
+                        <strong>Token</strong>.</p>
+                </div>
+
+                <div>
+                    <h3 class="font-bold text-white mb-2">2. Get Chat ID</h3>
+                    <p class="text-sm">Talk to <strong class="text-sky-400">@userinfobot</strong> on Telegram to get
+                        your numeric <strong>ID</strong>.</p>
+                </div>
+
+                <div>
+                    <h3 class="font-bold text-white mb-2">3. Connect</h3>
+                    <p class="text-sm">Enter the Token and Chat ID in Brew-Brain Settings.</p>
+                </div>
+
+                <div class="bg-slate-800/50 p-4 rounded-xl border border-slate-700/50">
+                    <h4 class="text-xs uppercase font-bold text-slate-500 mb-2">Bot Commands</h4>
+                    <div class="space-y-1 font-mono text-sm">
+                        <div class="flex justify-between"><span class="text-sky-400">/status</span> <span>Get current
+                                readings</span></div>
+                        <div class="flex justify-between"><span class="text-sky-400">/ping</span> <span>Check
+                                connection</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Calibration -->
+        <div class="glass-panel p-6 rounded-2xl">
+            <h2 class="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                <i data-lucide="scale" class="text-amber-400"></i> Calibration
+            </h2>
+            <p class="mb-4 text-sm">If your Tilt reads <code class="text-amber-400">1.020</code> but your manual
+                hydrometer says <code class="text-green-400">1.015</code>:</p>
+            <ol class="list-decimal list-inside space-y-2 text-sm bg-slate-800/50 p-4 rounded-xl">
+                <li>Go to Settings > Calibration.</li>
+                <li>Enter <code class="text-green-400">1.015</code> in the box.</li>
+                <li>Click <strong>Set</strong>.</li>
+            </ol>
+            <p class="mt-4 text-xs text-slate-500">The system calculates the offset (-0.005) automatically.</p>
+        </div>
+
+    </div>
+
+    <script>lucide.createIcons();</script>
+</body>
+
+</html>
