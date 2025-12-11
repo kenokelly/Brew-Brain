@@ -111,7 +111,9 @@ def get_status_dict():
             for r in t.records: recent_sg = r.get_value()
         q_t = f'from(bucket: "{INFLUX_BUCKET}") |> range(start: -2h) |> filter(fn: (r) => r["_measurement"] == "sensor_data") |> filter(fn: (r) => r["_field"] == "Temp") |> last()'
         for t in query_api.query(q_t): 
-            for r in t.records: recent_temp = r.get_value()
+            for r in t.records: 
+                val = r.get_value()
+                recent_temp = (val - 32) * 5/9  # Convert F to C
     except: pass
 
     return {
@@ -126,8 +128,8 @@ def handle_telegram_command(chat_id, command, text):
     cmd = command.lower().strip()
     if cmd == "/status":
         s = get_status_dict()
-        sg = s.get('current_sg', 0) or 0
-        temp = s.get('current_temp', 0) or 0
+        sg = s.get('sg', 0) or 0
+        temp = s.get('temp', 0) or 0
         og = s.get('og', 0)
         fg = s.get('target_fg', 0)
         abv = (og - sg) * 131.25 if sg > 0 else 0
