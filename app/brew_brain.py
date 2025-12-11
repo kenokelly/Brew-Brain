@@ -115,7 +115,7 @@ def get_status_dict():
     except: pass
 
     return {
-        "status": "Online", "pi_temp": get_pi_temp(), "current_sg": recent_sg, "current_temp": recent_temp,
+        "status": "Online", "pi_temp": get_pi_temp(), "sg": recent_sg, "temp": recent_temp,
         "test_mode": get_config("test_mode") == "true", "offset": float(get_config("offset") or 0),
         "og": float(get_config("og") or 1.050), "target_fg": float(get_config("target_fg") or 1.010),
         "batch_name": get_config("batch_name"), "batch_notes": get_config("batch_notes"), "start_date": get_config("start_date"),
