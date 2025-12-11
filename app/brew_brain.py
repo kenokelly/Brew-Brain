@@ -45,7 +45,8 @@ INFLUX_BUCKET = os.getenv("INFLUX_BUCKET", "fermentation")
 _config_cache = {}
 
 alert_state = { "last_tilt_alert": 0, "last_temp_alert": 0 }
-processing_state = { "last_processed_time": datetime.utcnow() - timedelta(minutes=10) }
+from datetime import timezone
+processing_state = { "last_processed_time": datetime.now(timezone.utc) - timedelta(minutes=10) }
 
 def init_db():
     with sqlite3.connect(DB_FILE) as conn:
@@ -281,6 +282,8 @@ def process_data():
                     val = record.get_value() + offset
                     times.append(rec_time)
                     readings.append(val)
+                    if rec_time.tzinfo is None: rec_time = rec_time.replace(tzinfo=timezone.utc)
+                    if processing_state["last_processed_time"].tzinfo is None: processing_state["last_processed_time"] = processing_state["last_processed_time"].replace(tzinfo=timezone.utc)
                     if rec_time > processing_state["last_processed_time"]:
                         meas_name = "test_readings" if test_mode else "calibrated_readings"
                         p = Point(meas_name).tag("Color", record.values.get("Color")).field("sg", val).time(rec_time)
@@ -290,9 +293,9 @@ def process_data():
             if not test_mode and len(readings) > 50:
                 pred_fg, pred_date = predict_fermentation(times, readings)
                 if pred_fg:
-                    p_pred = Point("predictions").field("predicted_fg", pred_fg).time(datetime.utcnow())
+                    p_pred = Point("predictions").field("predicted_fg", pred_fg).time(datetime.now(timezone.utc))
                     if pred_date:
-                        days_left = (pred_date - datetime.utcnow().replace(tzinfo=None)).days
+                        days_left = (pred_date - datetime.now(timezone.utc)).days
                         p_pred.field("days_remaining", days_left)
                         set_config("prediction_end_date", pred_date.strftime("%Y-%m-%d %H:%M"))
                     points_to_write.append(p_pred)

@@ -58,24 +58,405 @@
     </style>
 </head>
 
-<body class="text-slate-200 font-sans pb-24 md:pb-10 select-none">
-    <div class="fixed top-0 left-0 right-0 bg-slate-900/90 backdrop-blur-md z-50 border-b border-slate-800 safe-top">
-        <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-            <div class="flex items-center gap-2"><i data-lucide="beer" class="text-amber-500 w-6 h-6"></i>
-                <h1 class="font-bold text-xl">Brew Brain</h1>
+<div id="mainContainer" class="pt-20 px-4 max-w-6xl mx-auto space-y-4">
+
+    <!-- Status Cards -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div
+            class="glass-panel p-4 rounded-2xl flex flex-col items-center justify-center relative overflow-hidden group">
+            <div class="absolute inset-0 bg-gradient-to-br from-amber-500/10 to-transparent"></div>
+            <div class="relative z-10 text-center">
+                <span class="text-xs uppercase tracking-widest text-amber-400/80 mb-1 block">Gravity</span>
+                <div class="flex items-baseline justify-center gap-1">
+                    <span id="sgVal" class="text-3xl font-bold text-white tabular-nums">--.---</span>
+                    <span class="text-xs text-slate-400">SG</span>
+                </div>
             </div>
-            <div class="flex items-center gap-3">
-                <div class="flex flex-col items-end"><span id="piTemp" class="text-[10px] font-mono text-slate-500">CPU:
-                        --°C</span>
-                    <div id="connectionDot" class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
+        </div>
+
+        <div class="glass-panel p-4 rounded-2xl flex flex-col items-center justify-center relative overflow-hidden">
+            <div class="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-transparent"></div>
+            <div class="relative z-10 text-center">
+                <span class="text-xs uppercase tracking-widest text-blue-400/80 mb-1 block">Temp</span>
+                <div class="flex items-baseline justify-center gap-1">
+                    <span id="tempVal" class="text-3xl font-bold text-white tabular-nums">--.-</span>
+                    <span class="text-xs text-slate-400">°C</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="glass-panel p-4 rounded-2xl flex flex-col items-center justify-center relative overflow-hidden">
+            <div class="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-transparent"></div>
+            <div class="relative z-10 text-center">
+                <span class="text-xs uppercase tracking-widest text-emerald-400/80 mb-1 block">Alcohol</span>
+                <div class="flex items-baseline justify-center gap-1">
+                    <span id="abvVal" class="text-3xl font-bold text-white tabular-nums">--.-</span>
+                    <span class="text-xs text-slate-400">%</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="glass-panel p-4 rounded-2xl flex flex-col items-center justify-center relative overflow-hidden">
+            <div class="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-transparent"></div>
+            <div class="relative z-10 text-center">
+                <span class="text-xs uppercase tracking-widest text-purple-400/80 mb-1 block">Attenuation</span>
+                <div class="flex items-baseline justify-center gap-1">
+                    <span id="attVal" class="text-3xl font-bold text-white tabular-nums">--.-</span>
+                    <span class="text-xs text-slate-400">%</span>
                 </div>
             </div>
         </div>
     </div>
-    <script>
-        lucide.createIcons();
-        // ... (Your existing JS logic) ...
-    </script>
+
+    <!-- Main Content Tabs -->
+    <div class="glass-panel rounded-2xl overflow-hidden min-h-[500px] flex flex-col">
+        <div class="flex border-b border-slate-700/50">
+            <button onclick="switchTab('dashboard')" id="tab-dashboard"
+                class="flex-1 py-4 text-sm font-medium transition-colors tab-active">Dashboard</button>
+            <button onclick="switchTab('settings')" id="tab-settings"
+                class="flex-1 py-4 text-sm font-medium transition-colors tab-inactive">Settings</button>
+        </div>
+
+        <!-- DASHBOARD TAB -->
+        <div id="content-dashboard" class="p-4 space-y-4 flex-1">
+            <!-- Prediction Banner -->
+            <div id="predictionCard"
+                class="hidden bg-gradient-to-r from-indigo-900/50 to-slate-900/50 rounded-xl p-4 border border-indigo-500/30">
+                <div class="flex items-start gap-3">
+                    <i data-lucide="sparkles" class="text-indigo-400 w-5 h-5 mt-0.5"></i>
+                    <div>
+                        <h3 class="font-semibold text-indigo-300">AI Prediction</h3>
+                        <p class="text-sm text-slate-300 mt-1">
+                            Est. FG <span id="predFG" class="font-bold text-white">--.---</span>
+                            by <span id="predDate" class="font-bold text-white">--/-- --:--</span>
+                            (<span id="predDays" class="text-indigo-200">--</span> days left)
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Grafana Embed -->
+            <div class="w-full h-[600px] rounded-xl overflow-hidden bg-slate-900 border border-slate-800 relative">
+                <iframe
+                    src="http://192.168.155.226:3000/d-solo/fermentation-dashboard/brew-brain-production?orgId=1&theme=dark&panelId=2"
+                    width="100%" height="100%" frameborder="0" class="absolute inset-0"></iframe>
+            </div>
+        </div>
+
+        <!-- SETTINGS TAB -->
+        <div id="content-settings" class="hidden p-4 space-y-6">
+
+            <!-- Calibration Section -->
+            <div class="space-y-3">
+                <h3 class="text-slate-400 text-xs uppercase font-bold tracking-wider">Calibration</h3>
+                <div class="bg-slate-800/40 rounded-xl p-4 space-y-4">
+                    <div class="flex justify-between items-center text-sm">
+                        <span class="text-slate-400">Current Offset</span>
+                        <span id="currentOffset"
+                            class="font-mono bg-slate-900 px-2 py-1 rounded text-amber-400">0.000</span>
+                    </div>
+
+                    <div class="space-y-2">
+                        <label class="text-sm text-slate-300">Calibrate Reading</label>
+                        <div class="flex gap-2">
+                            <input type="number" id="calSgInput" step="0.001"
+                                placeholder="Enter hydrometer reading (e.g. 1.050)"
+                                class="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500 transition-colors input-joy">
+                            <button onclick="calibrate()"
+                                class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-medium transition-colors active:scale-95">Set</button>
+                        </div>
+                        <p class="text-xs text-slate-500">Enter the value from your manual hydrometer reading. The
+                            system will calculate and apply the offset automatically.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Batch Details -->
+            <div class="space-y-3">
+                <h3 class="text-slate-400 text-xs uppercase font-bold tracking-wider">Batch Profile</h3>
+                <div class="bg-slate-800/40 rounded-xl p-4 space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs text-slate-500 mb-1">Batch Name</label>
+                            <input id="batchName" type="text"
+                                class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:border-blue-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-slate-500 mb-1">Start Date</label>
+                            <input id="startDate" type="date"
+                                class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:border-blue-500 outline-none">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs text-slate-500 mb-1">Original Gravity (OG)</label>
+                            <input id="ogInput" type="number" step="0.001"
+                                class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:border-blue-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-slate-500 mb-1">Target FG</label>
+                            <input id="targetFgInput" type="number" step="0.001"
+                                class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:border-blue-500 outline-none">
+                        </div>
+                    </div>
+
+                    <button onclick="saveBatchSettings()" id="saveBatchBtn"
+                        class="w-full bg-slate-700 hover:bg-slate-600 text-white py-2 rounded-lg text-sm font-medium transition-colors">Save
+                        Batch Profile</button>
+                </div>
+            </div>
+
+            <!-- Integrations -->
+            <div class="space-y-3">
+                <h3 class="text-slate-400 text-xs uppercase font-bold tracking-wider">Integrations</h3>
+
+                <!-- Brewfather -->
+                <div class="bg-slate-800/40 rounded-xl p-4 space-y-3">
+                    <div class="flex items-center gap-2 mb-2">
+                        <i data-lucide="cloud-rain" class="text-blue-400 w-4 h-4"></i>
+                        <h4 class="font-medium text-slate-200">Brewfather</h4>
+                    </div>
+                    <input id="bfUser" type="text" placeholder="User ID"
+                        class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white mb-2">
+                    <input id="bfKey" type="password" placeholder="API Key"
+                        class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white mb-2">
+                    <button onclick="saveIntegration('bf')"
+                        class="w-full bg-slate-700 hover:bg-slate-600 text-white py-2 rounded-lg text-sm font-medium">Save
+                        Brewfather</button>
+                </div>
+
+                <!-- Telegram -->
+                <div class="bg-slate-800/40 rounded-xl p-4 space-y-3">
+                    <div class="flex items-center gap-2 mb-2">
+                        <i data-lucide="send" class="text-sky-400 w-4 h-4"></i>
+                        <h4 class="font-medium text-slate-200">Telegram</h4>
+                    </div>
+                    <input id="tgToken" type="password" placeholder="Bot Token"
+                        class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white mb-2">
+                    <input id="tgChat" type="text" placeholder="Chat ID"
+                        class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white mb-2">
+                    <button onclick="saveIntegration('tg')"
+                        class="w-full bg-slate-700 hover:bg-slate-600 text-white py-2 rounded-lg text-sm font-medium">Save
+                        Telegram</button>
+                </div>
+            </div>
+
+            <!-- System -->
+            <div class="pt-4 border-t border-slate-700/50">
+                <button onclick="toggleTestMode()" id="testModeBtn"
+                    class="w-full border border-slate-600 text-slate-400 py-3 rounded-xl hover:bg-slate-800 transition-colors text-sm">Enable
+                    Test Mode</button>
+                <p class="text-center text-xs text-slate-600 mt-4">Brew Brain v2.0 • Running on Raspberry Pi</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Mobile Nav -->
+<div class="fixed bottom-0 left-0 right-0 bg-slate-900 border-t border-slate-800 md:hidden z-50 safe-bottom">
+    <div class="flex justify-around items-center h-16">
+        <button onclick="switchTab('dashboard')" class="flex flex-col items-center gap-1 p-2 mobile-nav-active w-full"
+            id="mob-dashboard">
+            <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+            <span class="text-[10px] font-medium">Dashboard</span>
+        </button>
+        <button onclick="switchTab('settings')" class="flex flex-col items-center gap-1 p-2 mobile-nav-inactive w-full"
+            id="mob-settings">
+            <i data-lucide="settings" class="w-5 h-5"></i>
+            <span class="text-[10px] font-medium">Settings</span>
+        </button>
+    </div>
+</div>
+
+<script>
+    lucide.createIcons();
+
+    // --- State Management ---
+    let state = {
+        og: 1.050,
+        sg: 0.000,
+        temp: 0.0,
+        offset: 0.0,
+        testMode: false
+    };
+
+    // --- Core Functions ---
+    async function fetchStatus() {
+        try {
+            const dot = document.getElementById('connectionDot');
+            dot.classList.remove('bg-red-500');
+            dot.classList.add('bg-green-500');
+
+            const res = await fetch('/api/status');
+            const data = await res.json();
+
+            // Update State
+            state.sg = parseFloat(data.sg).toFixed(3);
+            state.temp = parseFloat(data.temp).toFixed(1);
+            state.og = parseFloat(data.og).toFixed(3);
+            state.offset = parseFloat(data.offset).toFixed(3);
+            state.testMode = data.test_mode === 'true';
+
+            // Update DOM
+            document.getElementById('sgVal').innerText = state.sg;
+            document.getElementById('tempVal').innerText = state.temp;
+            document.getElementById('currentOffset').innerText = (state.offset > 0 ? '+' : '') + state.offset;
+            document.getElementById('piTemp').innerText = `CPU: ${data.pi_temp || '--'}°C`;
+
+            // Calc Stats
+            const abv = ((state.og - state.sg) * 131.25).toFixed(1);
+            document.getElementById('abvVal').innerText = Math.max(0, abv);
+
+            const attenuation = (((state.og - state.sg) / (state.og - 1)) * 100).toFixed(1);
+            document.getElementById('attVal').innerText = Math.max(0, attenuation);
+
+            // Update Prediction
+            if (data.prediction_fg) {
+                document.getElementById('predictionCard').classList.remove('hidden');
+                document.getElementById('predFG').innerText = data.prediction_fg;
+                document.getElementById('predDate').innerText = data.prediction_end_date.split(' ')[0]; // Show date only for compactness
+                document.getElementById('predDays').innerText = data.prediction_days_left;
+            } else {
+                document.getElementById('predictionCard').classList.add('hidden');
+            }
+
+            // Update Buttons
+            const tmBtn = document.getElementById('testModeBtn');
+            tmBtn.innerText = state.testMode ? "Disable Test Mode" : "Enable Test Mode";
+            tmBtn.className = state.testMode ?
+                "w-full bg-amber-500/20 text-amber-500 border border-amber-500/50 py-3 rounded-xl hover:bg-amber-500/30 transition-colors text-sm" :
+                "w-full border border-slate-600 text-slate-400 py-3 rounded-xl hover:bg-slate-800 transition-colors text-sm";
+
+            // Populate Inputs if empty (only once)
+            if (!document.getElementById('batchName').value) loadSettings();
+
+        } catch (e) {
+            console.error("Fetch Error", e);
+            const dot = document.getElementById('connectionDot');
+            dot.classList.remove('bg-green-500');
+            dot.classList.add('bg-red-500');
+        }
+    }
+
+    async function loadSettings() {
+        const res = await fetch('/api/settings');
+        const data = await res.json();
+        document.getElementById('batchName').value = data.batch_name || '';
+        document.getElementById('startDate').value = data.start_date || '';
+        document.getElementById('ogInput').value = data.og || '';
+        document.getElementById('targetFgInput').value = data.target_fg || '';
+        document.getElementById('bfUser').value = data.bf_user || '';
+        // Don't autofill secrets for security, just placeholders if needed
+    }
+
+    async function calibrate() {
+        const manualVal = parseFloat(document.getElementById('calSgInput').value);
+        if (!manualVal || manualVal < 0.900 || manualVal > 1.200) {
+            alert("Please enter a valid hydrometer reading (0.900 - 1.200)");
+            return;
+        }
+
+        // Current raw SG = Current Calibrated SG - Current Offset
+        // New Offset = Manual Value - Raw SG
+        // Therefore: New Offset = Manual Value - (Current Calibrated SG - Current Offset)
+
+        // To simplify API, we just send the manual value, logic should be handled by backend usually, 
+        // but for this endpoint it expects `sg` to calculate offset.
+        // Let's assume the backend endpoint handles the math: Offset = Reading - Raw_Tilt_Value
+
+        try {
+            const res = await fetch('/api/calibrate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ sg: manualVal })
+            });
+            const d = await res.json();
+            if (d.status === 'success') {
+                alert(`Calibrated! New offset: ${d.new_offset}`);
+                fetchStatus(); // Refresh UI
+                document.getElementById('calSgInput').value = '';
+            } else {
+                alert('Error: ' + d.message);
+            }
+        } catch (e) {
+            alert("Calibration failed. Check connection.");
+        }
+    }
+
+    async function saveBatchSettings() {
+        const payload = {
+            batch_name: document.getElementById('batchName').value,
+            start_date: document.getElementById('startDate').value,
+            og: document.getElementById('ogInput').value,
+            target_fg: document.getElementById('targetFgInput').value
+        };
+        if (!payload.batch_name) return alert("Batch Name required");
+
+        await fetch('/api/settings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        alert("Batch settings saved!");
+        fetchStatus();
+    }
+
+    async function saveIntegration(type) {
+        let payload = {};
+        if (type === 'bf') {
+            payload = {
+                bf_user: document.getElementById('bfUser').value,
+                bf_key: document.getElementById('bfKey').value
+            };
+        } else if (type === 'tg') {
+            payload = {
+                alert_telegram_token: document.getElementById('tgToken').value,
+                alert_telegram_chat: document.getElementById('tgChat').value
+            };
+        }
+
+        await fetch('/api/settings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        alert(`${type === 'bf' ? 'Brewfather' : 'Telegram'} settings saved!`);
+    }
+
+    async function toggleTestMode() {
+        const newState = !state.testMode;
+        await fetch('/api/settings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ test_mode: newState })
+        });
+        fetchStatus();
+    }
+
+    // --- UI Interactions ---
+    function switchTab(tab) {
+        // Hide all
+        document.getElementById('content-dashboard').classList.add('hidden');
+        document.getElementById('content-settings').classList.add('hidden');
+
+        // Reset styles
+        ['dashboard', 'settings'].forEach(t => {
+            document.getElementById(`tab-${t}`).classList.replace('tab-active', 'tab-inactive');
+            document.getElementById(`mob-${t}`).classList.replace('mobile-nav-active', 'mobile-nav-inactive');
+        });
+
+        // Show active
+        document.getElementById(`content-${tab}`).classList.remove('hidden');
+        document.getElementById(`tab-${tab}`).classList.replace('tab-inactive', 'tab-active');
+        document.getElementById(`mob-${tab}`).classList.replace('mobile-nav-inactive', 'mobile-nav-active');
+    }
+
+    // --- Init ---
+    setInterval(fetchStatus, 3000); // Polling every 3s
+    fetchStatus(); // Initial Load
+    loadSettings(); // Load form defaults
+</script>
 </body>
 
 </html>
