@@ -15,6 +15,9 @@ api_bp = Blueprint('api', __name__)
 @api_bp.route('/')
 def index(): return send_from_directory('static', 'index.html')
 
+@api_bp.route('/taplist')
+def taplist(): return send_from_directory('static', 'kiosk.html')
+
 @api_bp.route('/api/status')
 def status():
     return jsonify(get_status_dict())
