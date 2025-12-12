@@ -306,9 +306,30 @@
                             class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-3 md:py-2 text-base md:text-sm text-white mb-2">
                         <input id="tgChat" type="text" placeholder="Chat ID"
                             class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-3 md:py-2 text-base md:text-sm text-white mb-2">
-                        <button onclick="saveIntegration('tg')"
+                        Telegram</button>
+                    </div>
+
+                    <!-- Quiet Hours -->
+                    <div class="bg-slate-800/40 rounded-xl p-4 space-y-3">
+                        <div class="flex items-center gap-2 mb-2">
+                            <i data-lucide="moon" class="text-indigo-400 w-4 h-4"></i>
+                            <h4 class="font-medium text-slate-200">Active Alert Hours</h4>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs text-slate-500 mb-1">Start (24h)</label>
+                                <input id="alertStart" type="time"
+                                    class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-3 md:py-2 text-base md:text-sm text-white focus:border-indigo-500 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-slate-500 mb-1">End (24h)</label>
+                                <input id="alertEnd" type="time"
+                                    class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-3 md:py-2 text-base md:text-sm text-white focus:border-indigo-500 outline-none">
+                            </div>
+                        </div>
+                        <button onclick="saveIntegration('hours')"
                             class="w-full bg-slate-700 hover:bg-slate-600 text-white py-2 rounded-lg text-sm font-medium">Save
-                            Telegram</button>
+                            Hours</button>
                     </div>
                 </div>
 
@@ -472,6 +493,8 @@
             document.getElementById('bfKey').value = data.bf_key || '';
             document.getElementById('tgToken').value = data.alert_telegram_token || '';
             document.getElementById('tgChat').value = data.alert_telegram_chat || '';
+            document.getElementById('alertStart').value = data.alert_start_time || '08:00';
+            document.getElementById('alertEnd').value = data.alert_end_time || '22:00';
             document.getElementById('testSgStart').value = data.test_sg_start || '1.060';
             document.getElementById('testTempBase').value = data.test_temp_base || '20.0';
         }
@@ -540,6 +563,11 @@
                     alert_telegram_token: document.getElementById('tgToken').value,
                     alert_telegram_chat: document.getElementById('tgChat').value
                 };
+            } else if (type === 'hours') {
+                payload = {
+                    alert_start_time: document.getElementById('alertStart').value,
+                    alert_end_time: document.getElementById('alertEnd').value
+                };
             }
 
             await fetch('/api/settings', {
@@ -547,7 +575,8 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
-            alert(`${type === 'bf' ? 'Brewfather' : 'Telegram'} settings saved!`);
+            let typeName = type === 'bf' ? 'Brewfather' : type === 'tg' ? 'Telegram' : 'Active Hours';
+            alert(`${typeName} settings saved!`);
         }
 
         async function syncBrewfather(btn) {

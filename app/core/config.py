@@ -26,7 +26,8 @@ DEFAULTS = {
     "batch_name": "New Batch", "batch_notes": "", "start_date": datetime.now().strftime("%Y-%m-%d"),
     "bf_user": "", "bf_key": "", "alert_telegram_token": "", "alert_telegram_chat": "",
     "temp_max": "28.0", "tilt_timeout_min": "60",
-    "test_sg_start": "1.060", "test_temp_base": "20.0"
+    "test_sg_start": "1.060", "test_temp_base": "20.0",
+    "alert_start_time": "08:00", "alert_end_time": "22:00"
 }
 
 # Config Cache

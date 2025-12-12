@@ -166,6 +166,37 @@ def check_alerts():
         if get_config("test_mode") == "true": continue
         try:
             now = time.time()
+            local_hour = time.localtime(now).tm_hour
+            
+            # Quiet Hours Check
+            start_str = get_config("alert_start_time") or "08:00"
+            end_str = get_config("alert_end_time") or "22:00"
+            try:
+                start_h = int(start_str.split(":")[0])
+                end_h = int(end_str.split(":")[0])
+                
+                # If start < end (e.g. 08 to 22), we alert if start < now < end
+                # If start > end (e.g. 22 to 08), we alert if now > start OR now < end (night shift)
+                # ... Wait, user wants "Quiet Hours" or "Active Hours"?
+                # Request said: "not disturbed during the night". So we define ACTIVE hours.
+                # Default 08:00 to 22:00 are ACTIVE hours.
+                
+                is_active_time = False
+                if start_h < end_h:
+                    if start_h <= local_hour < end_h: is_active_time = True
+                else:
+                    # Spans midnight (e.g. 22:00 to 08:00 active? Unlikely for "Quiet Night")
+                    # Assuming inputs are ACTIVE hours.
+                    if local_hour >= start_h or local_hour < end_h: is_active_time = True
+                    
+                if not is_active_time:
+                    # It is quiet time, skip alerts
+                    continue
+
+            except Exception as e:
+                logger.error(f"Time Check Error: {e}")
+                # Fail open (allow alerts) if config is bad
+            
             COOLDOWN = 14400
             timeout_min = int(get_config("tilt_timeout_min") or 60)
             q = f'from(bucket: "{INFLUX_BUCKET}") |> range(start: -{timeout_min}m) |> filter(fn: (r) => r["_measurement"] == "sensor_data") |> count()'
