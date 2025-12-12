@@ -238,9 +238,13 @@
                             class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white mb-2">
                         <input id="bfKey" type="password" placeholder="API Key"
                             class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white mb-2">
-                        <button onclick="saveIntegration('bf')"
-                            class="w-full bg-slate-700 hover:bg-slate-600 text-white py-2 rounded-lg text-sm font-medium">Save
-                            Brewfather</button>
+                        <div class="flex gap-2">
+                            <button onclick="saveIntegration('bf')"
+                                class="flex-1 bg-slate-700 hover:bg-slate-600 text-white py-2 rounded-lg text-sm font-medium mb-2">Save</button>
+                            <button onclick="syncBrewfather()"
+                                class="flex-1 bg-blue-600 hover:bg-blue-500 text-white py-2 rounded-lg text-sm font-medium mb-2">Sync
+                                Batch</button>
+                        </div>
                     </div>
 
                     <!-- Telegram -->
@@ -364,7 +368,9 @@
             document.getElementById('ogInput').value = data.og || '';
             document.getElementById('targetFgInput').value = data.target_fg || '';
             document.getElementById('bfUser').value = data.bf_user || '';
-            // Don't autofill secrets for security, just placeholders if needed
+            document.getElementById('bfKey').value = data.bf_key || '';
+            document.getElementById('tgToken').value = data.alert_telegram_token || '';
+            document.getElementById('tgChat').value = data.alert_telegram_chat || '';
         }
 
         async function calibrate() {
@@ -439,6 +445,23 @@
                 body: JSON.stringify(payload)
             });
             alert(`${type === 'bf' ? 'Brewfather' : 'Telegram'} settings saved!`);
+        }
+
+        async function syncBrewfather() {
+            const btn = event.target;
+            const originalText = btn.innerText;
+            btn.innerText = "Syncing...";
+            try {
+                const res = await fetch('/api/sync_brewfather', { method: 'POST' });
+                const d = await res.json();
+                if (d.status === 'synced') {
+                    alert(`Synced batch: ${d.data.name}`);
+                    loadSettings(); // Reload fields to show new batch name/stats
+                } else {
+                    alert('Sync error: ' + d.error);
+                }
+            } catch (e) { alert("Sync failed. Check connection."); }
+            btn.innerText = originalText;
         }
 
         async function toggleTestMode() {

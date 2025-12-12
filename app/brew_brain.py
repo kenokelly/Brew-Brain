@@ -359,8 +359,11 @@ def calibrate():
         set_config("offset", manual - raw); return jsonify({"status": "set"})
     return jsonify({"error": "No raw data"}), 400
 
-@app.route('/api/settings', methods=['POST'])
+@app.route('/api/settings', methods=['GET', 'POST'])
 def settings():
+    if request.method == 'GET':
+        return jsonify(_config_cache)
+
     data = request.json
     if not data: return jsonify({"error": "No data"}), 400
     

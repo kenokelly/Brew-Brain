@@ -63,4 +63,6 @@ If you use Brewfather, you can sync data directly.
 1.  In Brewfather, go to **Settings** -> **Power Controller & API**.
 2.  Generate an API Key.
 3.  Enter your **User ID** and **API Key** in Brew-Brain Settings.
-4.  Click **Save Brewfather**.
+4.  Click **Save**.
+5.  Ensure you have an active batch with status **Fermenting** in Brewfather.
+6.  Click **Sync Batch**. Brew-Brain will pull the recipe details (OG, FG, Name) automatically.

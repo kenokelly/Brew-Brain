@@ -63,7 +63,8 @@
                     <h3 class="font-bold text-white mb-2">1. Create a Bot</h3>
                     <p class="text-sm">Talk to <strong class="text-sky-400">@BotFather</strong> on Telegram. Send <code
                             class="bg-slate-800 px-1 rounded">/newbot</code> and follow instructions to get your
-                        <strong>Token</strong>.</p>
+                        <strong>Token</strong>.
+                    </p>
                 </div>
 
                 <div>
@@ -102,6 +103,26 @@
                 <li>Click <strong>Set</strong>.</li>
             </ol>
             <p class="mt-4 text-xs text-slate-500">The system calculates the offset (-0.005) automatically.</p>
+        </div>
+
+        <!-- Brewfather -->
+        <div class="glass-panel p-6 rounded-2xl">
+            <h2 class="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                <i data-lucide="cloud-rain" class="text-blue-400"></i> Brewfather
+            </h2>
+            <div class="space-y-4">
+                <p class="text-sm">Sync recipe data (Target F.G, OG, Name) from Brewfather.</p>
+                <ol class="list-decimal list-inside space-y-2 text-sm bg-slate-800/50 p-4 rounded-xl">
+                    <li>Go to Brewfather <strong>Settings</strong> > <strong>Power Controller & API</strong>.</li>
+                    <li>Generate an API Key.</li>
+                    <li>Enter <strong>User ID</strong> and <strong>Key</strong> in Brew-Brain.</li>
+                    <li>Click <strong>Save</strong>, then <strong>Sync Batch</strong>.</li>
+                </ol>
+                <div class="flex items-center gap-2 text-xs text-amber-500 bg-amber-500/10 p-2 rounded">
+                    <i data-lucide="triangle-alert" class="w-4 h-4"></i>
+                    <span>Must have a batch status set to "Fermenting" in Brewfather.</span>
+                </div>
+            </div>
         </div>
 
     </div>
