@@ -9,7 +9,10 @@ Brew Brain is a Dockerized add-on for Raspberry Pi breweries. It sits on top of 
 * **📊 Instant Dashboard:** Comes with a professional, pre-configured Grafana dashboard (ABV, Attenuation, Battery) out of the box. No manual setup required.
 * **🎯 Smart Calibration:** Corrects noisy Tilt readings with a single manual offset entry.
 * **🛡️ Safety Watchdog:** Monitors Tilt signal health and Raspberry Pi connectivity (reboots WiFi if stuck).
+* **📉 Stall Detection:** Alerts you via Telegram if fermentation stalls (daily drop < 0.002) while still above target FG.
 * **🧪 Test Mode:** Run water tests or cleaning cycles without messing up your historical fermentation graphs.
+* **🌙 Quiet Hours:** Configurable "Do Not Disturb" times for alerts (default 10pm - 8am).
+* **🏷️ Label Generator:** One-click generation of printable 4x6" keg labels with QR codes.
 * **🔔 Alerting:** Telegram notifications for "Stuck Fermentation" or "Temp Runaway."
 
 ---
@@ -19,6 +22,24 @@ Brew Brain is a Dockerized add-on for Raspberry Pi breweries. It sits on top of 
 * **Hardware:** Raspberry Pi 4 or 5 (Recommended).
 * **OS:** Raspberry Pi OS (Bookworm 64-bit preferred).
 * **Sensor:** Tilt Hydrometer (Any color).
+
+---
+
+---
+
+## 🚀 One-Click Deployment
+
+Already set up? Deploy updates instantly with the included script:
+
+```bash
+./deploy_and_verify.sh
+```
+
+This script will:
+1.  **Clean** local cache files.
+2.  **Sync** code to your Pi via `scp`.
+3.  **Rebuild** and restart the Docker containers remotely.
+4.  **Verify** the API is online and serving requests.
 
 ---
 
@@ -46,7 +67,7 @@ logout
 **2. Install TILTpi (The Driver)**
 Since the official TILTpi SD image does not support Raspberry Pi 5 yet, we install it manually.
 
-  * **Install Node-RED:**
+* **Install Node-RED:**
 
     ```bash
     bash <(curl -sL [https://raw.githubusercontent.com/node-red/linux-installers/master/deb/update-nodejs-and-nodered](https://raw.githubusercontent.com/node-red/linux-installers/master/deb/update-nodejs-and-nodered))
@@ -56,15 +77,15 @@ Since the official TILTpi SD image does not support Raspberry Pi 5 yet, we insta
     sudo systemctl start nodered.service
     ```
 
-  * **Configure Node-RED:**
+* **Configure Node-RED:**
 
-    1.  Open your browser to `http://<pi-ip>:1880`.
-    2.  Click the Hamburger Menu (top right) -\> **Manage Palette**.
-    3.  Click the **Install** tab, search for `node-red-contrib-tilt`, and click install.
-    4.  **Import the Flow:** Download the [official TILTpi Flow JSON](https://www.google.com/search?q=https://github.com/baronbrew/TILTpi/blob/master/node-red-flow.json).
-    5.  In Node-RED: Menu -\> Import -\> Paste the JSON code -\> Click Import.
-    6.  Click **Deploy** (Top Right Red Button).
-    7.  *Verify:* Go to `http://<pi-ip>:1880/ui`. You should see your Tilt data.
+    1. Open your browser to `http://<pi-ip>:1880`.
+    2. Click the Hamburger Menu (top right) -\> **Manage Palette**.
+    3. Click the **Install** tab, search for `node-red-contrib-tilt`, and click install.
+    4. **Import the Flow:** Download the [official TILTpi Flow JSON](https://www.google.com/search?q=https://github.com/baronbrew/TILTpi/blob/master/node-red-flow.json).
+    5. In Node-RED: Menu -\> Import -\> Paste the JSON code -\> Click Import.
+    6. Click **Deploy** (Top Right Red Button).
+    7. *Verify:* Go to `http://<pi-ip>:1880/ui`. You should see your Tilt data.
 
 **3. Install Brew Brain**
 Now we deploy the Intelligence, Database, and Dashboard.
@@ -155,9 +176,9 @@ Open `docker-compose.brain-only.yml`:
 nano docker-compose.brain-only.yml
 ```
 
-  * Scroll to the bottom (`networks:`).
-  * Change `name: tilt-pi-network` to the name you found in step 2.
-  * *Check `services: brew-brain: environment: INFLUX_URL`: Ensure `influxdb` matches your existing container name.*
+* Scroll to the bottom (`networks:`).
+* Change `name: tilt-pi-network` to the name you found in step 2.
+* *Check `services: brew-brain: environment: INFLUX_URL`: Ensure `influxdb` matches your existing container name.*
 
 **4. Launch**
 
@@ -208,26 +229,26 @@ Add this line to run every 5 minutes:
 
 ### 1\. The Dashboard (http://\<pi-ip\>:5000)
 
-  * **Status:** Shows Tilt Signal Strength (RSSI) and Pi CPU Temp.
-  * **Brewfather Sync:** Go to Settings, enter your User ID and API Key. Then click the "Sync" icon on the dashboard to auto-fill your Batch Name and Gravity Targets.
-  * **Calibration:** Take a reading with your refractometer. Enter it in the "Calibration" box. The system calculates the offset automatically.
-  * **Test Mode:** Toggle this **ON** when cleaning. Data will be logged to `test_readings` instead of `calibrated_readings`.
+* **Status:** Shows Tilt Signal Strength (RSSI) and Pi CPU Temp.
+* **Brewfather Sync:** Go to Settings, enter your User ID and API Key. Then click the "Sync" icon on the dashboard to auto-fill your Batch Name and Gravity Targets.
+* **Calibration:** Take a reading with your refractometer. Enter it in the "Calibration" box. The system calculates the offset automatically.
+* **Test Mode:** Toggle this **ON** when cleaning. Data will be logged to `test_readings` instead of `calibrated_readings`.
 
 ### 2\. Installing on Mobile (iOS/Android)
 
 This dashboard is a Progressive Web App (PWA).
 
-1.  Open `http://<pi-ip>:5000` in Safari (iOS) or Chrome (Android).
-2.  Tap **Share** -\> **Add to Home Screen**.
-3.  It will now open as a fullscreen app with persistent login.
+1. Open `http://<pi-ip>:5000` in Safari (iOS) or Chrome (Android).
+2. Tap **Share** -\> **Add to Home Screen**.
+3. It will now open as a fullscreen app with persistent login.
 
 ### 3\. Grafana Integration (http://\<pi-ip\>:3000)
 
 You don't need to build charts manually\!
 
-1.  Open Grafana (User/Pass: `admin`/`admin` default).
-2.  Go to **Dashboards**.
-3.  Click **"Brew Brain Production"**.
+1. Open Grafana (User/Pass: `admin`/`admin` default).
+2. Go to **Dashboards**.
+3. Click **"Brew Brain Production"**.
 
 -----
 
@@ -237,45 +258,50 @@ The "Brain" doesn't just log data; it analyzes the shape of your fermentation cu
 
 **How it works:**
 
-1.  **Data Gathering:** It reads the last 21 days of SG data.
-2.  **Curve Fitting:** It fits a standard fermentation curve equation: `SG(t) = FG + (OG - FG) / (1 + e^(k * (t - t_mid)))`
-3.  **Prediction:** It calculates the asymptote (Predicted FG) and the point where the curve flattens out (Estimated Completion Date).
+1. **Data Gathering:** It reads the last 21 days of SG data.
+2. **Curve Fitting:** It fits a standard fermentation curve equation: `SG(t) = FG + (OG - FG) / (1 + e^(k * (t - t_mid)))`
+3. **Prediction:** It calculates the asymptote (Predicted FG) and the point where the curve flattens out (Estimated Completion Date).
 
 **To View Predictions:**
 Add a new panel to your Grafana dashboard:
 
-  * **Query:** `from(bucket: "fermentation") |> range(start: -1h) |> filter(fn: (r) => r["_measurement"] == "predictions") |> last()`
-  * **Visualization:** Stat Panel
-  * **Fields:** `predicted_fg` and `days_remaining`
+* **Query:** `from(bucket: "fermentation") |> range(start: -1h) |> filter(fn: (r) => r["_measurement"] == "predictions") |> last()`
+* **Visualization:** Stat Panel
+* **Fields:** `predicted_fg` and `days_remaining`
 
 -----
 
 ## Acknowledgements
 
-  * **Baron Brew:** Creators of the Tilt Hydrometer and the TILTpi software used in this stack.
-  * **Stian Josok:** Author of the *Tilt Pi Monitor Stack Docker Guide* which inspired the container architecture.
-  * **Tiltpi:** Brewing data and ML concepts referenced from Gemini Project.
+* **Baron Brew:** Creators of the Tilt Hydrometer and the TILTpi software used in this stack.
+* **Stian Josok:** Author of the *Tilt Pi Monitor Stack Docker Guide* which inspired the container architecture.
+* **Tiltpi:** Brewing data and ML concepts referenced from Gemini Project.
 
 <!-- end list -->
 
 ```
 ```
-# ... (Previous Sections) ...
+
+# ... (Previous Sections)
 
 ## 🔒 Security & Best Practices
 
 Since this device monitors physical processes (temperature/fermentation), security is important.
 
 ### 1. Hardened Secrets
+
 The `.gitignore` file includes `.env`. **Do not remove this.** Your `.env` file contains your Database passwords and Telegram tokens. Never commit it to GitHub.
 
 ### 2. Grafana Ports
+
 By default, Grafana is configured with `GF_AUTH_ANONYMOUS_ENABLED=true` to allow the dashboard to load without login on your local network (LAN).
+
 * **Safe:** If you only access this via `http://192.168.x.x` at home.
 * **Dangerous:** If you port-forward port `3000` to the internet.
 * **Recommendation:** If exposing to the web, set `GF_AUTH_ANONYMOUS_ENABLED=false` in `docker-compose.yml` and use strong passwords.
 
 ### 3. API Validation
+
 The System API (`/api/settings`) enforces strict type checking to prevent injection of invalid data types into the configuration database.
 
-# ... (Rest of README) ...
+# ... (Rest of README)

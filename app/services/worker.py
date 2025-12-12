@@ -8,6 +8,7 @@ from influxdb_client import Point
 from core.config import get_config, set_config
 from core.influx import write_api, query_api, INFLUX_BUCKET, INFLUX_ORG
 from services.telegram import send_telegram
+from services.ai import analyze_yeast_history
 
 logger = logging.getLogger("BrewBrain")
 
@@ -17,7 +18,7 @@ processing_state = { "last_processed_time": datetime.now(timezone.utc) - timedel
 def sigmoid(t, L, k, t0, C):
     return C + (L / (1 + np.exp(k * (t - t0))))
 
-def predict_fermentation(times, readings):
+def predict_fermentation(times, readings, og=None, attenuation=None):
     try:
         if len(times) < 50: return None, None
         
@@ -42,6 +43,37 @@ def predict_fermentation(times, readings):
         current_min = min(y_data_smooth)
         current_max = max(y_data_smooth)
         
+        # --- PHYSICS-INFORMED INITIAL GUESS ---
+        # Default Guesses
+        guess_L = current_max - current_min
+        guess_C = current_min
+        guess_k = 0.5
+        
+        # If we have metadata, refine the guess
+        if og and attenuation:
+            try:
+                # Calculate expected FG based on physics
+                # OG is e.g. 1.050, Attenuation is e.g. 80.0 (%)
+                # Formula: Apparent Attenuation = (OG - FG) / (OG - 1)
+                # So: FG = OG - (Apparent_Atten * (OG - 1))
+                
+                # Check for sane values
+                og_val = float(og)
+                att_val = float(attenuation)
+                
+                if og_val > 1.0 and 50 < att_val < 100:
+                    expected_fg = og_val - ((att_val / 100.0) * (og_val - 1.0))
+                    
+                    # Log logic (if we had access to logger here)
+                    # Use this expected_fg as the Asymptote (C) guess
+                    guess_C = expected_fg
+                    
+                    # Refine L (Total Drop) guess based on OG
+                    # L = OG - FG
+                    guess_L = og_val - expected_fg
+            except:
+                pass # Fallback to data-driven guess
+
         try:
             mid_gravity = current_max - ((current_max - current_min) / 2)
             idx = (np.abs(y_data_smooth - mid_gravity)).argmin()
@@ -50,7 +82,7 @@ def predict_fermentation(times, readings):
         except:
             estimated_midpoint = 48
 
-        p0 = [current_max - current_min, 0.5, estimated_midpoint, current_min]
+        p0 = [guess_L, guess_k, estimated_midpoint, guess_C]
         
         popt, _ = curve_fit(sigmoid, x_data, y_data_smooth, p0=p0, maxfev=20000, 
                            bounds=([0, 0, 0, 0.900], [0.2, 5, 1000, 1.200]))
@@ -137,13 +169,22 @@ def process_data():
                         if rec_time.tzinfo is None: rec_time = rec_time.replace(tzinfo=timezone.utc)
                         if processing_state["last_processed_time"].tzinfo is None: processing_state["last_processed_time"] = processing_state["last_processed_time"].replace(tzinfo=timezone.utc)
                         if rec_time > processing_state["last_processed_time"]:
-                            p = Point("calibrated_readings").tag("Color", record.values.get("Color")).field("sg", val).time(rec_time)
+                            yeast = get_config("yeast_strain") or "Unknown"
+                            p = Point("calibrated_readings")\
+                                .tag("Color", record.values.get("Color"))\
+                                .tag("yeast", yeast)\
+                                .field("sg", val)\
+                                .time(rec_time)
                             points_to_write.append(p)
                             processing_state["last_processed_time"] = rec_time
 
 
             if not test_mode and len(readings) > 50:
-                pred_fg, pred_date = predict_fermentation(times, readings)
+                # Gather Metadata for Informed Prediction
+                og = get_config("og")
+                attenuation = get_config("yeast_attenuation")
+                
+                pred_fg, pred_date = predict_fermentation(times, readings, og, attenuation)
                 if pred_fg:
                     p_pred = Point("predictions").field("predicted_fg", pred_fg).time(datetime.now(timezone.utc))
                     if pred_date:
@@ -206,12 +247,20 @@ def check_alerts():
                 alert_state["last_tilt_alert"] = now
             
             max_temp = float(get_config("temp_max") or 28.0)
+            yeast_max = get_config("yeast_max_temp")
+            
             q_temp = f'from(bucket: "{INFLUX_BUCKET}") |> range(start: -15m) |> filter(fn: (r) => r["_measurement"] == "sensor_data") |> filter(fn: (r) => r["_field"] == "Temp") |> last()'
             tables = query_api.query(q_temp)
             for t in tables:
                 for r in t.records:
-                    if r.get_value() > max_temp and (now - alert_state["last_temp_alert"] > COOLDOWN):
-                        send_telegram(f"🔥 WARNING: Temp {r.get_value()}C (Limit: {max_temp}C)")
+                    val = r.get_value()
+                    # Global Max Check
+                    if val > max_temp and (now - alert_state["last_temp_alert"] > COOLDOWN):
+                        send_telegram(f"🔥 WARNING: Temp {val}C (Limit: {max_temp}C)")
+                        alert_state["last_temp_alert"] = now
+                    # Yeast Specific Check
+                    elif yeast_max and val > float(yeast_max) and (now - alert_state["last_temp_alert"] > COOLDOWN):
+                        send_telegram(f"🔥 YEAST WARNING: Temp {val}C exceeds {get_config('yeast_strain')} limit of {yeast_max}C!")
                         alert_state["last_temp_alert"] = now
         except Exception as e: logger.error(f"Alert Error: {e}")
 
@@ -248,3 +297,46 @@ def check_alerts():
 
         except Exception as e:
             logger.error(f"Stall Check Error: {e}")
+            
+        # --- YEAST ANOMALY CHECK ---
+        try:
+            now = time.time()
+            ANOMALY_COOLDOWN = 43200 # 12 hours
+            
+            if (now - alert_state.get("last_anomaly_alert", 0)) > ANOMALY_COOLDOWN:
+                yeast_name = get_config("yeast_strain")
+                # Only check if we have a valid yeast
+                if yeast_name and yeast_name != "Unknown":
+                    history = analyze_yeast_history(yeast_name)
+                    if history and history.get("avg_rate"):
+                        # Calculate Current Rate (last 24h)
+                        # Re-use queries from Stall Check for efficiency if possible
+                        # But simpler to just run logic:
+                        q_now = f'from(bucket: "{INFLUX_BUCKET}") |> range(start: -1h) |> filter(fn: (r) => r["_measurement"] == "calibrated_readings") |> filter(fn: (r) => r["_field"] == "sg") |> last()'
+                        q_24h = f'from(bucket: "{INFLUX_BUCKET}") |> range(start: -25h, stop: -24h) |> filter(fn: (r) => r["_measurement"] == "calibrated_readings") |> filter(fn: (r) => r["_field"] == "sg") |> last()'
+                        
+                        curr_sg = None
+                        prev_sg = None
+                        
+                        r1 = query_api.query(q_now)
+                        for t in r1: 
+                            for r in t.records: curr_sg = r.get_value()
+                            
+                        r2 = query_api.query(q_24h)
+                        for t in r2:
+                            for r in t.records: prev_sg = r.get_value()
+                            
+                        if curr_sg and prev_sg:
+                            drop_24h = prev_sg - curr_sg
+                            avg_rate = history["avg_rate"] # points/day
+                            
+                            logger.info(f"Anomaly Check: Drop={drop_24h:.4f}, HistRate={avg_rate:.4f} for {yeast_name}")
+                            
+                            # Logic: If current speed > 2.5x historical average
+                            # Filter: Only if drop is significant (> 0.010) to avoid noise at start/end
+                            if drop_24h > 0.010 and drop_24h > (avg_rate * 2.5):
+                                send_telegram(f"⚠️ Anomaly Detected! {yeast_name} is dropping {drop_24h:.3f}/day (Normal: ~{avg_rate:.3f}). Check for Infection.")
+                                alert_state["last_anomaly_alert"] = now
+                                
+        except Exception as e:
+            logger.error(f"Anomaly Check Error: {e}")

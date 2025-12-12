@@ -33,9 +33,24 @@ def sync_brewfather():
         rec = b.get('recipe', {})
         date_str = b.get('brewDate', datetime.now().strftime("%Y-%m-%d"))
         if isinstance(date_str, int): date_str = datetime.fromtimestamp(date_str/1000).strftime("%Y-%m-%d")
+        
+        # Capture Yeast
+        yeasts = rec.get('yeasts', [])
+        yeast_name = "Unknown"
+        if yeasts and len(yeasts) > 0:
+            y = yeasts[0]
+            yeast_name = y.get('name', 'Unknown')
+            # Extract Metadata
+            set_config("yeast_min_temp", y.get('minTemp'))
+            set_config("yeast_max_temp", y.get('maxTemp'))
+            set_config("yeast_attenuation", y.get('attenuation'))
+            set_config("yeast_flocculation", y.get('flocculation'))
+        
         set_config("batch_name", b.get('name')); set_config("og", rec.get('og')); set_config("target_fg", rec.get('fg'))
         set_config("batch_notes", b.get('notes') or rec.get('notes')); set_config("start_date", date_str)
-        return jsonify({"status": "synced", "data": {"name": b.get('name')}})
+        set_config("yeast_strain", yeast_name)
+        
+        return jsonify({"status": "synced", "data": {"name": b.get('name'), "yeast": yeast_name}})
     except Exception as e: return jsonify({"error": str(e)}), 500
 
 @api_bp.route('/api/calibrate', methods=['POST'])
