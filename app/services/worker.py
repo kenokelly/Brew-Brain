@@ -77,10 +77,19 @@ def process_data():
             points_to_write = []
             
             if test_mode:
+                # Load Configurable Parameters
+                sg_start = float(get_config("test_sg_start") or 1.060)
+                temp_base = float(get_config("test_temp_base") or 20.0)
+                
                 now = datetime.now(timezone.utc)
+                # progress goes from 0 to 1 over 60 seconds for demo loop
                 progress = (now.minute + now.second/60) / 60
-                fake_sg = 1.050 - (0.040 * progress) 
-                fake_temp = 20.0 + (np.sin(now.timestamp()/100) * 0.5)
+                
+                # Simulate drop from sg_start by up to 0.040 points
+                fake_sg = sg_start - (0.040 * progress) 
+                
+                # Simulate temp wave around base
+                fake_temp = temp_base + (np.sin(now.timestamp()/100) * 0.5)
                 fake_rssi = -60 + int(np.sin(now.timestamp()/50) * 10)
                 
                 p = Point("test_readings")\

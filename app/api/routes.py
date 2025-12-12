@@ -67,7 +67,8 @@ def settings():
     
     schema = {
         "og": float, "target_fg": float, "offset": float, "temp_max": float, "tilt_timeout_min": int,
-        "batch_name": str, "batch_notes": str, "start_date": str
+        "batch_name": str, "batch_notes": str, "start_date": str,
+        "test_sg_start": float, "test_temp_base": float
     }
     
     for key, value in data.items():

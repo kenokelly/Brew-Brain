@@ -30,7 +30,8 @@ def init_db():
             "offset": "0.0", "test_mode": "false", "og": "1.050", "target_fg": "1.010",
             "batch_name": "New Batch", "batch_notes": "", "start_date": datetime.now().strftime("%Y-%m-%d"),
             "bf_user": "", "bf_key": "", "alert_telegram_token": "", "alert_telegram_chat": "",
-            "temp_max": "28.0", "tilt_timeout_min": "60"
+            "temp_max": "28.0", "tilt_timeout_min": "60",
+            "test_sg_start": "1.060", "test_temp_base": "20.0"
         }
         for k, v in defaults.items(): conn.execute("INSERT OR IGNORE INTO config (key, value) VALUES (?, ?)", (k, v))
         

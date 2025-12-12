@@ -290,11 +290,32 @@
                 </div>
 
                 <!-- System -->
-                <div class="pt-4 border-t border-slate-700/50">
+                <div class="pt-4 border-t border-slate-700/50 space-y-4">
                     <button onclick="toggleTestMode()" id="testModeBtn"
                         class="w-full border border-slate-600 text-slate-400 py-3 rounded-xl hover:bg-slate-800 transition-colors text-sm">Enable
                         Test Mode</button>
-                    <p class="text-center text-xs text-slate-600 mt-4">Brew Brain v2.0 • Running on Raspberry Pi</p>
+
+                    <div id="testConfigPanel"
+                        class="hidden bg-slate-800/40 rounded-xl p-4 space-y-3 border border-amber-500/20">
+                        <h4 class="text-xs uppercase font-bold text-amber-500 tracking-wider">Simulation Parameters</h4>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs text-slate-500 mb-1">Start SG</label>
+                                <input id="testSgStart" type="number" step="0.001" placeholder="1.060"
+                                    class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:border-amber-500 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-slate-500 mb-1">Base Temp (°C)</label>
+                                <input id="testTempBase" type="number" step="0.1" placeholder="20.0"
+                                    class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:border-amber-500 outline-none">
+                            </div>
+                        </div>
+                        <button onclick="saveTestSettings()"
+                            class="w-full bg-slate-700 hover:bg-slate-600 text-white py-2 rounded-lg text-sm font-medium transition-colors">Update
+                            Simulation</button>
+                    </div>
+
+                    <p class="text-center text-xs text-slate-600 mt-4">Brew Brain v2.1 • Running on Raspberry Pi</p>
                 </div>
             </div>
         </div>
@@ -391,6 +412,10 @@
                     "w-full bg-amber-500/20 text-amber-500 border border-amber-500/50 py-3 rounded-xl hover:bg-amber-500/30 transition-colors text-sm" :
                     "w-full border border-slate-600 text-slate-400 py-3 rounded-xl hover:bg-slate-800 transition-colors text-sm";
 
+                const tcPanel = document.getElementById('testConfigPanel');
+                if (state.testMode) tcPanel.classList.remove('hidden');
+                else tcPanel.classList.add('hidden');
+
                 // Populate Inputs if empty (only once)
                 if (!document.getElementById('batchName').value) loadSettings();
 
@@ -413,6 +438,8 @@
             document.getElementById('bfKey').value = data.bf_key || '';
             document.getElementById('tgToken').value = data.alert_telegram_token || '';
             document.getElementById('tgChat').value = data.alert_telegram_chat || '';
+            document.getElementById('testSgStart').value = data.test_sg_start || '1.060';
+            document.getElementById('testTempBase').value = data.test_temp_base || '20.0';
         }
 
         async function calibrate() {
@@ -518,6 +545,19 @@
                 body: JSON.stringify({ test_mode: newState.toString() })
             });
             fetchStatus();
+        }
+
+        async function saveTestSettings() {
+            const payload = {
+                test_sg_start: document.getElementById('testSgStart').value,
+                test_temp_base: document.getElementById('testTempBase').value
+            };
+            await fetch('/api/settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            alert("Simulation parameters updated!");
         }
 
         // --- UI Interactions ---
