@@ -145,6 +145,11 @@
                     "datasource": "InfluxDB_V2",
                     "query": "from(bucket: \"fermentation\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"sensor_data\")\n  |> filter(fn: (r) => r[\"_field\"] == \"ferm\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> yield(name: \"Raw Tilt SG\")",
                     "refId": "B"
+                },
+                {
+                    "datasource": "InfluxDB_V2",
+                    "query": "from(bucket: \"fermentation\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"predictions\")\n  |> filter(fn: (r) => r[\"_field\"] == \"predicted_fg\")\n  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)\n  |> yield(name: \"AI Prediction\")",
+                    "refId": "C"
                 }
             ],
             "title": "Fermentation Curve",
@@ -208,6 +213,66 @@
                 }
             ],
             "title": "Temperature",
+            "type": "stat"
+        },
+        {
+            "datasource": "InfluxDB_V2",
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "mode": "thresholds"
+                    },
+                    "mappings": [],
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "red",
+                                "value": null
+                            },
+                            {
+                                "color": "#EAB839",
+                                "value": -80
+                            },
+                            {
+                                "color": "green",
+                                "value": -60
+                            }
+                        ]
+                    },
+                    "unit": "debm"
+                },
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 4,
+                "w": 6,
+                "x": 12,
+                "y": 0
+            },
+            "id": 4,
+            "options": {
+                "colorMode": "background",
+                "graphMode": "none",
+                "justifyMode": "auto",
+                "orientation": "auto",
+                "reduceOptions": {
+                    "calcs": [
+                        "lastNotNull"
+                    ],
+                    "fields": "",
+                    "values": false
+                },
+                "textMode": "auto"
+            },
+            "targets": [
+                {
+                    "datasource": "InfluxDB_V2",
+                    "query": "from(bucket: \"fermentation\")\n  |> range(start: -1h)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"sensor_data\")\n  |> filter(fn: (r) => r[\"_field\"] == \"rssi\")\n  |> last()",
+                    "refId": "A"
+                }
+            ],
+            "title": "Signal Strength",
             "type": "stat"
         }
     ],
