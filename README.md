@@ -13,7 +13,9 @@ Brew Brain is a Dockerized add-on for Raspberry Pi breweries. It sits on top of 
 * **🧪 Test Mode:** Run water tests or cleaning cycles without messing up your historical fermentation graphs.
 * **🌙 Quiet Hours:** Configurable "Do Not Disturb" times for alerts (default 10pm - 8am).
 * **🏷️ Label Generator:** One-click generation of printable 4x6" keg labels with QR codes.
-* **🔔 Alerting:** Telegram notifications for "Stuck Fermentation" or "Temp Runaway."
+* **🧬 Yeast Fingerprinting:** Automatically tags data with the yeast strain synced from Brewfather.
+* **🧠 Physics-Informed ML:** Biases prediction models using the yeast's official manufacturer specs (Attenuation).
+* **🔔 Alerting:** Telegram notifications for "Stuck Fermentation", "Temp Runaway", or "Yeast Anomaly".
 
 ---
 
@@ -48,6 +50,7 @@ This script will:
 Choose the scenario that best matches your current equipment.
 
 ### Scenario A: The "Fresh Start" (Brand New Pi 5)
+
 *You have a fresh SD card with Raspberry Pi OS (Bookworm) and nothing else.*
 
 **1. Install Docker**
@@ -259,14 +262,16 @@ The "Brain" doesn't just log data; it analyzes the shape of your fermentation cu
 **How it works:**
 
 1. **Data Gathering:** It reads the last 21 days of SG data.
-2. **Curve Fitting:** It fits a standard fermentation curve equation: `SG(t) = FG + (OG - FG) / (1 + e^(k * (t - t_mid)))`
-3. **Prediction:** It calculates the asymptote (Predicted FG) and the point where the curve flattens out (Estimated Completion Date).
+2. **Physics Bias:** It looks up the Manufacturer's Attenuation for your yeast (e.g. US-05 = 81%) to formulate an "Physics-Informed Guess" for the Final Gravity.
+3. **Curve Fitting:** It fits the fermentation curve using this biased guess as a starting point.
+4. **Prediction:** It calculates the asymptote (Predicted FG) and estimated completion date.
+
+**Yeast Memory:**
+The Brain also remembers! It tracks the "Normal Behavior" (Drop Rate & Attenuation) for each yeast strain over the last 90 days. If a new batch behaves unusually fast (>2.5x normal rate), it triggers an **Anomaly Alert** (Infection Warning).
 
 **To View Predictions:**
 Add a new panel to your Grafana dashboard:
 
-* **Query:** `from(bucket: "fermentation") |> range(start: -1h) |> filter(fn: (r) => r["_measurement"] == "predictions") |> last()`
-* **Visualization:** Stat Panel
 * **Fields:** `predicted_fg` and `days_remaining`
 
 -----

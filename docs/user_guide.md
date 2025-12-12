@@ -98,6 +98,35 @@ Finished brewing? Make it official.
     * ABV, OG, and Final Gravity
     * A **QR Code** containing your full batch notes.
 
+    * A **QR Code** containing your full batch notes.
+
+---
+
+## 🧠 AI & Intelligence
+
+The Brain is always learning. Here is how to use its new powers:
+
+### 1. Yeast Fingerprinting 🧬
+
+When you click **Brewfather Sync**, the Brain now learns exactly which yeast you are using (e.g., "WLP001").
+
+* It logs this yeast name with every data point.
+* It downloads the manufacturer's **Max Temp** and **Expected Attenuation**.
+
+### 2. Anomaly Alerts 🚨
+
+Because the Brain knows your yeast, it can spot trouble.
+
+* **Safety Check**: If your temperature exceeds the *Yeast's* specific max temp (e.g., 22°C for US-05), you get a specific warning even if you are below your global 28°C limit.
+* **Infection Check**: If your gravity drops >2.5x faster than this yeast historically does, you get an **Anomaly Alert**.
+
+### 3. Physics-Informed ML ⚛️
+
+The prediction model now combines Math (Curve Fitting) with Biology (Yeast Specs).
+
+* **Benefit**: Predictions are much more stable in the first 24-48 hours.
+* **Note**: If the prediction looks "too optimistic" or "too perfect" early on, that is because the biological bias is helping guide the math until enough real data exists to take over.
+
 ---
 
 ## ☁️ Brewfather Integration (Optional)
