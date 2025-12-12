@@ -25,14 +25,29 @@
         }
 
         .glass-container {
-            width: 60px;
-            height: 80px;
-            border: 2px solid rgba(255, 255, 255, 0.2);
-            border-top: none;
-            border-radius: 0 0 8px 8px;
+            width: 70px;
+            height: 100px;
             position: relative;
-            overflow: hidden;
             background: rgba(255, 255, 255, 0.05);
+            /* Tapered Pint Glass Shape */
+            clip-path: polygon(10% 100%, 0% 0%, 100% 0%, 90% 100%);
+            border-top: none;
+            overflow: hidden;
+            margin: 0 auto;
+        }
+
+        /* Glass Rim/Highlights overlay (optional but helps depth) */
+        .glass-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-top: none;
+            clip-path: polygon(10% 100%, 0% 0%, 100% 0%, 90% 100%);
+            pointer-events: none;
+            z-index: 10;
         }
 
         .liquid {
@@ -105,6 +120,9 @@
             document.getElementById('clock').innerText = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         }, 1000);
 
+        // Auto-refresh data every 30s
+        setInterval(loadTaps, 30000);
+
         async function loadTaps() {
             try {
                 const res = await fetch('/api/taps?t=' + Date.now());
@@ -127,9 +145,10 @@
 
                     if (mode === "serving") {
                         // Volume Logic (Drains Down)
-                        const total = parseFloat(t.keg_total || 640);
-                        const rem = parseFloat(t.keg_remaining || 640);
-                        visualHeight = Math.max(5, (rem / total) * 100);
+                        const total = parseFloat(t.keg_total) || 19.0;
+                        const rem = parseFloat(t.keg_remaining);
+                        const safeRem = isNaN(rem) ? total : rem;
+                        visualHeight = Math.max(5, (safeRem / total) * 100);
                     } else {
                         // Fermentation Logic (Fills Up based on Attenuation)
                         const og = parseFloat(t.og) || 1.050;
@@ -141,20 +160,24 @@
 
                     const html = `
                     <div class="h-full flex flex-col justify-center items-center p-8 text-center bg-slate-900/20 hover:bg-slate-900/40 transition">
-                        
+
                         <!-- Dynamic Icon -->
-                        <div class="glass-container mb-6 shadow-[0_0_15px_rgba(245,158,11,0.2)]">
-                            <div class="liquid" style="height: ${visualHeight}%">
-                                <div class="foam"></div>
+                        <!-- Dynamic Icon -->
+                        <div style="position: relative; width: 70px; height: 100px; margin-bottom: 1.5rem;">
+                            <div class="glass-container shadow-[0_0_15px_rgba(245,158,11,0.2)]">
+                                <div class="liquid" style="height: ${visualHeight}%;">
+                                    <div class="foam"></div>
+                                </div>
                             </div>
+                            <div class="glass-overlay"></div>
                         </div>
 
                         <!-- Beer Info -->
                         <h2 class="text-4xl font-bold text-slate-100 mb-2 leading-tight">${t.name}</h2>
                         <div class="h-1 w-16 bg-amber-500/50 rounded-full mb-4"></div>
-                        
+
                         <p class="text-xl text-amber-400 font-light uppercase tracking-widest mb-1">${t.style || 'Beer'}</p>
-                        
+
                         <div class="mt-6 flex gap-8">
                             <div>
                                 <span class="block text-3xl font-bold text-white">${t.abv}%</span>
@@ -165,7 +188,7 @@
                                 <span class="text-xs text-slate-500 uppercase tracking-wider">IBU</span>
                             </div>
                         </div>
-                        
+
                         <div class="mt-auto pt-8 opacity-60 w-full" style="z-index: 50;">
                             ${mode === "serving" ? `
                             <div class="flex justify-center gap-4 mb-4">
@@ -198,7 +221,7 @@
             // Visual feedback only
             // Ideally we'd animate the glass usage but for now just API call
             try {
-                await fetch(`/api/taps/${tapId}`, {
+                await fetch(`/ api / taps / ${tapId}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ action: 'pour', volume: amount })
