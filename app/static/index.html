@@ -707,13 +707,13 @@
             if (type === 'current') {
                 if (!confirm(`Assign currently fermenting batch to ${tapId}?`)) return;
 
-                // Prompt for Unit
-                let unit = "oz";
-                const useLitres = confirm("Do you use Litres? Cancel for Gallons/Oz.");
-                if (useLitres) unit = "L";
+                // Prompt for Unit - Default to Litres
+                let unit = "L";
+                const useGallons = confirm("Use Litres? OK for Yes, Cancel for Gallons/Oz.");
+                if (!useGallons) unit = "oz";
 
                 // Prompt for Volume
-                let defVol = useLitres ? "19" : "640"; // 19L or 5gal
+                let defVol = unit === "L" ? "19" : "640"; // 19L or 5gal
                 const vol = prompt(`Total Keg Volume (${unit}):`, defVol);
                 if (!vol) return;
 
