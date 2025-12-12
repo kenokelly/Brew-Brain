@@ -84,9 +84,15 @@
     </main>
 
     <!-- Hidden Fullscreen Toggle -->
-    <button onclick="toggleFullScreen()" class="fixed bottom-4 right-4 opacity-0 hover:opacity-50 text-white p-2">
+    <button onclick="toggleFullScreen()"
+        class="fixed bottom-4 right-4 opacity-0 hover:opacity-50 text-white p-2 transition z-50">
         <i data-lucide="maximize" class="w-6 h-6"></i>
     </button>
+
+    <!-- Hidden Settings Toggle -->
+    <a href="/" class="fixed bottom-4 left-4 opacity-0 hover:opacity-50 text-white p-2 transition z-50">
+        <i data-lucide="settings" class="w-6 h-6"></i>
+    </a>
 
     <script>
         function toggleFullScreen() {
