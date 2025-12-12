@@ -145,6 +145,75 @@ def restore():
     except Exception as e:
         return jsonify({"error": f"Invalid JSON: {e}"}), 400
 
+# --- TAP MANAGEMENT ---
+@api_bp.route('/api/taps', methods=['GET'])
+def get_taps():
+    taps = {}
+    cfg = get_all_config()
+    for i in range(1, 5):
+        key = f"tap_{i}"
+        raw = cfg.get(key)
+        if raw:
+            try:
+                taps[key] = json.loads(raw)
+            except:
+                taps[key] = None
+        else:
+            taps[key] = None
+    return jsonify(taps)
+
+@api_bp.route('/api/taps/<tap_id>', methods=['POST'])
+def update_tap(tap_id):
+    if tap_id not in ['tap_1', 'tap_2', 'tap_3', 'tap_4']:
+        return jsonify({"error": "Invalid Tap ID"}), 400
+    
+    data = request.json
+    action = data.get('action')
+    
+    if action == 'clear':
+        set_config(tap_id, "")
+        return jsonify({"status": "cleared", "tap": tap_id})
+    
+    elif action == 'manual':
+        # Save exact data provided
+        tap_data = {
+            "name": data.get("name", "Unknown"),
+            "style": data.get("style", ""),
+            "abv": data.get("abv", "0.0"),
+            "date": data.get("date", datetime.now().strftime("%Y-%m-%d")),
+            "active": True
+        }
+        set_config(tap_id, json.dumps(tap_data))
+        return jsonify({"status": "saved", "data": tap_data})
+        
+    elif action == 'assign_current':
+        # Snapshot current batch
+        cfg = get_all_config()
+        
+        # Get Current SG from Influx for FG
+        q = f'from(bucket: "{INFLUX_BUCKET}") |> range(start: -1h) |> filter(fn: (r) => r["_measurement"] == "sensor_data") |> filter(fn: (r) => r["_field"] == "SG") |> last()'
+        tables = query_api.query(q)
+        current_sg = float(cfg.get('og') or 1.050)
+        for t in tables:
+            for r in t.records: current_sg = r.get_value()
+            
+        og = float(cfg.get('og') or 1.050)
+        abv = max(0, (og - current_sg) * 131.25)
+        
+        tap_data = {
+            "name": cfg.get('batch_name', 'Unknown'),
+            "style": cfg.get('batch_notes', ''),
+            "abv": f"{abv:.1f}",
+            "og": f"{og:.3f}",
+            "fg": f"{current_sg:.3f}",
+            "date": cfg.get('start_date', datetime.now().strftime("%Y-%m-%d")),
+            "active": True
+        }
+        set_config(tap_id, json.dumps(tap_data))
+        return jsonify({"status": "assigned", "data": tap_data})
+        
+    return jsonify({"error": "Unknown Action"}), 400
+
 @api_bp.route('/api/label')
 def label():
     try:

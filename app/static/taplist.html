@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Brew Brain Tap List</title>
+    <style>
+        body {
+            background-color: #000;
+            color: #fff;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+
+        .container {
+            padding: 2rem;
+            max-width: 90%;
+        }
+
+        .label {
+            font-size: 1.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+            color: #888;
+            margin-bottom: 1rem;
+        }
+
+        .beer-name {
+            font-size: 6rem;
+            font-weight: 900;
+            line-height: 1.1;
+            margin-bottom: 2rem;
+            background: linear-gradient(45deg, #f59e0b, #d97706);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
+            margin-top: 2rem;
+            width: 100%;
+        }
+
+        .stat-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .stat-value {
+            font-size: 3rem;
+            font-weight: 700;
+        }
+
+        .stat-label {
+            font-size: 1rem;
+            color: #666;
+            margin-top: 0.5rem;
+        }
+
+        .abv-value {
+            color: #10b981;
+        }
+
+        .status-dot {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: #333;
+        }
+
+        .status-online {
+            background-color: #10b981;
+            box-shadow: 0 0 10px #10b981;
+        }
+
+        .status-offline {
+            background-color: #ef4444;
+        }
+
+        .fullscreen-btn {
+            position: absolute;
+            bottom: 1rem;
+            right: 1rem;
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.3);
+            cursor: pointer;
+            padding: 10px;
+            transition: color 0.3s;
+        }
+
+        .fullscreen-btn:hover {
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        /* Grid Mode Styles */
+        .tap-grid-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            gap: 2rem;
+            width: 100%;
+            height: 100%;
+            padding: 2rem;
+            box-sizing: border-box;
+        }
+
+        .tap-card {
+            border: 1px solid #333;
+            border-radius: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 1rem;
+            background: rgba(20, 20, 20, 0.5);
+        }
+
+        .tap-card .beer-name {
+            font-size: 3rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .tap-card .label {
+            font-size: 1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .tap-card .stats-grid {
+            font-size: 0.8rem;
+            margin-top: 1rem;
+            gap: 1rem;
+        }
+
+        .tap-card .stat-value {
+            font-size: 2rem;
+        }
+
+        .tap-card .stat-label {
+            font-size: 0.8rem;
+        }
+
+        .tap-number {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            color: #555;
+            letter-spacing: 2px;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="statusDot" class="status-dot"></div>
+
+    <div id="mainView" class="w-full h-full flex flex-col justify-center items-center">
+        <!-- Content injected by JS -->
+    </div>
+
+    <button onclick="toggleFullscreen()" class="fullscreen-btn">⛶</button>
+
+    <script>
+        async function update() {
+            try {
+                const res = await fetch('/api/taps');
+                const taps = await res.json();
+
+                // data format: { tap_1: {name, abv...}, tap_2: null ... }
+                const activeTaps = [];
+                for (let i = 1; i <= 4; i++) {
+                    if (taps[`tap_${i}`]) activeTaps.push({ id: i, ...taps[`tap_${i}`] });
+                }
+
+                const container = document.getElementById('mainView');
+                document.getElementById('statusDot').className = 'status-dot status-online';
+
+                if (activeTaps.length === 0) {
+                    renderEmpty(container);
+                } else if (activeTaps.length === 1) {
+                    renderSingle(container, activeTaps[0]);
+                } else {
+                    renderGrid(container, taps);
+                }
+
+            } catch (e) {
+                console.error(e);
+                document.getElementById('statusDot').className = 'status-dot status-offline';
+            }
+        }
+
+        function renderEmpty(container) {
+            container.innerHTML = `
+                <div class="container">
+                    <div class="label">Nothing Pouring</div>
+                    <div class="beer-name" style="font-size: 3rem; color: #333;">Taps Dry</div>
+                </div>`;
+        }
+
+        function renderSingle(container, tap) {
+            container.innerHTML = `
+                <div class="container">
+                    <div class="label">Tap ${tap.id} Pouring</div>
+                    <div class="beer-name">${tap.name}</div>
+                    <div class="label" style="font-size: 1.2rem; margin-top:-1.5rem; color:#666;">${tap.style || ''}</div>
+
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <span class="stat-value abv-value">${tap.abv}%</span>
+                            <span class="stat-label">ABV</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-value">${tap.og || '--'}</span>
+                            <span class="stat-label">OG</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-value">${tap.fg || '--'}</span>
+                            <span class="stat-label">FG</span>
+                        </div>
+                    </div>
+                </div>`;
+        }
+
+        function renderGrid(container, taps) {
+            let html = '<div class="tap-grid-container">';
+
+            for (let i = 1; i <= 4; i++) {
+                const t = taps[`tap_${i}`];
+                if (t) {
+                    html += `
+                        <div class="tap-card">
+                            <div class="tap-number">Tap ${i}</div>
+                            <div class="beer-name">${t.name}</div>
+                            <div class="label" style="font-size: 1rem; margin-top:-0.5rem; margin-bottom: 1rem;">${t.style || ''}</div>
+                            <div class="stats-grid" style="margin-top:0;">
+                                <div class="stat-item">
+                                    <span class="stat-value abv-value">${t.abv}%</span>
+                                    <span class="stat-label">ABV</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-value">${t.date || '--'}</span>
+                                    <span class="stat-label">Brewed</span>
+                                </div>
+                            </div>
+                        </div>
+                     `;
+                } else {
+                    html += `
+                        <div class="tap-card" style="opacity: 0.3; border-style: dashed;">
+                            <div class="tap-number">Tap ${i}</div>
+                            <div class="beer-name" style="font-size: 2rem;">Empty</div>
+                        </div>
+                    `;
+                }
+            }
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+            }
+        }
+
+        setInterval(update, 5000);
+        update();
+    </script>
+</body>
+
+</html>

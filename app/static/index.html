@@ -295,6 +295,15 @@
                     </div>
                 </div>
 
+                <!-- Tap Management -->
+                <div class="space-y-3">
+                    <h3 class="text-slate-400 text-xs uppercase font-bold tracking-wider">Tap Management</h3>
+                    <div class="bg-slate-800/40 rounded-xl p-4 grid grid-cols-1 md:grid-cols-2 gap-4"
+                        id="tapListContainer">
+                        <!-- Taps injected via JS -->
+                    </div>
+                </div>
+
                 <!-- Integrations -->
                 <div class="space-y-3">
                     <h3 class="text-slate-400 text-xs uppercase font-bold tracking-wider">Integrations</h3>
@@ -645,6 +654,94 @@
             alert("Simulation parameters updated!");
         }
 
+        // --- Tap Management ---
+        async function loadTaps() {
+            const res = await fetch('/api/taps');
+            const taps = await res.json();
+            const container = document.getElementById('tapListContainer');
+            container.innerHTML = '';
+
+            for (let i = 1; i <= 4; i++) {
+                const key = `tap_${i}`;
+                const t = taps[key];
+                const isActive = t && t.active;
+
+                const card = document.createElement('div');
+                card.className = "bg-slate-900 border border-slate-700 rounded-lg p-3 relative";
+
+                let html = `
+                    <div class="flex justify-between items-start mb-2">
+                        <span class="text-xs font-bold text-slate-500 uppercase">Tap ${i}</span>
+                        ${isActive ? '<span class="text-[10px] bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full">Active</span>' : '<span class="text-[10px] bg-slate-700 text-slate-400 px-2 py-0.5 rounded-full">Empty</span>'}
+                    </div>
+                `;
+
+                if (isActive) {
+                    html += `
+                        <div class="mb-3">
+                            <h4 class="font-bold text-white truncate">${t.name}</h4>
+                            <p class="text-xs text-slate-400 truncate">${t.style || ''}</p>
+                            <div class="flex gap-2 mt-1 text-xs">
+                                <span class="text-amber-400">${t.abv}% ABV</span>
+                                <span class="text-slate-500">${t.date}</span>
+                            </div>
+                        </div>
+                        <button onclick="clearTap('${key}')" class="w-full text-xs bg-red-500/10 hover:bg-red-500/20 text-red-400 py-1.5 rounded transition-colors">Clear Tap</button>
+                    `;
+                } else {
+                    html += `
+                        <div class="flex flex-col gap-2 mt-2">
+                            <button onclick="assignTap('${key}', 'current')" class="text-xs bg-blue-600 hover:bg-blue-500 text-white py-2 rounded transition-colors">Snapshot Current Batch</button>
+                            <button onclick="manualTap('${key}')" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 py-2 rounded transition-colors">Manual Entry</button>
+                        </div>
+                    `;
+                }
+                card.innerHTML = html;
+                container.appendChild(card);
+            }
+        }
+
+        async function assignTap(tapId, type) {
+            if (type === 'current') {
+                if (!confirm(`Assign currently fermenting batch to ${tapId}?`)) return;
+                await fetch(`/api/taps/${tapId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'assign_current' })
+                });
+                loadTaps();
+            }
+        }
+
+        async function manualTap(tapId) {
+            const name = prompt("Batch Name:");
+            if (!name) return;
+            const style = prompt("Style (e.g. IPA):", "");
+            const abv = prompt("ABV %:", "5.0");
+
+            await fetch(`/api/taps/${tapId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'manual',
+                    name: name,
+                    style: style,
+                    abv: abv
+                })
+            });
+            loadTaps();
+        }
+
+        async function clearTap(tapId) {
+            if (!confirm(`Clear ${tapId}?`)) return;
+            await fetch(`/api/taps/${tapId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'clear' })
+            });
+            loadTaps();
+        }
+
         // --- Grafana Control ---
         function setTimeRange(range, btn) {
             const iframe = document.getElementById('grafanaChart');
@@ -683,6 +780,7 @@
         setInterval(fetchStatus, 3000); // Polling every 3s
         fetchStatus(); // Initial Load
         loadSettings(); // Load form defaults
+        loadTaps(); // Load Taps
     </script>
 </body>
 
