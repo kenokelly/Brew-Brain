@@ -1,0 +1,38 @@
+- [ ] Troubleshoot Connection Issues
+  - [x] Check port 5000 status <!-- id: 0 -->
+  - [x] Check running processes <!-- id: 1 -->
+  - [x] Check Network Reachability (Ping 192.168.155.226)
+  - [x] Check API Access (Port 5000)
+  - [x] Verify SSH Access (kokelly@192.168.155.226)
+  - [x] Locate Remote Application Directory
+  - [x] Compare File Checksums (brew_brain.py, requirements.txt)
+- [ ] Enhance Dashboard Display
+  - [x] Analyze index.html structure
+  - [x] Add Batch Details Section (OG, FG, Start Date, Notes)
+  - [x] Deploy Changes to Remote Server (SCP + Docker Build)
+  - [ ] Check Docker Configuration
+    - [x] Locate Dockerfile/Compose
+    - [x] Verify Caching Strategy (Container vs Host)
+- [x] Add Favicon
+  - [x] Create favicon.svg
+  - [x] Update index.html
+  - [x] Deploy and Rebuild
+- [ ] Debug Telegram Status
+  - [x] Analyze handle_telegram_command logic
+  - [x] Fix Temperature Formatting
+  - [x] Improve ABV Calculation Logic
+  - [x] Deploy and Verify
+- [x] Fix Batch Name in Telegram
+  - [x] Add Fallback Logic
+  - [x] Deploy and Rebuild
+- [/] Add Signal Strength and Sync Time
+  - [x] Backend: Fetch RSSI and Timestamp
+  - [x] Frontend: Display RSSI and Last Sync
+  - [x] Deploy and Verify
+- [/] Debug Signal Strength
+  - [x] Backend: Init RSSI to None
+  - [x] Frontend: Fix Falsy Check
+  - [x] Deploy and Verify
+  - [x] Investigate InfluxDB Schema (Find correct RSSI field)
+  - [x] Update Query with Correct Field
+  - [x] Deploy and Verify
