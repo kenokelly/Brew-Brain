@@ -142,10 +142,15 @@
                 <!-- Batch Info Card -->
                 <div class="glass-panel p-4 rounded-xl border border-slate-700/50">
                     <div class="flex justify-between items-start mb-2">
-                        <div>
+                        <div class="flex items-center gap-2">
                             <h2 id="dispBatchName" class="text-lg font-bold text-white">--</h2>
-                            <p id="dispStartDate" class="text-xs text-slate-400">Started: --</p>
+                            <button onclick="syncBrewfather(this)"
+                                class="text-slate-500 hover:text-blue-400 transition-colors p-1 rounded-full hover:bg-slate-800"
+                                title="Sync from Brewfather">
+                                <i data-lucide="refresh-cw" class="w-3 h-3"></i>
+                            </button>
                         </div>
+                        <p id="dispStartDate" class="text-xs text-slate-400">Started: --</p>
                         <div class="text-right">
                             <div class="text-xs text-slate-400">Target</div>
                             <div class="font-mono text-sm text-blue-300">
@@ -484,21 +489,25 @@
             alert(`${type === 'bf' ? 'Brewfather' : 'Telegram'} settings saved!`);
         }
 
-        async function syncBrewfather() {
-            const btn = event.target;
-            const originalText = btn.innerText;
-            btn.innerText = "Syncing...";
+        async function syncBrewfather(btn) {
+            const icon = btn ? btn.querySelector('i') : null;
+            if (icon) icon.classList.add('spin');
+
             try {
                 const res = await fetch('/api/sync_brewfather', { method: 'POST' });
                 const d = await res.json();
                 if (d.status === 'synced') {
+                    // alert(`Synced batch: ${d.data.name}`); // Optional: Remove alert for cleaner UI if desired, or keep it.
+                    // Keeping alert for feedback
                     alert(`Synced batch: ${d.data.name}`);
-                    loadSettings(); // Reload fields to show new batch name/stats
+                    loadSettings();
+                    fetchStatus(); // Refresh main dashboard too
                 } else {
                     alert('Sync error: ' + d.error);
                 }
             } catch (e) { alert("Sync failed. Check connection."); }
-            btn.innerText = originalText;
+
+            if (icon) icon.classList.remove('spin');
         }
 
         async function toggleTestMode() {
