@@ -3,7 +3,7 @@ import requests
 import base64
 from datetime import datetime
 from flask import Blueprint, jsonify, request, send_from_directory, send_file
-from core.config import get_config, set_config, _config_cache, DATA_DIR, BACKUP_DIR
+from core.config import get_config, set_config, get_all_config, DATA_DIR, BACKUP_DIR
 from core.influx import query_api, INFLUX_BUCKET
 from services.status import get_status_dict
 
@@ -60,7 +60,7 @@ def calibrate():
 @api_bp.route('/api/settings', methods=['GET', 'POST'])
 def settings():
     if request.method == 'GET':
-        return jsonify(_config_cache)
+        return jsonify(get_all_config())
 
     data = request.json
     if not data: return jsonify({"error": "No data"}), 400

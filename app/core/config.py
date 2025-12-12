@@ -45,6 +45,9 @@ def refresh_config_cache():
 def get_config(key):
     return _config_cache.get(key)
 
+def get_all_config():
+    return _config_cache
+
 def set_config(key, value):
     global _config_cache
     str_val = str(value)
