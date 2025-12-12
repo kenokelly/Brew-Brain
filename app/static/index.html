@@ -718,6 +718,10 @@
             if (!name) return;
             const style = prompt("Style (e.g. IPA):", "");
             const abv = prompt("ABV %:", "5.0");
+            const srm = prompt("Color (SRM 1-40):", "5");
+            const ibu = prompt("Bitterness (IBU):", "20");
+            const kegSize = prompt("Keg Size (fl oz):", "640");
+            const kegRem = prompt("Remaining (fl oz):", kegSize);
 
             await fetch(`/api/taps/${tapId}`, {
                 method: 'POST',
@@ -726,7 +730,11 @@
                     action: 'manual',
                     name: name,
                     style: style,
-                    abv: abv
+                    abv: abv,
+                    srm: srm,
+                    ibu: ibu,
+                    keg_total: kegSize,
+                    keg_remaining: kegRem
                 })
             });
             loadTaps();

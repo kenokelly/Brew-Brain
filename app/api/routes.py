@@ -180,6 +180,11 @@ def update_tap(tap_id):
             "name": data.get("name", "Unknown"),
             "style": data.get("style", ""),
             "abv": data.get("abv", "0.0"),
+            "srm": data.get("srm", "5"),
+            "ibu": data.get("ibu", "20"),
+            "keg_total": data.get("keg_total", "640"), # 5 gal in oz
+            "keg_remaining": data.get("keg_remaining", "640"),
+            "notes": data.get("notes", ""),
             "date": data.get("date", datetime.now().strftime("%Y-%m-%d")),
             "active": True
         }
@@ -202,10 +207,15 @@ def update_tap(tap_id):
         
         tap_data = {
             "name": cfg.get('batch_name', 'Unknown'),
-            "style": cfg.get('batch_notes', ''),
+            "style": cfg.get('batch_notes', ''), # Using notes as style for now
+            "notes": "",
             "abv": f"{abv:.1f}",
             "og": f"{og:.3f}",
             "fg": f"{current_sg:.3f}",
+            "srm": cfg.get('srm', '5'), # Default if not tracked (Brewfather sync might add this later)
+            "ibu": cfg.get('ibu', '20'),
+            "keg_total": "640",
+            "keg_remaining": "640",
             "date": cfg.get('start_date', datetime.now().strftime("%Y-%m-%d")),
             "active": True
         }

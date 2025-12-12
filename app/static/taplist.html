@@ -3,280 +3,276 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Brew Brain Tap List</title>
+    <title>My Taplist</title>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Rye&family=Roboto+Condensed:wght@400;700&display=swap');
+
         body {
             background-color: #000;
             color: #fff;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             margin: 0;
-            padding: 0;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
+            font-family: 'Roboto Condensed', sans-serif;
+            background-image:
+                radial-gradient(circle at 50% 50%, #111 0%, #000 100%),
+                repeating-linear-gradient(45deg, #111 0, #111 1px, transparent 0, transparent 50%);
+            background-size: 100% 100%, 10px 10px;
+        }
+
+        .header {
             text-align: center;
+            padding: 2px 0;
+            border-bottom: 2px solid #555;
+            background: linear-gradient(to bottom, #222, #000);
         }
 
-        .container {
-            padding: 2rem;
-            max-width: 90%;
-        }
-
-        .label {
-            font-size: 1.5rem;
-            text-transform: uppercase;
-            letter-spacing: 0.2em;
-            color: #888;
-            margin-bottom: 1rem;
-        }
-
-        .beer-name {
-            font-size: 6rem;
-            font-weight: 900;
-            line-height: 1.1;
-            margin-bottom: 2rem;
-            background: linear-gradient(45deg, #f59e0b, #d97706);
-            background-clip: text;
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 2rem;
-            margin-top: 2rem;
-            width: 100%;
-        }
-
-        .stat-item {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .stat-value {
-            font-size: 3rem;
-            font-weight: 700;
-        }
-
-        .stat-label {
-            font-size: 1rem;
-            color: #666;
-            margin-top: 0.5rem;
-        }
-
-        .abv-value {
-            color: #10b981;
-        }
-
-        .status-dot {
-            position: absolute;
-            top: 1rem;
-            right: 1rem;
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            background-color: #333;
-        }
-
-        .status-online {
-            background-color: #10b981;
-            box-shadow: 0 0 10px #10b981;
-        }
-
-        .status-offline {
-            background-color: #ef4444;
-        }
-
-        .fullscreen-btn {
-            position: absolute;
-            bottom: 1rem;
-            right: 1rem;
-            background: none;
-            border: none;
-            color: rgba(255, 255, 255, 0.3);
-            cursor: pointer;
-            padding: 10px;
-            transition: color 0.3s;
-        }
-
-        .fullscreen-btn:hover {
-            color: rgba(255, 255, 255, 0.8);
-        }
-
-        /* Grid Mode Styles */
-        .tap-grid-container {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            grid-template-rows: 1fr 1fr;
-            gap: 2rem;
-            width: 100%;
-            height: 100%;
-            padding: 2rem;
-            box-sizing: border-box;
-        }
-
-        .tap-card {
-            border: 1px solid #333;
-            border-radius: 20px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            padding: 1rem;
-            background: rgba(20, 20, 20, 0.5);
-        }
-
-        .tap-card .beer-name {
-            font-size: 3rem;
-            margin-bottom: 0.5rem;
-        }
-
-        .tap-card .label {
-            font-size: 1rem;
-            margin-bottom: 0.5rem;
-        }
-
-        .tap-card .stats-grid {
-            font-size: 0.8rem;
-            margin-top: 1rem;
-            gap: 1rem;
-        }
-
-        .tap-card .stat-value {
-            font-size: 2rem;
-        }
-
-        .tap-card .stat-label {
-            font-size: 0.8rem;
-        }
-
-        .tap-number {
-            font-size: 0.8rem;
-            text-transform: uppercase;
-            color: #555;
+        h1 {
+            font-family: 'Rye', serif;
+            font-size: 4rem;
+            margin: 0;
+            color: #eee;
+            text-shadow: 2px 2px 0 #000;
             letter-spacing: 2px;
+        }
+
+        /* Table Layout */
+        .tap-table {
+            display: table;
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .tap-row {
+            display: table-row;
+            border-bottom: 1px dashed #444;
+        }
+
+        .tap-cell {
+            display: table-cell;
+            vertical-align: middle;
+            padding: 15px;
+            position: relative;
+        }
+
+        /* Column Specifics */
+        .col-tap {
+            width: 5%;
+            text-align: center;
+            font-size: 4rem;
+            font-weight: bold;
+            border-right: 1px solid #333;
+        }
+
+        .col-visual {
+            width: 10%;
+            text-align: center;
+            border-right: 1px solid #333;
+        }
+
+        .col-info {
+            width: 55%;
+            padding-left: 30px;
+        }
+
+        .col-stats {
+            width: 15%;
+            text-align: right;
+            border-left: 1px solid #333;
+            padding-right: 20px;
+        }
+
+        .col-keg {
+            width: 15%;
+            text-align: center;
+            border-left: 1px solid #333;
+        }
+
+        /* Headers */
+        .table-header {
+            display: table-header-group;
+            background: #111;
+            border-bottom: 3px double #f59e0b;
+        }
+
+        .header-cell {
+            display: table-cell;
+            padding: 10px;
+            font-family: 'Rye', serif;
+            color: #ccc;
+            font-size: 1.2rem;
+            text-align: center;
+            border-right: 1px solid #333;
+        }
+
+        .header-cell:last-child {
+            border-right: none;
+        }
+
+        /* Typography */
+        .beer-name {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 5px;
+        }
+
+        .beer-style {
+            font-size: 1.5rem;
+            color: #f59e0b;
+            font-weight: 700;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+
+        .beer-notes {
+            font-size: 1.1rem;
+            color: #aaa;
+            font-style: italic;
+            line-height: 1.4;
+        }
+
+        .stat-group {
+            margin-bottom: 10px;
+        }
+
+        .stat-val {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #fff;
+            display: block;
+        }
+
+        .stat-lbl {
+            font-size: 0.9rem;
+            color: #666;
+            text-transform: uppercase;
+        }
+
+        /* Graphics */
+        .glass-svg {
+            height: 120px;
+            width: auto;
+            filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.1));
+        }
+
+        .keg-svg {
+            height: 100px;
+            width: auto;
+        }
+
+        /* Settings Trigger */
+        .settings-trigger {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 60px;
+            z-index: 100;
+            cursor: pointer;
         }
     </style>
 </head>
 
 <body>
-    <div id="statusDot" class="status-dot"></div>
 
-    <div id="mainView" class="w-full h-full flex flex-col justify-center items-center">
-        <!-- Content injected by JS -->
+    <div class="header">
+        <div class="settings-trigger" onclick="window.location.href='/'"></div>
+        <h1>My Taplist</h1>
     </div>
 
-    <button onclick="toggleFullscreen()" class="fullscreen-btn">⛶</button>
+    <div class="tap-table">
+        <div class="table-header">
+            <div class="header-cell">Tap #</div>
+            <div class="header-cell">Gravity<br>Color</div>
+            <div class="header-cell" style="text-align:left; padding-left:30px;">Beer Name & Style<br><span
+                    style="font-size:0.8em; font-family:sans-serif;">Tasting Notes</span></div>
+            <div class="header-cell">Stats</div>
+            <div class="header-cell">Keg Level</div>
+        </div>
+
+        <div id="tapRows">
+            <!-- Injected -->
+        </div>
+    </div>
 
     <script>
+        // SRM Colors map (approximate RGB)
+        const srmColors = {
+            1: "#FFE699", 3: "#FFD878", 5: "#FFBF42", 7: "#FBB123",
+            10: "#D9921E", 15: "#A6620C", 20: "#7B4607", 30: "#361F0B", 40: "#000000"
+        };
+        const getSrmColor = (s) => {
+            const srm = parseInt(s) || 5;
+            let closest = 5;
+            let minDiff = 100;
+            for (let key in srmColors) {
+                if (Math.abs(key - srm) < minDiff) { minDiff = Math.abs(key - srm); closest = key; }
+            }
+            return srmColors[closest];
+        };
+
         async function update() {
             try {
                 const res = await fetch('/api/taps');
                 const taps = await res.json();
+                const container = document.getElementById('tapRows');
+                let html = '';
 
-                // data format: { tap_1: {name, abv...}, tap_2: null ... }
-                const activeTaps = [];
                 for (let i = 1; i <= 4; i++) {
-                    if (taps[`tap_${i}`]) activeTaps.push({ id: i, ...taps[`tap_${i}`] });
-                }
+                    const t = taps[`tap_${i}`];
+                    if (!t || !t.active) continue;
 
-                const container = document.getElementById('mainView');
-                document.getElementById('statusDot').className = 'status-dot status-online';
+                    const activeColor = getSrmColor(t.srm);
+                    const kegPct = Math.max(0, Math.min(100, (parseInt(t.keg_remaining || 640) / parseInt(t.keg_total || 640)) * 100));
 
-                if (activeTaps.length === 0) {
-                    renderEmpty(container);
-                } else if (activeTaps.length === 1) {
-                    renderSingle(container, activeTaps[0]);
-                } else {
-                    renderGrid(container, taps);
-                }
+                    // SVG for Glass (Dynamic Fill)
+                    const glassSvg = `
+                    <svg class="glass-svg" viewBox="0 0 100 200">
+                        <path d="M20,10 L80,10 L70,180 Q65,195 50,195 Q35,195 30,180 Z" 
+                              fill="${activeColor}" stroke="white" stroke-width="3" />
+                        <path d="M20,10 L80,10" stroke="white" stroke-width="3" fill="none"/>
+                        <text x="50" y="220" text-anchor="middle" fill="#aaa" font-size="20">${t.srm || 5} SRM</text>
+                    </svg>`;
 
-            } catch (e) {
-                console.error(e);
-                document.getElementById('statusDot').className = 'status-dot status-offline';
-            }
-        }
+                    // SVG for Keg (Dynamic Level)
+                    const kegSvg = `
+                    <svg class="keg-svg" viewBox="0 0 100 140">
+                        <defs><mask id="kmask${i}"><rect x="10" y="10" width="80" height="120" rx="10" fill="white"/></mask></defs>
+                        <rect x="10" y="10" width="80" height="120" rx="10" fill="#333" stroke="#888" stroke-width="4"/>
+                        <rect x="12" y="${130 - (120 * (kegPct / 100))}" width="76" height="${120 * (kegPct / 100)}" fill="#f59e0b" mask="url(#kmask${i})"/>
+                        <line x1="10" y1="40" x2="90" y2="40" stroke="#555" stroke-width="2"/>
+                        <line x1="10" y1="100" x2="90" y2="100" stroke="#555" stroke-width="2"/>
+                    </svg>`;
 
-        function renderEmpty(container) {
-            container.innerHTML = `
-                <div class="container">
-                    <div class="label">Nothing Pouring</div>
-                    <div class="beer-name" style="font-size: 3rem; color: #333;">Taps Dry</div>
-                </div>`;
-        }
-
-        function renderSingle(container, tap) {
-            container.innerHTML = `
-                <div class="container">
-                    <div class="label">Tap ${tap.id} Pouring</div>
-                    <div class="beer-name">${tap.name}</div>
-                    <div class="label" style="font-size: 1.2rem; margin-top:-1.5rem; color:#666;">${tap.style || ''}</div>
-
-                    <div class="stats-grid">
-                        <div class="stat-item">
-                            <span class="stat-value abv-value">${tap.abv}%</span>
-                            <span class="stat-label">ABV</span>
-                        </div>
-                        <div class="stat-item">
-                            <span class="stat-value">${tap.og || '--'}</span>
-                            <span class="stat-label">OG</span>
-                        </div>
-                        <div class="stat-item">
-                            <span class="stat-value">${tap.fg || '--'}</span>
-                            <span class="stat-label">FG</span>
-                        </div>
-                    </div>
-                </div>`;
-        }
-
-        function renderGrid(container, taps) {
-            let html = '<div class="tap-grid-container">';
-
-            for (let i = 1; i <= 4; i++) {
-                const t = taps[`tap_${i}`];
-                if (t) {
                     html += `
-                        <div class="tap-card">
-                            <div class="tap-number">Tap ${i}</div>
+                    <div class="tap-row">
+                        <div class="tap-cell col-tap">${i}</div>
+                        <div class="tap-cell col-visual">
+                            ${glassSvg}
+                        </div>
+                        <div class="tap-cell col-info">
                             <div class="beer-name">${t.name}</div>
-                            <div class="label" style="font-size: 1rem; margin-top:-0.5rem; margin-bottom: 1rem;">${t.style || ''}</div>
-                            <div class="stats-grid" style="margin-top:0;">
-                                <div class="stat-item">
-                                    <span class="stat-value abv-value">${t.abv}%</span>
-                                    <span class="stat-label">ABV</span>
-                                </div>
-                                <div class="stat-item">
-                                    <span class="stat-value">${t.date || '--'}</span>
-                                    <span class="stat-label">Brewed</span>
-                                </div>
+                            <div class="beer-style">${t.style || 'Unknown Style'}</div>
+                            <div class="beer-notes">${t.notes || t.style || 'No notes available.'}</div>
+                        </div>
+                        <div class="tap-cell col-stats">
+                            <div class="stat-group"><span class="stat-val">${t.abv}%</span><span class="stat-lbl">Alcohol</span></div>
+                            <div class="stat-group"><span class="stat-val">${t.ibu || 20}</span><span class="stat-lbl">IBU</span></div>
+                            <div class="stat-group"><span class="stat-val">${t.og || '---'}</span><span class="stat-lbl">OG</span></div>
+                        </div>
+                        <div class="tap-cell col-keg">
+                            ${kegSvg}
+                            <div style="margin-top:10px; font-size:0.9rem; color:#f59e0b;">
+                                ${Math.round(t.keg_remaining || 0)}oz Rem.
                             </div>
                         </div>
-                     `;
-                } else {
-                    html += `
-                        <div class="tap-card" style="opacity: 0.3; border-style: dashed;">
-                            <div class="tap-number">Tap ${i}</div>
-                            <div class="beer-name" style="font-size: 2rem;">Empty</div>
-                        </div>
-                    `;
+                    </div>`;
                 }
-            }
-            html += '</div>';
-            container.innerHTML = html;
-        }
 
-        function toggleFullscreen() {
-            if (!document.fullscreenElement) {
-                document.documentElement.requestFullscreen();
-            } else {
-                if (document.exitFullscreen) {
-                    document.exitFullscreen();
-                }
-            }
+                if (html === '') html = '<div style="padding:50px; text-align:center; font-size:2rem; color:#555;">Taps are Dry</div>';
+
+                container.innerHTML = html;
+
+            } catch (e) { console.error(e); }
         }
 
         setInterval(update, 5000);
