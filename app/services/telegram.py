@@ -39,9 +39,9 @@ def handle_telegram_command(chat_id, command, text):
         )
         send_telegram(msg, chat_id)
     elif cmd == "/help":
-        send_telegram("🤖 *Commands:*\n/status - Current readings\n/ping - Check connectivity", chat_id)
+        send_telegram("Commands: /status, /ping", chat_id)
     elif cmd == "/ping":
-        send_telegram("🏓 Pong! I am online.", chat_id)
+        send_telegram("Pong", chat_id)
 
 def telegram_poller():
     logger.info("Telegram Poller Started")
