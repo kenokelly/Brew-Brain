@@ -706,10 +706,26 @@
         async function assignTap(tapId, type) {
             if (type === 'current') {
                 if (!confirm(`Assign currently fermenting batch to ${tapId}?`)) return;
+
+                // Prompt for Unit
+                let unit = "oz";
+                const useLitres = confirm("Do you use Litres? Cancel for Gallons/Oz.");
+                if (useLitres) unit = "L";
+
+                // Prompt for Volume
+                let defVol = useLitres ? "19" : "640"; // 19L or 5gal
+                const vol = prompt(`Total Keg Volume (${unit}):`, defVol);
+                if (!vol) return;
+
                 await fetch(`/api/taps/${tapId}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'assign_current' })
+                    body: JSON.stringify({
+                        action: 'assign_current',
+                        keg_total: vol,
+                        keg_remaining: vol,
+                        volume_unit: unit
+                    })
                 });
                 loadTaps();
             }

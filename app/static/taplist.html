@@ -404,6 +404,17 @@
                         <div><strong>Kegged:</strong> <span id="mKegged">--</span></div>
                     </div>
                 </div>
+                <div style="padding: 1rem 1.5rem; border-bottom: 1px solid #222;">
+                    <div class="stat-label" style="text-align: left;">Actions</div>
+                    <div id="pourControls" style="display: flex; gap: 1rem; margin-top:0.5rem;">
+                        <button id="btnPour1"
+                            style="flex:1; background:#222; border:1px solid #444; color:#ccc; padding:0.5rem; border-radius:4px; cursor:pointer;">1/3</button>
+                        <button id="btnPour2"
+                            style="flex:1; background:#222; border:1px solid #444; color:#ccc; padding:0.5rem; border-radius:4px; cursor:pointer;">1/2</button>
+                        <button id="btnPour3"
+                            style="flex:1; background:#222; border:1px solid #444; color:#ccc; padding:0.5rem; border-radius:4px; cursor:pointer;">Pint</button>
+                    </div>
+                </div>
                 <div class="iframe-container">
                     <iframe id="grafanaFrame" src="" width="100%" height="100%" frameborder="0"></iframe>
                 </div>
@@ -457,7 +468,58 @@
             const grafanaBase = "http://192.168.155.226:3000/d-solo/fermentation-dashboard/brew-brain-production?orgId=1&theme=dark&panelId=2";
             document.getElementById('grafanaFrame').src = `${grafanaBase}&from=${fromTime}&to=${toTime}`;
 
+            if (data.active) {
+                // Show Pour Controls for Active Taps
+                document.getElementById('pourControls').style.display = 'flex';
+                const unit = data.volume_unit || 'oz';
+
+                // Set Button Labels based on Unit
+                if (unit === 'L') {
+                    // Imp Pint = 0.568L
+                    document.getElementById('btnPour1').innerText = "1/3 Pint (0.19L)";
+                    document.getElementById('btnPour1').onclick = () => pour(tapId, 0.189);
+
+                    document.getElementById('btnPour2').innerText = "1/2 Pint (0.28L)";
+                    document.getElementById('btnPour2').onclick = () => pour(tapId, 0.284);
+
+                    document.getElementById('btnPour3').innerText = "1 Pint (0.57L)";
+                    document.getElementById('btnPour3').onclick = () => pour(tapId, 0.568);
+                } else {
+                    // US Pints (16oz)
+                    document.getElementById('btnPour1').innerText = "4 oz";
+                    document.getElementById('btnPour1').onclick = () => pour(tapId, 4);
+
+                    document.getElementById('btnPour2').innerText = "8 oz";
+                    document.getElementById('btnPour2').onclick = () => pour(tapId, 8);
+
+                    document.getElementById('btnPour3').innerText = "16 oz";
+                    document.getElementById('btnPour3').onclick = () => pour(tapId, 16);
+                }
+            } else {
+                document.getElementById('pourControls').style.display = 'none';
+            }
+
             document.getElementById('modal').classList.add('open');
+        }
+
+        async function pour(tapId, amount) {
+            if (!confirm(`Pour ${amount}?`)) return;
+            const res = await fetch(`/api/taps/${tapId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'pour', volume: amount })
+            });
+            const d = await res.json();
+            if (d.status === 'poured') {
+                // Determine unit for alert
+                const unit = d.unit || 'oz';
+                alert(`Poured! Remaining: ${parseFloat(d.remaining).toFixed(2)} ${unit}`);
+
+                // Update Cache & UI
+                tapDataCache[tapId].keg_remaining = d.remaining;
+                closeModal();
+                update(); // Refresh list to show new level
+            }
         }
 
         function closeModal() {
@@ -499,10 +561,11 @@
 
                     const isActive = t && t.active;
                     const activeColor = isActive ? getSrmColor(t.srm) : "#333";
+                    const unit = t && t.volume_unit ? t.volume_unit : "oz";
 
                     let kegPct = 0;
                     if (isActive) {
-                        kegPct = Math.max(0, Math.min(100, (parseInt(t.keg_remaining || 640) / parseInt(t.keg_total || 640)) * 100));
+                        kegPct = Math.max(0, Math.min(100, (parseFloat(t.keg_remaining || 640) / parseFloat(t.keg_total || 640)) * 100));
                     }
 
                     // Glass SVG
@@ -542,7 +605,7 @@
                         </div>
                         <div class="col-keg">
                             ${kegSvg}
-                            <span class="keg-text">${isActive ? Math.round(t.keg_remaining || 0) + ' oz' : 'Empty'}</span>
+                            <span class="keg-text">${isActive ? Math.round(t.keg_remaining || 0) + ' ' + unit : 'Empty'}</span>
                         </div>
                     </article>
                     `;

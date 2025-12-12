@@ -46,6 +46,9 @@ def sync_brewfather():
             set_config("yeast_attenuation", y.get('attenuation'))
             set_config("yeast_flocculation", y.get('flocculation'))
         
+        # Ensure global yeast_strain is set even if not found in yeast array
+        set_config("yeast_strain", yeast_name)
+        
         set_config("batch_name", b.get('name')); set_config("og", rec.get('og')); set_config("target_fg", rec.get('fg'))
         set_config("batch_notes", b.get('notes') or rec.get('notes')); set_config("start_date", date_str)
         set_config("yeast_strain", yeast_name)
@@ -205,6 +208,7 @@ def update_tap(tap_id):
         og = float(cfg.get('og') or 1.050)
         abv = max(0, (og - current_sg) * 131.25)
         
+
         tap_data = {
             "name": cfg.get('batch_name', 'Unknown'),
             "style": cfg.get('batch_notes', ''), # Using notes as style for now
@@ -214,19 +218,40 @@ def update_tap(tap_id):
             "fg": f"{current_sg:.3f}",
             "srm": cfg.get('srm', '5'),
             "ibu": cfg.get('ibu', '20'),
-            "keg_total": "640",
-            "keg_remaining": "640",
+            
+            # Use provided volume/unit or default
+            "keg_total": data.get("keg_total", "640"), 
+            "keg_remaining": data.get("keg_remaining", "640"),
+            "volume_unit": data.get("volume_unit", "oz"), # 'oz' or 'L'
+            
             "date": cfg.get('start_date', datetime.now().strftime("%Y-%m-%d")),
             
             # Enhanced Data for Tap Details
             "yeast": cfg.get('yeast_strain', 'Unknown'),
             "start_date": cfg.get('start_date', datetime.now().strftime("%Y-%m-%d")),
-            "finish_date": datetime.now().strftime("%Y-%m-%d"), # Finished/Kegged date
+            "finish_date": datetime.now().strftime("%Y-%m-%d"), 
             
             "active": True
         }
         set_config(tap_id, json.dumps(tap_data))
         return jsonify({"status": "assigned", "data": tap_data})
+        
+    elif action == 'pour':
+        # Decrement Volume
+        tap_json = get_config(tap_id)
+        if not tap_json: return jsonify({"error": "Tap not configured"}), 404
+        
+        tap = json.loads(tap_json)
+        if not tap.get("active"): return jsonify({"error": "Tap inactive"}), 400
+        
+        volume_to_pour = float(data.get("volume", 0.0))
+        current_vol = float(tap.get("keg_remaining", 0.0))
+        
+        new_vol = max(0.0, current_vol - volume_to_pour)
+        tap["keg_remaining"] = f"{new_vol:.2f}"
+        
+        set_config(tap_id, json.dumps(tap))
+        return jsonify({"status": "poured", "remaining": new_vol, "unit": tap.get("volume_unit", "oz")})
         
     return jsonify({"error": "Unknown Action"}), 400
 
