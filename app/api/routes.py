@@ -212,11 +212,17 @@ def update_tap(tap_id):
             "abv": f"{abv:.1f}",
             "og": f"{og:.3f}",
             "fg": f"{current_sg:.3f}",
-            "srm": cfg.get('srm', '5'), # Default if not tracked (Brewfather sync might add this later)
+            "srm": cfg.get('srm', '5'),
             "ibu": cfg.get('ibu', '20'),
             "keg_total": "640",
             "keg_remaining": "640",
             "date": cfg.get('start_date', datetime.now().strftime("%Y-%m-%d")),
+            
+            # Enhanced Data for Tap Details
+            "yeast": cfg.get('yeast_strain', 'Unknown'),
+            "start_date": cfg.get('start_date', datetime.now().strftime("%Y-%m-%d")),
+            "finish_date": datetime.now().strftime("%Y-%m-%d"), # Finished/Kegged date
+            
             "active": True
         }
         set_config(tap_id, json.dumps(tap_data))

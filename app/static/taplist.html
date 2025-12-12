@@ -225,6 +225,120 @@
         .empty-visual {
             opacity: 0.2;
         }
+
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(8px);
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+        }
+
+        .modal-overlay.open {
+            display: flex;
+        }
+
+        .modal-content {
+            background: #111;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            width: 100%;
+            max-width: 1000px;
+            height: 80vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+        }
+
+        .modal-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #161616;
+        }
+
+        .modal-body {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 2rem;
+            cursor: pointer;
+            line-height: 1;
+        }
+
+        .modal-close:hover {
+            color: #fff;
+        }
+
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 1rem;
+            padding: 1.5rem;
+            background: #0a0a0a;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .stat-box {
+            background: #1a1a1a;
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-val {
+            font-size: 1.25rem;
+            font-weight: bold;
+            color: #fff;
+        }
+
+        .stat-sub {
+            font-size: 0.7rem;
+            color: #666;
+        }
+
+        .iframe-container {
+            flex: 1;
+            background: #000;
+            position: relative;
+            min-height: 400px;
+        }
+
+        .tap-row {
+            cursor: pointer;
+        }
+
+        .tap-row:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+            border-color: #333;
+        }
     </style>
 </head>
 
@@ -249,12 +363,113 @@
         </div>
     </main>
 
+    <!-- Modal -->
+    <div id="modal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h2 id="mName" class="beer-name" style="font-size: 1.5rem; margin:0;">Batch Name</h2>
+                    <div id="mStyle" class="beer-style" style="font-size: 0.9rem; margin:0;">Style</div>
+                </div>
+                <button onclick="closeModal()" class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="stat-grid">
+                    <div class="stat-box">
+                        <div class="stat-label">ABV</div>
+                        <div id="mAbv" class="stat-val">--%</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">OG</div>
+                        <div id="mOg" class="stat-val">--</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">FG</div>
+                        <div id="mFg" class="stat-val">--</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">IBU</div>
+                        <div id="mIbu" class="stat-val">--</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">SRM</div>
+                        <div id="mSrm" class="stat-val">--</div>
+                    </div>
+                </div>
+                <div style="padding: 1rem 1.5rem; border-bottom: 1px solid #222;">
+                    <div class="stat-label" style="text-align: left;">Details</div>
+                    <div style="display: flex; gap: 2rem; font-size: 0.9rem; color: #ccc;">
+                        <div><strong>Yeast:</strong> <span id="mYeast">--</span></div>
+                        <div><strong>Brewed:</strong> <span id="mBrewed">--</span></div>
+                        <div><strong>Kegged:</strong> <span id="mKegged">--</span></div>
+                    </div>
+                </div>
+                <div class="iframe-container">
+                    <iframe id="grafanaFrame" src="" width="100%" height="100%" frameborder="0"></iframe>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         // SRM Colors map (approximate RGB)
         const srmColors = {
             1: "#FFE699", 3: "#FFD878", 5: "#FFBF42", 7: "#FBB123",
             10: "#D9921E", 15: "#A6620C", 20: "#7B4607", 30: "#361F0B", 40: "#090909"
         };
+        let tapDataCache = {};
+
+        // Modal Control
+        function openModal(tapId) {
+            const data = tapDataCache[tapId];
+            if (!data || !data.active) return;
+
+            document.getElementById('mName').innerText = data.name;
+            document.getElementById('mStyle').innerText = data.style || "Unknown Style";
+
+            document.getElementById('mAbv').innerText = data.abv + "%";
+            document.getElementById('mOg').innerText = data.og || "--";
+            document.getElementById('mFg').innerText = data.fg || "--";
+            document.getElementById('mIbu').innerText = data.ibu || "--";
+            document.getElementById('mSrm').innerText = data.srm || "--";
+
+            document.getElementById('mYeast').innerText = data.yeast || "Unknown";
+            document.getElementById('mBrewed').innerText = data.start_date || "--";
+            document.getElementById('mKegged').innerText = data.finish_date || "Active";
+
+            // Grafana Time Range
+            // Start: data.start_date -> Unix ms
+            // End: data.finish_date (if set/finished) or Now
+            let fromTime = "now-7d";
+            let toTime = "now";
+
+            if (data.start_date) {
+                const start = new Date(data.start_date).getTime();
+                if (!isNaN(start)) fromTime = start;
+            }
+            if (data.finish_date && data.finish_date !== "Active") {
+                const end = new Date(data.finish_date).getTime();
+                if (!isNaN(end)) toTime = end;
+            }
+
+            // Grafana URL
+            // Panel 2 = Gravity/Temp graph usually
+            const grafanaBase = "http://192.168.155.226:3000/d-solo/fermentation-dashboard/brew-brain-production?orgId=1&theme=dark&panelId=2";
+            document.getElementById('grafanaFrame').src = `${grafanaBase}&from=${fromTime}&to=${toTime}`;
+
+            document.getElementById('modal').classList.add('open');
+        }
+
+        function closeModal() {
+            document.getElementById('modal').classList.remove('open');
+            document.getElementById('grafanaFrame').src = ""; // Stop loading
+        }
+
+        // Close on background click
+        document.getElementById('modal').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('modal')) closeModal();
+        });
+
         const getSrmColor = (s) => {
             const srm = parseInt(s) || 5;
             let closest = 5;
@@ -272,8 +487,12 @@
                 const container = document.getElementById('tapRows');
                 let html = '';
 
+                // Update Cache
+                tapDataCache = taps;
+
                 for (let i = 1; i <= 4; i++) {
-                    const t = taps[`tap_${i}`];
+                    const tapId = `tap_${i}`;
+                    const t = taps[tapId];
                     // Skip completely empty taps? Or show placeholders? 
                     // Let's show placeholders if they just aren't assigned but exist in config
                     // Or let's just stick to showing all 4 slots for "Menu Board" consistency
@@ -306,7 +525,7 @@
                     </svg>`;
 
                     html += `
-                    <article class="tap-row">
+                    <article class="tap-row" onclick="openModal('${tapId}')">
                         <div class="col-id">${i}</div>
                         <div class="col-visual">${glassSvg}</div>
                         <div class="col-info">
