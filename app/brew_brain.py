@@ -105,19 +105,30 @@ def send_telegram(msg, target_chat=None):
 
 def get_status_dict():
     recent_sg, recent_temp = 0.0, 0.0
+    recent_rssi = None
+    last_sync = None
     try:
         q = f'from(bucket: "{INFLUX_BUCKET}") |> range(start: -2h) |> filter(fn: (r) => r["_measurement"] == "calibrated_readings") |> last()'
         for t in query_api.query(q): 
-            for r in t.records: recent_sg = r.get_value()
+            for r in t.records: 
+                recent_sg = r.get_value()
+                last_sync = r.get_time()
+
         q_t = f'from(bucket: "{INFLUX_BUCKET}") |> range(start: -2h) |> filter(fn: (r) => r["_measurement"] == "sensor_data") |> filter(fn: (r) => r["_field"] == "Temp") |> last()'
         for t in query_api.query(q_t): 
             for r in t.records: 
                 val = r.get_value()
                 recent_temp = (val - 32) * 5/9  # Convert F to C
+                if not last_sync: last_sync = r.get_time()
+
+        q_rssi = f'from(bucket: "{INFLUX_BUCKET}") |> range(start: -2h) |> filter(fn: (r) => r["_measurement"] == "sensor_data") |> filter(fn: (r) => r["_field"] == "rssi") |> last()'
+        for t in query_api.query(q_rssi):
+            for r in t.records: recent_rssi = r.get_value()
     except: pass
 
     return {
-        "status": "Online", "pi_temp": get_pi_temp(), "sg": recent_sg, "temp": recent_temp,
+        "status": "Online", "pi_temp": get_pi_temp(), "sg": recent_sg, "temp": recent_temp, "rssi": recent_rssi,
+        "last_sync": last_sync.isoformat() if last_sync else None,
         "test_mode": get_config("test_mode") == "true", "offset": float(get_config("offset") or 0),
         "og": float(get_config("og") or 1.050), "target_fg": float(get_config("target_fg") or 1.010),
         "batch_name": get_config("batch_name"), "batch_notes": get_config("batch_notes"), "start_date": get_config("start_date"),
@@ -132,12 +143,12 @@ def handle_telegram_command(chat_id, command, text):
         temp = s.get('temp', 0) or 0
         og = s.get('og', 0)
         fg = s.get('target_fg', 0)
-        abv = (og - sg) * 131.25 if sg > 0 else 0
+        abv = max(0, (og - sg) * 131.25) if sg > 0 else 0
         
         msg = (
             f"🍺 *Brew Brain Status*\n"
-            f"🏷 *Batch:* {s.get('batch_name')}\n"
-            f"🌡 *Temp:* {temp}°C\n"
+            f"🏷 *Batch:* {s.get('batch_name') or 'No Active Batch'}\n"
+            f"🌡 *Temp:* {temp:.1f}°C\n"
             f"⚖️ *Gravity:* {sg:.3f} (Target: {fg:.3f})\n"
             f"📊 *ABV:* {abv:.1f}%\n"
             f"💾 *CPU:* {s.get('pi_temp')}°C"
