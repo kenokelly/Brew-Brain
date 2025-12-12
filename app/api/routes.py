@@ -8,6 +8,7 @@ from core.config import get_config, set_config, get_all_config, DATA_DIR, BACKUP
 from core.influx import query_api, write_api, INFLUX_BUCKET, INFLUX_ORG
 from influxdb_client import Point
 from services.status import get_status_dict
+from services.label_maker import generate_label
 
 api_bp = Blueprint('api', __name__)
 
@@ -128,3 +129,43 @@ def restore():
         return jsonify({"status": "restored", "keys_restored": count})
     except Exception as e:
         return jsonify({"error": f"Invalid JSON: {e}"}), 400
+
+@api_bp.route('/api/label')
+def label():
+    try:
+        # Gather Data
+        cfg = get_all_config()
+        name = cfg.get('batch_name', 'Unknown')
+        notes = cfg.get('batch_notes', '')
+        date = cfg.get('start_date', '')
+        og = float(cfg.get('og') or 1.050)
+        target_fg = float(cfg.get('target_fg') or 1.010)
+        
+        # Get Current SG from Influx
+        q = f'from(bucket: "{INFLUX_BUCKET}") |> range(start: -1h) |> filter(fn: (r) => r["_measurement"] == "sensor_data") |> filter(fn: (r) => r["_field"] == "SG") |> last()'
+        tables = query_api.query(q)
+        current_sg = og # Default if no reading
+        for t in tables:
+            for r in t.records: current_sg = r.get_value()
+
+        # Calc Stats
+        abv = max(0, (og - current_sg) * 131.25)
+        
+        data = {
+            "name": name,
+            "style": notes,
+            "abv": f"{abv:.1f}",
+            "og": f"{og:.3f}",
+            "fg": f"{current_sg:.3f}",
+            "date": date
+        }
+        
+        img_buffer = generate_label(data)
+        
+        return Response(
+            img_buffer,
+            mimetype="image/png",
+            headers={"Content-disposition": f"attachment; filename={name}_label.png"}
+        )
+    except Exception as e:
+        return jsonify({"error": f"Label Gen Error: {e}"}), 500
