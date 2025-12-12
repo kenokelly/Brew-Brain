@@ -185,10 +185,17 @@ def update_tap(tap_id):
             "abv": data.get("abv", "0.0"),
             "srm": data.get("srm", "5"),
             "ibu": data.get("ibu", "20"),
-            "keg_total": data.get("keg_total", "640"), # 5 gal in oz
+            "keg_total": data.get("keg_total", "640"),
             "keg_remaining": data.get("keg_remaining", "640"),
+            "volume_unit": data.get("volume_unit", "oz"),
             "notes": data.get("notes", ""),
             "date": data.get("date", datetime.now().strftime("%Y-%m-%d")),
+            
+            # Preserve details
+            "yeast": data.get("yeast", "Unknown"),
+            "start_date": data.get("start_date", datetime.now().strftime("%Y-%m-%d")),
+            "finish_date": data.get("finish_date", "Active"),
+            
             "active": True
         }
         set_config(tap_id, json.dumps(tap_data))
