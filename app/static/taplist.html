@@ -544,7 +544,7 @@
 
         async function update() {
             try {
-                const res = await fetch('/api/taps');
+                const res = await fetch('/api/taps?t=' + Date.now());
                 const taps = await res.json();
                 const container = document.getElementById('tapRows');
                 let html = '';
