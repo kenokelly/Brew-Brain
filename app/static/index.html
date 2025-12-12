@@ -7,6 +7,7 @@
     <meta name="theme-color" content="#0f172a">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <link rel="manifest" href="/static/manifest.json">
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
     <title>Brew Brain</title>
     <script src="/static/js/tailwindcss.js"></script>
     <script src="/static/js/lucide.js"></script>
@@ -136,6 +137,24 @@
 
             <!-- DASHBOARD TAB -->
             <div id="content-dashboard" class="p-4 space-y-4 flex-1">
+                <!-- Batch Info Card -->
+                <div class="glass-panel p-4 rounded-xl border border-slate-700/50">
+                    <div class="flex justify-between items-start mb-2">
+                        <div>
+                            <h2 id="dispBatchName" class="text-lg font-bold text-white">--</h2>
+                            <p id="dispStartDate" class="text-xs text-slate-400">Started: --</p>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-xs text-slate-400">Target</div>
+                            <div class="font-mono text-sm text-blue-300">
+                                OG: <span id="dispOG" class="text-white">--</span>
+                                FG: <span id="dispTargetFG" class="text-white">--</span>
+                            </div>
+                        </div>
+                    </div>
+                    <p id="dispNotes" class="text-xs text-slate-500 italic truncate">--</p>
+                </div>
+
                 <!-- Prediction Banner -->
                 <div id="predictionCard"
                     class="hidden bg-gradient-to-r from-indigo-900/50 to-slate-900/50 rounded-xl p-4 border border-indigo-500/30">
@@ -324,6 +343,13 @@
                 document.getElementById('tempVal').innerText = state.temp;
                 document.getElementById('currentOffset').innerText = (state.offset > 0 ? '+' : '') + state.offset;
                 document.getElementById('piTemp').innerText = `CPU: ${data.pi_temp || '--'}°C`;
+
+                // Update Batch Details
+                document.getElementById('dispBatchName').innerText = data.batch_name || 'No Batch';
+                document.getElementById('dispStartDate').innerText = `Started: ${data.start_date || '--'}`;
+                document.getElementById('dispOG').innerText = parseFloat(data.og).toFixed(3);
+                document.getElementById('dispTargetFG').innerText = parseFloat(data.target_fg).toFixed(3);
+                document.getElementById('dispNotes').innerText = data.batch_notes || 'No notes';
 
                 // Calc Stats
                 const abv = ((state.og - state.sg) * 131.25).toFixed(1);
