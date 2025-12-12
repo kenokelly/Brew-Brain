@@ -3,7 +3,7 @@ import logging
 from flask import Flask
 from flask_cors import CORS
 from waitress import serve
-from core.config import init_db, logger
+from core.config import refresh_config_from_influx, logger
 from services.worker import process_data, check_alerts
 from services.telegram import telegram_poller
 from api.routes import api_bp
@@ -15,8 +15,8 @@ CORS(app)
 app.register_blueprint(api_bp)
 
 if __name__ == '__main__':
-    # Initialize DB (and config cache)
-    init_db()
+    # Initialize Config from InfluxDB
+    refresh_config_from_influx()
     
     # Start Background Threads
     threading.Thread(target=process_data, daemon=True).start()

@@ -1,5 +1,7 @@
+#!/usr/bin/env python3
 import os
 import time
+import sys
 import subprocess
 import urllib.request
 
@@ -7,7 +9,10 @@ PING_TARGET = "8.8.8.8"
 CHECK_INTERVAL = 300 
 MAX_RETRIES = 5
 
-def log(msg): print(f"[{time.ctime()}] WATCHDOG: {msg}")
+def log(msg): 
+    # Log to stdout for systemd capture
+    print(f"[{time.ctime()}] WATCHDOG: {msg}")
+    sys.stdout.flush()
 
 def check_internet():
     try:
@@ -31,7 +36,7 @@ def restart_wifi():
         os.system("/usr/bin/nmcli radio wifi on")
         time.sleep(10)
     except Exception as e:
-        log(f"Error: {e}")
+        log(f"WiFi Restart Error: {e}")
 
 def restart_docker():
     log("Restarting Container...")
@@ -45,10 +50,17 @@ def main():
             fail_count += 1
             log(f"Network Down {fail_count}/{MAX_RETRIES}")
             if fail_count == 3: restart_wifi()
-            if fail_count >= MAX_RETRIES: os.system("/usr/bin/sudo /sbin/reboot")
+            if fail_count >= MAX_RETRIES: 
+                log("Rebooting due to network failure...")
+                os.system("/usr/bin/sudo /sbin/reboot")
         else:
             fail_count = 0
-            if not check_brew_brain(): restart_docker()
+            if not check_brew_brain(): 
+                log("API check failed. Restarting Docker.")
+                restart_docker()
+            else:
+                # Optional: Log heartbeat every hour (12 * 300s)
+                pass 
         time.sleep(CHECK_INTERVAL)
 
 if __name__ == "__main__":

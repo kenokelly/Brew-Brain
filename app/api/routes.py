@@ -1,8 +1,9 @@
 import shutil
 import requests
+import json
 import base64
 from datetime import datetime
-from flask import Blueprint, jsonify, request, send_from_directory, send_file
+from flask import Blueprint, jsonify, request, send_from_directory, send_file, Response
 from core.config import get_config, set_config, get_all_config, DATA_DIR, BACKUP_DIR
 from core.influx import query_api, INFLUX_BUCKET
 from services.status import get_status_dict
@@ -83,14 +84,30 @@ def settings():
 
 @api_bp.route('/api/backup')
 def backup():
-    shutil.make_archive(f"{BACKUP_DIR}/brew_backup", 'zip', DATA_DIR)
-    return send_file(f"{BACKUP_DIR}/brew_backup.zip", as_attachment=True)
+    # Export Config as JSON
+    cfg = get_all_config()
+    export_data = {
+        "timestamp": datetime.now().isoformat(),
+        "config": cfg
+    }
+    dump = json.dumps(export_data, indent=2)
+    return Response(
+        dump,
+        mimetype="application/json",
+        headers={"Content-disposition": "attachment; filename=brew_brain_config.json"}
+    )
 
 @api_bp.route('/api/restore', methods=['POST'])
 def restore():
+    if 'file' not in request.files: return jsonify({"error": "No file"}), 400
     f = request.files['file']
-    f.save(f"{BACKUP_DIR}/restore.zip")
-    shutil.unpack_archive(f"{BACKUP_DIR}/restore.zip", DATA_DIR)
-    from core.config import refresh_config_cache
-    refresh_config_cache()
-    return "Restored"
+    try:
+        data = json.load(f)
+        cfg = data.get("config", {})
+        count = 0
+        for k, v in cfg.items():
+            set_config(k, v)
+            count += 1
+        return jsonify({"status": "restored", "keys_restored": count})
+    except Exception as e:
+        return jsonify({"error": f"Invalid JSON: {e}"}), 400

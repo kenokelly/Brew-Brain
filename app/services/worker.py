@@ -68,12 +68,19 @@ def predict_fermentation(times, readings):
         logger.error(f"Prediction Math Error: {e}")
         return None, None
 
+logger = logging.getLogger("BrewBrain")
+
+alert_state = { "last_tilt_alert": 0, "last_temp_alert": 0 }
+processing_state = { "last_processed_time": datetime.now(timezone.utc) - timedelta(minutes=10) }
+
 def process_data():
     while True:
         time.sleep(60)
         try:
             offset = float(get_config("offset") or 0.0)
             test_mode = get_config("test_mode") == "true"
+            target_temp = float(get_config("target_temp") or 20.0)
+            current_temp = None
             points_to_write = []
             
             if test_mode:
@@ -92,6 +99,8 @@ def process_data():
                 fake_temp = temp_base + (np.sin(now.timestamp()/100) * 0.5)
                 fake_rssi = -60 + int(np.sin(now.timestamp()/50) * 10)
                 
+                current_temp = fake_temp # For Controller
+                
                 p = Point("test_readings")\
                     .tag("Color", "TEST")\
                     .field("sg", fake_sg)\
@@ -101,6 +110,19 @@ def process_data():
                 points_to_write.append(p)
                 
             else:
+                # Normal Processing: Calibrate existing sensor data
+                # 1. Get latest temp for controller
+                try:
+                    q_t = f'from(bucket: "{INFLUX_BUCKET}") |> range(start: -15m) |> filter(fn: (r) => r["_measurement"] == "sensor_data") |> filter(fn: (r) => r["_field"] == "Temp") |> last()'
+                    t_res = query_api.query(q_t)
+                    for t in t_res:
+                        for r in t.records:
+                            val = r.get_value()
+                            current_temp = (val - 32) * 5/9 # F to C
+                except:
+                    pass
+
+                # 2. Process SG for calibration/prediction
                 query = f'from(bucket: "{INFLUX_BUCKET}") |> range(start: -21d) |> filter(fn: (r) => r["_measurement"] == "sensor_data") |> filter(fn: (r) => r["_field"] == "SG")'
                 tables = query_api.query(query)
                 readings = []
@@ -118,6 +140,7 @@ def process_data():
                             p = Point("calibrated_readings").tag("Color", record.values.get("Color")).field("sg", val).time(rec_time)
                             points_to_write.append(p)
                             processing_state["last_processed_time"] = rec_time
+
 
             if not test_mode and len(readings) > 50:
                 pred_fg, pred_date = predict_fermentation(times, readings)
@@ -160,3 +183,37 @@ def check_alerts():
                         send_telegram(f"🔥 WARNING: Temp {r.get_value()}C (Limit: {max_temp}C)")
                         alert_state["last_temp_alert"] = now
         except Exception as e: logger.error(f"Alert Error: {e}")
+
+        # --- STALL DETECTION ---
+        try:
+            now = time.time()
+            STALL_COOLDOWN = 43200 # 12 hours
+            
+            if (now - alert_state.get("last_stall_alert", 0)) > STALL_COOLDOWN:
+                # 1. Get Current SG
+                q_curr = f'from(bucket: "{INFLUX_BUCKET}") |> range(start: -1h) |> filter(fn: (r) => r["_measurement"] == "sensor_data") |> filter(fn: (r) => r["_field"] == "SG") |> last()'
+                res_curr = query_api.query(q_curr)
+                sg_current = None
+                for t in res_curr:
+                    for r in t.records: sg_current = r.get_value()
+
+                # 2. Get SG from 24h ago
+                q_prev = f'from(bucket: "{INFLUX_BUCKET}") |> range(start: -25h, stop: -24h) |> filter(fn: (r) => r["_measurement"] == "sensor_data") |> filter(fn: (r) => r["_field"] == "SG") |> last()'
+                res_prev = query_api.query(q_prev)
+                sg_yesterday = None
+                for t in res_prev:
+                    for r in t.records: sg_yesterday = r.get_value()
+
+                if sg_current and sg_yesterday:
+                    daily_drop = sg_yesterday - sg_current
+                    target_fg = float(get_config("target_fg") or 1.010)
+                    
+                    # Log for debugging
+                    logger.info(f"Stall Check: Drop={daily_drop:.4f}, Curr={sg_current:.3f}, Target={target_fg:.3f}")
+
+                    if (daily_drop < 0.002) and (sg_current > (target_fg + 0.005)):
+                        send_telegram(f"⚠️ Stall Detected! Gravity dropped only {daily_drop:.3f} points in 24h. Current: {sg_current:.3f}")
+                        alert_state["last_stall_alert"] = now
+
+        except Exception as e:
+            logger.error(f"Stall Check Error: {e}")

@@ -1,13 +1,13 @@
 import os
-import sqlite3
 import logging
 from logging.handlers import RotatingFileHandler
-from datetime import datetime
+from datetime import datetime, timezone
+from influxdb_client import Point
+from core.influx import write_api, query_api, INFLUX_BUCKET, INFLUX_ORG
 
 # --- CONFIGURATION & LOGGING ---
 DATA_DIR = "/data"
 LOG_FILE = f"{DATA_DIR}/brew_brain.log"
-DB_FILE = f"{DATA_DIR}/brewery.db"
 BACKUP_DIR = f"{DATA_DIR}/backups"
 
 for d in [DATA_DIR, BACKUP_DIR]:
@@ -20,28 +20,38 @@ file_handler = RotatingFileHandler(LOG_FILE, maxBytes=1_000_000, backupCount=5)
 file_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
 logger.addHandler(file_handler)
 
+# Config Defaults
+DEFAULTS = {
+    "offset": "0.0", "test_mode": "false", "og": "1.050", "target_fg": "1.010",
+    "batch_name": "New Batch", "batch_notes": "", "start_date": datetime.now().strftime("%Y-%m-%d"),
+    "bf_user": "", "bf_key": "", "alert_telegram_token": "", "alert_telegram_chat": "",
+    "temp_max": "28.0", "tilt_timeout_min": "60",
+    "test_sg_start": "1.060", "test_temp_base": "20.0"
+}
+
 # Config Cache
-_config_cache = {}
+_config_cache = DEFAULTS.copy()
 
-def init_db():
-    with sqlite3.connect(DB_FILE) as conn:
-        conn.execute('''CREATE TABLE IF NOT EXISTS config (key TEXT PRIMARY KEY, value TEXT)''')
-        defaults = {
-            "offset": "0.0", "test_mode": "false", "og": "1.050", "target_fg": "1.010",
-            "batch_name": "New Batch", "batch_notes": "", "start_date": datetime.now().strftime("%Y-%m-%d"),
-            "bf_user": "", "bf_key": "", "alert_telegram_token": "", "alert_telegram_chat": "",
-            "temp_max": "28.0", "tilt_timeout_min": "60",
-            "test_sg_start": "1.060", "test_temp_base": "20.0"
-        }
-        for k, v in defaults.items(): conn.execute("INSERT OR IGNORE INTO config (key, value) VALUES (?, ?)", (k, v))
-        
-    refresh_config_cache()
-
-def refresh_config_cache():
+def refresh_config_from_influx():
+    """Reads the latest config from InfluxDB into memory."""
     global _config_cache
-    with sqlite3.connect(DB_FILE) as conn:
-        rows = conn.execute("SELECT key, value FROM config").fetchall()
-        _config_cache = {k: v for k, v in rows}
+    try:
+        # Get all config keys set in the last 365 days
+        q = f'from(bucket: "{INFLUX_BUCKET}") |> range(start: -365d) |> filter(fn: (r) => r["_measurement"] == "app_config") |> last()'
+        tables = query_api.query(q)
+        
+        # Update cache with values found in DB
+        for table in tables:
+            for record in table.records:
+                key = record.get_field()
+                val = record.get_value()
+                if key and val is not None:
+                    _config_cache[key] = str(val)
+        
+        logger.info("Config refreshed from InfluxDB")
+            
+    except Exception as e:
+        logger.error(f"Failed to refresh config from InfluxDB: {e}")
 
 def get_config(key):
     return _config_cache.get(key)
@@ -50,8 +60,16 @@ def get_all_config():
     return _config_cache
 
 def set_config(key, value):
+    """Writes config to InfluxDB and updates memory cache."""
     global _config_cache
     str_val = str(value)
-    with sqlite3.connect(DB_FILE) as conn: 
-        conn.execute("INSERT OR REPLACE INTO config (key, value) VALUES (?, ?)", (key, str_val))
+    
+    # Opti-lock: Update cache immediately for responsiveness
     _config_cache[key] = str_val
+    
+    try:
+        # Persist to InfluxDB
+        p = Point("app_config").field(key, str_val).time(datetime.now(timezone.utc))
+        write_api.write(bucket=INFLUX_BUCKET, org=INFLUX_ORG, record=p)
+    except Exception as e:
+        logger.error(f"Failed to save config '{key}' to InfluxDB: {e}")
