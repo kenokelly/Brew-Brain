@@ -506,7 +506,7 @@
             await fetch('/api/settings', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ test_mode: newState })
+                body: JSON.stringify({ test_mode: newState.toString() })
             });
             fetchStatus();
         }

@@ -20,9 +20,9 @@ RUN mkdir -p static/js && \
     wget -O static/js/lucide.js https://unpkg.com/lucide@latest
 
 # Copy Application Code
-COPY brew_brain.py app.py
-COPY static static
+# Copy Application Code
+COPY . /app
 
-RUN mkdir /data
+RUN mkdir -p /data
 
-CMD ["python", "app.py"]
+CMD ["python", "main.py"]

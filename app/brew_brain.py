@@ -107,23 +107,33 @@ def get_status_dict():
     recent_sg, recent_temp = 0.0, 0.0
     recent_rssi = None
     last_sync = None
+    test_mode = get_config("test_mode") == "true"
     try:
-        q = f'from(bucket: "{INFLUX_BUCKET}") |> range(start: -2h) |> filter(fn: (r) => r["_measurement"] == "calibrated_readings") |> last()'
+        # Source measurement depends on mode
+        meas = "test_readings" if test_mode else "calibrated_readings"
+        sensor_meas = "test_readings" if test_mode else "sensor_data"
+
+        q = f'from(bucket: "{INFLUX_BUCKET}") |> range(start: -2h) |> filter(fn: (r) => r["_measurement"] == "{meas}") |> last()'
         for t in query_api.query(q): 
             for r in t.records: 
-                recent_sg = r.get_value()
+                # In test mode, we store everything in test_readings with fields sg, temp, rssi
+                if r.get_field() == "sg": recent_sg = r.get_value()
+                if test_mode and r.get_field() == "temp": recent_temp = r.get_value()
+                if test_mode and r.get_field() == "rssi": recent_rssi = r.get_value()
                 last_sync = r.get_time()
 
-        q_t = f'from(bucket: "{INFLUX_BUCKET}") |> range(start: -2h) |> filter(fn: (r) => r["_measurement"] == "sensor_data") |> filter(fn: (r) => r["_field"] == "Temp") |> last()'
-        for t in query_api.query(q_t): 
-            for r in t.records: 
-                val = r.get_value()
-                recent_temp = (val - 32) * 5/9  # Convert F to C
-                if not last_sync: last_sync = r.get_time()
+        if not test_mode:
+            # Normal mode: Fetch Temp/RSSI from sensor_data
+            q_t = f'from(bucket: "{INFLUX_BUCKET}") |> range(start: -2h) |> filter(fn: (r) => r["_measurement"] == "{sensor_meas}") |> filter(fn: (r) => r["_field"] == "Temp") |> last()'
+            for t in query_api.query(q_t): 
+                for r in t.records: 
+                    val = r.get_value()
+                    recent_temp = (val - 32) * 5/9  # Convert F to C
+                    if not last_sync: last_sync = r.get_time()
 
-        q_rssi = f'from(bucket: "{INFLUX_BUCKET}") |> range(start: -2h) |> filter(fn: (r) => r["_measurement"] == "sensor_data") |> filter(fn: (r) => r["_field"] == "rssi") |> last()'
-        for t in query_api.query(q_rssi):
-            for r in t.records: recent_rssi = r.get_value()
+            q_rssi = f'from(bucket: "{INFLUX_BUCKET}") |> range(start: -2h) |> filter(fn: (r) => r["_measurement"] == "{sensor_meas}") |> filter(fn: (r) => r["_field"] == "rssi") |> last()'
+            for t in query_api.query(q_rssi):
+                for r in t.records: recent_rssi = r.get_value()
     except: pass
 
     return {
@@ -281,27 +291,44 @@ def process_data():
         try:
             offset = float(get_config("offset") or 0.0)
             test_mode = get_config("test_mode") == "true"
-            
-            query = f'from(bucket: "{INFLUX_BUCKET}") |> range(start: -21d) |> filter(fn: (r) => r["_measurement"] == "sensor_data") |> filter(fn: (r) => r["_field"] == "SG")'
-            tables = query_api.query(query)
-            
-            times = []
-            readings = []
             points_to_write = []
             
-            for table in tables:
-                for record in table.records:
-                    rec_time = record.get_time()
-                    val = record.get_value() + offset
-                    times.append(rec_time)
-                    readings.append(val)
-                    if rec_time.tzinfo is None: rec_time = rec_time.replace(tzinfo=timezone.utc)
-                    if processing_state["last_processed_time"].tzinfo is None: processing_state["last_processed_time"] = processing_state["last_processed_time"].replace(tzinfo=timezone.utc)
-                    if rec_time > processing_state["last_processed_time"]:
-                        meas_name = "test_readings" if test_mode else "calibrated_readings"
-                        p = Point(meas_name).tag("Color", record.values.get("Color")).field("sg", val).time(rec_time)
-                        points_to_write.append(p)
-                        processing_state["last_processed_time"] = rec_time
+            if test_mode:
+                # Synthetic Data Generation
+                now = datetime.now(timezone.utc)
+                # Oscillate SG between 1.050 and 1.010 over 60 minutes
+                progress = (now.minute + now.second/60) / 60
+                fake_sg = 1.050 - (0.040 * progress) 
+                fake_temp = 20.0 + (np.sin(now.timestamp()/100) * 0.5)
+                fake_rssi = -60 + int(np.sin(now.timestamp()/50) * 10)
+                
+                p = Point("test_readings")\
+                    .tag("Color", "TEST")\
+                    .field("sg", fake_sg)\
+                    .field("temp", fake_temp)\
+                    .field("rssi", fake_rssi)\
+                    .time(now)
+                points_to_write.append(p)
+                
+            else:
+                # Normal Processing: Calibrate existing sensor data
+                query = f'from(bucket: "{INFLUX_BUCKET}") |> range(start: -21d) |> filter(fn: (r) => r["_measurement"] == "sensor_data") |> filter(fn: (r) => r["_field"] == "SG")'
+                tables = query_api.query(query)
+                readings = []
+                times = []
+                
+                for table in tables:
+                    for record in table.records:
+                        rec_time = record.get_time()
+                        val = record.get_value() + offset
+                        times.append(rec_time)
+                        readings.append(val)
+                        if rec_time.tzinfo is None: rec_time = rec_time.replace(tzinfo=timezone.utc)
+                        if processing_state["last_processed_time"].tzinfo is None: processing_state["last_processed_time"] = processing_state["last_processed_time"].replace(tzinfo=timezone.utc)
+                        if rec_time > processing_state["last_processed_time"]:
+                            p = Point("calibrated_readings").tag("Color", record.values.get("Color")).field("sg", val).time(rec_time)
+                            points_to_write.append(p)
+                            processing_state["last_processed_time"] = rec_time
 
             if not test_mode and len(readings) > 50:
                 pred_fg, pred_date = predict_fermentation(times, readings)
