@@ -198,7 +198,8 @@ def update_tap(tap_id):
             "yeast": data.get("yeast", "Unknown"),
             "start_date": data.get("start_date", datetime.now().strftime("%Y-%m-%d")),
             "finish_date": data.get("finish_date", "Active"),
-            
+            "tap_mode": data.get("tap_mode", "fermenting"), # fermenting vs serving
+
             "active": True
         }
         set_config(tap_id, json.dumps(tap_data))
@@ -218,7 +219,6 @@ def update_tap(tap_id):
         og = float(cfg.get('og') or 1.050)
         abv = max(0, (og - current_sg) * 131.25)
         
-
         tap_data = {
             "name": cfg.get('batch_name', 'Unknown'),
             "style": cfg.get('batch_notes', ''), # Using notes as style for now
@@ -239,7 +239,8 @@ def update_tap(tap_id):
             # Enhanced Data for Tap Details
             "yeast": cfg.get('yeast_strain', 'Unknown'),
             "start_date": cfg.get('start_date', datetime.now().strftime("%Y-%m-%d")),
-            "finish_date": datetime.now().strftime("%Y-%m-%d"), 
+            "finish_date": datetime.now().strftime("%Y-%m-%d"),
+            "tap_mode": "fermenting", 
             
             "active": True
         }
