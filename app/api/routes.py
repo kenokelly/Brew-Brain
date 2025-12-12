@@ -2,10 +2,11 @@ import shutil
 import requests
 import json
 import base64
-from datetime import datetime
+from datetime import datetime, timezone
 from flask import Blueprint, jsonify, request, send_from_directory, send_file, Response
 from core.config import get_config, set_config, get_all_config, DATA_DIR, BACKUP_DIR
-from core.influx import query_api, INFLUX_BUCKET
+from core.influx import query_api, write_api, INFLUX_BUCKET, INFLUX_ORG
+from influxdb_client import Point
 from services.status import get_status_dict
 
 api_bp = Blueprint('api', __name__)
@@ -46,17 +47,33 @@ def calibrate():
     
     try:
         manual = float(data.get('sg'))
+        source = data.get('source', 'Unknown')
     except (ValueError, TypeError):
         return jsonify({"error": "Invalid SG value (must be number)"}), 400
 
+    # 1. Log Manual Reading
+    try:
+        p = Point("manual_readings")\
+            .tag("device", source)\
+            .tag("type", "manual")\
+            .field("sg", manual)\
+            .time(datetime.now(timezone.utc))
+        write_api.write(bucket=INFLUX_BUCKET, org=INFLUX_ORG, record=p)
+    except Exception as e:
+        print(f"Manual Log Error: {e}")
+
+    # 2. Calculate Offset from Tilt
     q = f'from(bucket: "{INFLUX_BUCKET}") |> range(start: -1h) |> filter(fn: (r) => r["_measurement"] == "sensor_data") |> filter(fn: (r) => r["_field"] == "SG") |> last()'
     tables = query_api.query(q)
     raw = None
     for t in tables:
         for r in t.records: raw = r.get_value()
     if raw:
-        set_config("offset", manual - raw); return jsonify({"status": "set"})
-    return jsonify({"error": "No raw data"}), 400
+        new_offset = manual - raw
+        set_config("offset", new_offset)
+        return jsonify({"status": "set", "new_offset": new_offset, "logged": True})
+    
+    return jsonify({"error": "No raw data from Tilt to calibrate against"}), 400
 
 @api_bp.route('/api/settings', methods=['GET', 'POST'])
 def settings():
