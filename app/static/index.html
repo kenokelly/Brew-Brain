@@ -201,10 +201,27 @@
                 </div>
 
                 <!-- Grafana Embed -->
+                <div class="flex items-center justify-between mb-2">
+                    <h3 class="text-sm font-semibold text-slate-400">Fermentation Chart</h3>
+                    <div class="flex bg-slate-800 rounded-lg p-1 gap-1">
+                        <button onclick="setTimeRange('now-24h', this)"
+                            class="px-3 py-1 text-xs font-medium rounded-md transition-colors text-slate-400 hover:text-white"
+                            data-range="24h">24h</button>
+                        <button onclick="setTimeRange('now-3d', this)"
+                            class="px-3 py-1 text-xs font-medium rounded-md transition-colors text-slate-400 hover:text-white"
+                            data-range="3d">3d</button>
+                        <button onclick="setTimeRange('now-7d', this)"
+                            class="px-3 py-1 text-xs font-medium rounded-md transition-colors bg-slate-700 text-white shadow-sm"
+                            data-range="7d">7d</button>
+                        <button onclick="setTimeRange('now-30d', this)"
+                            class="px-3 py-1 text-xs font-medium rounded-md transition-colors text-slate-400 hover:text-white"
+                            data-range="All">30d</button>
+                    </div>
+                </div>
                 <div
                     class="w-full h-[400px] md:h-[600px] rounded-xl overflow-hidden bg-slate-900 border border-slate-800 relative">
-                    <iframe
-                        src="http://192.168.155.226:3000/d-solo/fermentation-dashboard/brew-brain-production?orgId=1&theme=dark&panelId=2"
+                    <iframe id="grafanaChart"
+                        src="http://192.168.155.226:3000/d-solo/fermentation-dashboard/brew-brain-production?orgId=1&theme=dark&panelId=2&from=now-7d&to=now"
                         width="100%" height="100%" frameborder="0" class="absolute inset-0"></iframe>
                 </div>
             </div>
@@ -626,6 +643,22 @@
                 body: JSON.stringify(payload)
             });
             alert("Simulation parameters updated!");
+        }
+
+        // --- Grafana Control ---
+        function setTimeRange(range, btn) {
+            const iframe = document.getElementById('grafanaChart');
+            const baseUrl = "http://192.168.155.226:3000/d-solo/fermentation-dashboard/brew-brain-production?orgId=1&theme=dark&panelId=2";
+
+            // Update Iframe
+            iframe.src = `${baseUrl}&from=${range}&to=now`;
+
+            // Update Buttons
+            const buttons = btn.parentElement.querySelectorAll('button');
+            buttons.forEach(b => {
+                b.className = "px-3 py-1 text-xs font-medium rounded-md transition-colors text-slate-400 hover:text-white";
+            });
+            btn.className = "px-3 py-1 text-xs font-medium rounded-md transition-colors bg-slate-700 text-white shadow-sm";
         }
 
         // --- UI Interactions ---

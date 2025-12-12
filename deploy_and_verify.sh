@@ -19,10 +19,14 @@ ssh $HOST "mkdir -p $REMOTE_DIR"
 scp -r $LOCAL_DIR/app $HOST:$REMOTE_DIR/
 # Copy docker-compose
 scp $LOCAL_DIR/docker-compose.yml $HOST:$REMOTE_DIR/
+# Copy Grafana config
+scp -r $LOCAL_DIR/grafana $HOST:$REMOTE_DIR/
+# Copy Telegraf config
+scp $LOCAL_DIR/telegraf.conf $HOST:$REMOTE_DIR/
 
 # 3. Remote Build & Restart
 echo "🏗️  Rebuilding and Restarting remote container..."
-ssh $HOST "cd $REMOTE_DIR && docker compose down && docker compose up -d --build brew-brain"
+ssh $HOST "cd $REMOTE_DIR && docker compose down && docker compose up -d --build"
 
 # 4. Verification
 echo "🔍 Verifying Deployment..."
