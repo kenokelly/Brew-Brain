@@ -115,6 +115,21 @@
             else if (document.exitFullscreen) document.exitFullscreen();
         }
 
+        const srmColors = {
+            1: "#FFE699", 3: "#FFD878", 5: "#FFBF42", 7: "#FBB123",
+            10: "#D9921E", 15: "#A6620C", 20: "#7B4607", 30: "#361F0B", 40: "#090909"
+        };
+
+        const getSrmColor = (s) => {
+            const srm = parseInt(s) || 5;
+            let closest = 5;
+            let minDiff = 100;
+            for (let key in srmColors) {
+                if (Math.abs(key - srm) < minDiff) { minDiff = Math.abs(key - srm); closest = key; }
+            }
+            return srmColors[closest];
+        };
+
         setInterval(() => {
             const now = new Date();
             document.getElementById('clock').innerText = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -145,7 +160,6 @@
 
                     if (mode === "serving") {
                         // Volume Logic (Drains Down)
-                        // Check unit to determine correct default total
                         const unit = t.volume_unit || "oz";
                         const defaultTotal = unit === "L" ? 19.0 : 640.0;
 
@@ -164,14 +178,16 @@
                         visualHeight = Math.min(100, Math.max(10, pct));
                     }
 
+                    // Color Logic
+                    const beerColor = getSrmColor(t.srm);
+
                     const html = `
                     <div class="h-full flex flex-col justify-center items-center p-8 text-center bg-slate-900/20 hover:bg-slate-900/40 transition">
 
                         <!-- Dynamic Icon -->
-                        <!-- Dynamic Icon -->
                         <div style="position: relative; width: 70px; height: 100px; margin-bottom: 1.5rem;">
-                            <div class="glass-container shadow-[0_0_15px_rgba(245,158,11,0.2)]">
-                                <div class="liquid" style="height: ${visualHeight}%;">
+                            <div class="glass-container shadow-[0_0_15px_rgba(245,158,11,0.2)]" style="box-shadow: 0 0 15px ${beerColor}40;">
+                                <div class="liquid" style="height: ${visualHeight}%; background: ${beerColor};">
                                     <div class="foam"></div>
                                 </div>
                             </div>
@@ -180,9 +196,9 @@
 
                         <!-- Beer Info -->
                         <h2 class="text-4xl font-bold text-slate-100 mb-2 leading-tight">${t.name}</h2>
-                        <div class="h-1 w-16 bg-amber-500/50 rounded-full mb-4"></div>
-
-                        <p class="text-xl text-amber-400 font-light uppercase tracking-widest mb-1">${t.style || 'Beer'}</p>
+                        <div class="h-1 w-16 rounded-full mb-4" style="background: ${beerColor}; opacity: 0.8;"></div>
+                        
+                        <p class="text-xl font-light uppercase tracking-widest mb-1" style="color: ${beerColor};">${t.style || 'Beer'}</p>
 
                         <div class="mt-6 flex gap-8">
                             <div>
@@ -211,7 +227,7 @@
                             </div>
                             ` : `
                             <p class="text-sm font-light text-slate-400">
-                                Freshness: <span class="text-slate-300 font-normal">${days} days</span>
+                                Freshness: <span class="font-normal" style="color:${beerColor}">${days} days</span>
                             </p>
                             `}
                         </div>
@@ -225,9 +241,8 @@
 
         async function pour(tapId, amount) {
             // Visual feedback only
-            // Ideally we'd animate the glass usage but for now just API call
             try {
-                await fetch(`/ api / taps / ${tapId}`, {
+                await fetch(`/api/taps/${tapId}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ action: 'pour', volume: amount })
