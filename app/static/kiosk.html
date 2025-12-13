@@ -145,9 +145,15 @@
 
                     if (mode === "serving") {
                         // Volume Logic (Drains Down)
-                        const total = parseFloat(t.keg_total) || 19.0;
+                        // Check unit to determine correct default total
+                        const unit = t.volume_unit || "oz";
+                        const defaultTotal = unit === "L" ? 19.0 : 640.0;
+
+                        const total = parseFloat(t.keg_total) || defaultTotal;
                         const rem = parseFloat(t.keg_remaining);
+                        // Handle possible 0 or NaN remaining
                         const safeRem = isNaN(rem) ? total : rem;
+
                         visualHeight = Math.max(5, (safeRem / total) * 100);
                     } else {
                         // Fermentation Logic (Fills Up based on Attenuation)
