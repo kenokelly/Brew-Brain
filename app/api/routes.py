@@ -108,7 +108,8 @@ def settings():
     schema = {
         "og": float, "target_fg": float, "offset": float, "temp_max": float, "tilt_timeout_min": int,
         "batch_name": str, "batch_notes": str, "start_date": str,
-        "test_sg_start": float, "test_temp_base": float
+        "test_sg_start": float, "test_temp_base": float,
+        "serp_api_key": str, "brewfather_api_key": str
     }
     
     for key, value in data.items():

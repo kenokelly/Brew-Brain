@@ -8,3 +8,7 @@ requests==2.31.0
 waitress==2.1.2
 Pillow==10.1.0
 qrcode[pil]==7.4.2
+beautifulsoup4==4.12.2
+pybeerxml==1.0
+recipe-scrapers==14.53.0
+PyGithub==2.1.1

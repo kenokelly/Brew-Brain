@@ -1,0 +1,12 @@
+[
+    {
+        "date": "2025-10-15",
+        "name": "Initial Calibration",
+        "style": "IPA",
+        "yeast": "US-05",
+        "og": 1.050,
+        "fg": 1.010,
+        "attenuation": 80.0,
+        "success": true
+    }
+]

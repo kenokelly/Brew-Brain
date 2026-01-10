@@ -68,6 +68,8 @@
             <div class="flex items-center gap-3">
                 <a href="/static/taplist.html" class="text-slate-500 hover:text-amber-400 transition-colors"
                     title="Tap List"><i data-lucide="beer" class="w-5 h-5"></i></a>
+                <a href="/static/automation.html" class="text-slate-500 hover:text-purple-400 transition-colors"
+                    title="Automation"><i data-lucide="bot" class="w-5 h-5"></i></a>
                 <a href="/static/help.html" class="text-slate-500 hover:text-blue-400 transition-colors"><i
                         data-lucide="circle-help" class="w-5 h-5"></i></a>
                 <div class="flex flex-col items-end">
@@ -320,9 +322,22 @@
                             class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-3 md:py-2 text-base md:text-sm text-white mb-2">
                         <input id="bfKey" type="password" placeholder="API Key"
                             class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-3 md:py-2 text-base md:text-sm text-white mb-2">
+
+                        <!-- SerpApi -->
+                        <div class="flex items-center gap-2 mb-2 mt-4">
+                            <i data-lucide="search" class="text-amber-400 w-4 h-4"></i>
+                            <h4 class="font-medium text-slate-200">Shopping Search (SerpApi)</h4>
+                        </div>
+                        <input id="serpKey" type="password" placeholder="SerpApi Key"
+                            class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-3 md:py-2 text-base md:text-sm text-white mb-2">
+
                         <div class="flex gap-2">
                             <button onclick="saveIntegration('bf')"
-                                class="flex-1 bg-slate-700 hover:bg-slate-600 text-white py-2 rounded-lg text-sm font-medium mb-2">Save</button>
+                                class="flex-1 bg-slate-700 hover:bg-slate-600 text-white py-2 rounded-lg text-sm font-medium mb-2">Save
+                                BF</button>
+                            <button onclick="saveIntegration('serp')"
+                                class="flex-1 bg-amber-700 hover:bg-amber-600 text-white py-2 rounded-lg text-sm font-medium mb-2">Save
+                                Serp</button>
                             <button onclick="syncBrewfather()"
                                 class="flex-1 bg-blue-600 hover:bg-blue-500 text-white py-2 rounded-lg text-sm font-medium mb-2">Sync
                                 Batch</button>
@@ -361,9 +376,16 @@
                                     class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-3 md:py-2 text-base md:text-sm text-white focus:border-indigo-500 outline-none">
                             </div>
                         </div>
+
+                        <div class="mt-2">
+                            <label class="block text-xs text-slate-500 mb-1">TiltPi / Webhook URL</label>
+                            <input id="tiltUrl" type="text" placeholder="http://tiltpi.local/webhook"
+                                class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-3 md:py-2 text-base md:text-sm text-white focus:border-indigo-500 outline-none">
+                        </div>
+
                         <button onclick="saveIntegration('hours')"
-                            class="w-full bg-slate-700 hover:bg-slate-600 text-white py-2 rounded-lg text-sm font-medium">Save
-                            Hours</button>
+                            class="w-full bg-slate-700 hover:bg-slate-600 text-white py-2 rounded-lg text-sm font-medium mt-3">Save
+                            Config</button>
                     </div>
                 </div>
 
@@ -525,10 +547,12 @@
             document.getElementById('targetFgInput').value = data.target_fg || '';
             document.getElementById('bfUser').value = data.bf_user || '';
             document.getElementById('bfKey').value = data.bf_key || '';
+            document.getElementById('serpKey').value = data.serp_api_key || '';
             document.getElementById('tgToken').value = data.alert_telegram_token || '';
             document.getElementById('tgChat').value = data.alert_telegram_chat || '';
             document.getElementById('alertStart').value = data.alert_start_time || '08:00';
             document.getElementById('alertEnd').value = data.alert_end_time || '22:00';
+            if (data.tiltpi_url) document.getElementById('tiltUrl').value = data.tiltpi_url;
             document.getElementById('testSgStart').value = data.test_sg_start || '1.060';
             document.getElementById('testTempBase').value = data.test_temp_base || '20.0';
         }
@@ -597,10 +621,20 @@
                     alert_telegram_token: document.getElementById('tgToken').value,
                     alert_telegram_chat: document.getElementById('tgChat').value
                 };
+            } else if (type === 'serp') {
+                payload = {
+                    serp_api_key: document.getElementById('serpKey').value
+                };
+            } else if (type === 'github') {
+                payload = {
+                    github_token: document.getElementById('setGhToken').value,
+                    github_repo: document.getElementById('setGhRepo').value
+                };
             } else if (type === 'hours') {
                 payload = {
                     alert_start_time: document.getElementById('alertStart').value,
-                    alert_end_time: document.getElementById('alertEnd').value
+                    alert_end_time: document.getElementById('alertEnd').value,
+                    tiltpi_url: document.getElementById('tiltUrl').value
                 };
             }
 

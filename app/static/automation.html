@@ -1,0 +1,1626 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Brew Brain | Automation</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #0f1115;
+            --bg-panel: #181b21;
+            --primary: #FFD700;
+            --accent: #E1AD01;
+            --text-main: #ffffff;
+            --text-dim: #8b9bb4;
+            --success: #00E676;
+            --error: #FF5252;
+            --glass: rgba(24, 27, 33, 0.7);
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            margin: 0;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Sidebar Navigation */
+        .sidebar {
+            width: 80px;
+            background: var(--bg-panel);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 2rem;
+            border-right: 1px solid rgba(255, 255, 255, 0.05);
+            z-index: 100;
+        }
+
+        .nav-item {
+            color: var(--text-dim);
+            font-size: 1.5rem;
+            margin-bottom: 2rem;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            position: relative;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+        }
+
+        .nav-item:hover,
+        .nav-item.active {
+            color: var(--primary);
+            background: rgba(255, 215, 0, 0.1);
+        }
+
+        .nav-item.active::after {
+            content: '';
+            position: absolute;
+            left: -15px;
+            top: 50%;
+            transform: translateY(-50%);
+            height: 20px;
+            width: 4px;
+            background: var(--primary);
+            border-radius: 0 4px 4px 0;
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            padding: 2rem;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        h1 {
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            color: var(--text-dim);
+            margin-bottom: 2rem;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 1rem;
+        }
+
+        .tab-btn {
+            background: none;
+            border: none;
+            color: var(--text-dim);
+            font-family: inherit;
+            font-size: 1rem;
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            transition: color 0.3s;
+            position: relative;
+        }
+
+        .tab-btn.active {
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        .tab-btn.active::after {
+            content: '';
+            position: absolute;
+            bottom: -17px;
+            /* Align with border-bottom of .tabs */
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: var(--primary);
+        }
+
+        .tab-content {
+            display: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .tab-content.active {
+            display: block;
+            opacity: 1;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--bg-panel);
+            border-radius: 16px;
+            padding: 2rem;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            margin-bottom: 1.5rem;
+            max-width: 800px;
+        }
+
+        .form-group {
+            margin-bottom: 1.2rem;
+        }
+
+        label {
+            display: block;
+            color: var(--text-dim);
+            margin-bottom: 0.4rem;
+            font-size: 0.9rem;
+        }
+
+        input,
+        select {
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            color: white;
+            padding: 0.8rem;
+            width: 100%;
+            box-sizing: border-box;
+            font-family: inherit;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        input[type="file"] {
+            padding: 0.5rem;
+        }
+
+        button.action-btn {
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            border: none;
+            color: #000;
+            padding: 0.8rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+            width: 100%;
+        }
+
+        button.action-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .result-box {
+            margin-top: 1.5rem;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 1rem;
+            display: none;
+        }
+
+        .result-box.visible {
+            display: block;
+        }
+
+        .result-item {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 0.8rem 0;
+        }
+
+        .result-item:last-child {
+            border-bottom: none;
+        }
+
+        .preferred {
+            color: var(--success);
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-right: 0.5rem;
+        }
+
+        /* Water Profile Table */
+        .profile-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .profile-stat {
+            background: rgba(255, 255, 255, 0.03);
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .profile-stat .val {
+            font-size: 1.5rem;
+            color: var(--primary);
+        }
+
+        .profile-stat .lbl {
+            font-size: 0.8rem;
+            color: var(--text-dim);
+        }
+    </style>
+</head>
+
+<body>
+
+    <nav class="sidebar">
+        <a href="/" class="nav-item" title="Dashboard"><i class="fas fa-home"></i></a>
+        <a href="/taplist" class="nav-item" title="Tap List"><i class="fas fa-beer"></i></a>
+        <a href="/static/automation.html" class="nav-item active" title="Automation"><i class="fas fa-robot"></i></a>
+        <div style="flex:1"></div>
+        <a href="#" class="nav-item" title="Settings" onclick="openSettings()"><i class="fas fa-cog"></i></a>
+    </nav>
+
+    <div class="main-content">
+        <h1>Brew Automation</h1>
+        <div class="subtitle">AI-Assisted Tools for Better Brewing</div>
+
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('scout')">Scout</button>
+            <button class="tab-btn" onclick="switchTab('simulation')">Simulation</button>
+            <button class="tab-btn" onclick="switchTab('calculator')">Calculator</button>
+            <button class="tab-btn" onclick="switchTab('water')">Water</button>
+            <button class="tab-btn" onclick="switchTab('recipes')">Recipes</button>
+            <button class="tab-btn" onclick="switchTab('sourcing')">Sourcing</button>
+            <button class="tab-btn" onclick="switchTab('yeast')">Yeast</button>
+            <button class="tab-btn" onclick="switchTab('pipeline')">Pipeline</button>
+            <button class="tab-btn" onclick="switchTab('comparison')">Price Comparator</button>
+            <button class="tab-btn" onclick="switchTab('inventory')">Inventory</button>
+        </div>
+
+        <!-- SCOUT TAB -->
+        <div id="scout" class="tab-content active">
+            <div class="card">
+                <h3>Ingredient Scout</h3>
+                <div class="form-group">
+                    <label>Search Query</label>
+                    <input type="text" id="scoutQuery" placeholder="e.g. Citra Hops 100g">
+                </div>
+                <button class="action-btn" onclick="runScout()">Search Vendors</button>
+                <div id="scoutResults" class="result-box"></div>
+            </div>
+        </div>
+
+        <!-- INVENTORY TAB -->
+        <div id="inventory" class="tab-content">
+            <div class="card">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <h3>Inventory Manager</h3>
+                    <div style="display:flex; gap:0.5rem;">
+                        <button class="action-btn" onclick="syncInventory()"
+                            style="width:auto; font-size:0.9rem; background:var(--bg-panel); border:1px solid var(--primary); color:var(--primary);">
+                            <i class="fas fa-sync"></i> Sync Brewfather
+                        </button>
+                        <button class="action-btn" onclick="saveInventory()" style="width:auto; font-size:0.9rem;">Save
+                            Changes</button>
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-top:1rem;">
+                    <label>Category</label>
+                    <div class="tabs" style="margin-bottom:1rem; border:none;">
+                        <button class="tab-btn active" onclick="showInvCat('hops')">Hops</button>
+                        <button class="tab-btn" onclick="showInvCat('fermentables')">Malts</button>
+                        <button class="tab-btn" onclick="showInvCat('yeast')">Yeast</button>
+                        <button class="tab-btn" onclick="showInvCat('salts')">Salts</button>
+                    </div>
+                </div>
+
+                <div id="invEditor">
+                    <!-- Js populates -->
+                </div>
+            </div>
+        </div>
+
+        <!-- CALCULATOR TAB -->
+        <div id="calculator" class="tab-content">
+            <div class="card">
+                <h3>IBU Calculator (G40 Tuned)</h3>
+                <div class="form-group">
+                    <label>Hop Amount (g)</label>
+                    <input type="number" id="ibuAmount" value="50">
+                </div>
+                <div class="form-group">
+                    <label>Alpha Acid (%)</label>
+                    <input type="number" id="ibuAlpha" value="13.0">
+                </div>
+                <div class="form-group">
+                    <label>Boil Time (min)</label>
+                    <input type="number" id="ibuTime" value="60">
+                </div>
+                <div class="form-group">
+                    <label>Batch Volume (L)</label>
+                    <input type="number" id="simVol" value="23">
+                </div>
+                <div class="form-group">
+                    <label>Target Yeast (for FG Prediction)</label>
+                    <input type="text" id="simYeast" placeholder="e.g. US-05">
+                </div>
+
+                <div class="form-group">
+                    <label>Original Gravity</label>
+                    <input type="number" id="ibuGravity" value="1.050">
+                </div>
+                <button class="action-btn" onclick="runIBU()">Calculate</button>
+                <div id="ibuResult" class="result-box"
+                    style="text-align:center; font-size: 1.5rem; color: var(--primary);"></div>
+            </div>
+        </div>
+
+        <!-- WATER TAB -->
+        <div id="water" class="tab-content">
+            <div class="card">
+                <h3>Target Water Profiles</h3>
+                <div class="form-group">
+                    <label>Select Profile</label>
+                    <select id="waterSelect" onchange="loadWater()">
+                        <option value="neipa">NEIPA</option>
+                        <option value="west_coast">West Coast IPA</option>
+                        <option value="balanced">Balanced</option>
+                        <option value="ro">RO Water</option>
+                    </select>
+                </div>
+                <div id="waterProfileDisplay" class="profile-grid">
+                    <!-- Js populates this -->
+                </div>
+
+                <!-- PIZZA WIDGET -->
+                <div class="card"
+                    style="margin-top:1rem; border-color:var(--warning); background:rgba(255, 179, 0, 0.05); padding: 1rem;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;"
+                        onclick="togglePizza()">
+                        <h3 style="margin:0; color:var(--warning); font-size:1rem;"><i class="fas fa-pizza-slice"></i>
+                            Pizza Pairing Schedule</h3>
+                        <i class="fas fa-chevron-down" style="color:var(--warning);"></i>
+                    </div>
+                    <div id="pizzaSchedule" style="margin-top:1rem; display:none;">
+                        <ul id="pizzaList"
+                            style="list-style:none; padding:0; margin:0; font-size:0.9rem; color:var(--text-dim);"></ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SOURCING TAB -->
+        <div id="sourcing" class="tab-content">
+            <div class="card">
+                <h3>Shopping List (TMM / GEB)</h3>
+                <p style="color:var(--text-dim); font-size:0.9rem;">Estimate based on Recipe vs Inventory.</p>
+
+                <div style="margin:1rem 0;">
+                    <button class="action-btn" onclick="generateShoppingList()">Generate from Current Recipe</button>
+                </div>
+
+                <div id="shoppingListRes" class="result-box"></div>
+
+                <div style="margin-top:1rem; padding-top:1rem; border-top:1px solid #333;">
+                    <h4>Quick Search</h4>
+                    <div style="display:flex; gap:0.5rem;">
+                        <input type="text" id="sourceQuery" placeholder="Search ingredient...">
+                        <button class="action-btn" style="width:auto;" onclick="searchSource()">Search</button>
+                    </div>
+                    <div id="sourceSearchRes" style="margin-top:0.5rem;"></div>
+                </div>
+
+                <div style="margin-top:2rem;">
+                    <button class="action-btn" style="background:#2ecc71;" onclick="createBrewLog()">Create GitHub Brew
+                        Log</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- RECIPES TAB -->
+        <div id="recipes" class="tab-content">
+            <div class="card">
+                <h3>Recipe Finder</h3>
+                <div class="form-group">
+                    <label>Beer Style / Name</label>
+                    <input type="text" id="recipeQuery" placeholder="e.g. Pliny the Elder">
+                </div>
+
+                <div style="display:flex; gap:1.5rem; margin-bottom:1.5rem; flex-wrap:wrap;">
+                    <label style="display:flex; align-items:center; cursor:pointer; gap:0.5rem;">
+                        <input type="checkbox" id="recipeClone" style="width:auto; margin:0;">
+                        <span>Clone Only</span>
+                    </label>
+                    <label style="display:flex; align-items:center; cursor:pointer; gap:0.5rem;">
+                        <input type="checkbox" id="recipeAllGrain" style="width:auto; margin:0;">
+                        <span>All Grain</span>
+                    </label>
+                    <label style="display:flex; align-items:center; cursor:pointer; gap:0.5rem;">
+                        <input type="checkbox" id="recipeWater" style="width:auto; margin:0;">
+                        <span style="color:var(--primary)">Bru'n Water / RO</span>
+                    </label>
+                </div>
+
+                <div style="display:flex; gap:1rem;">
+                    <button class="action-btn" onclick="runRecipeSearch()">Find Recipes</button>
+                    <button class="action-btn" onclick="runXmlAnalysis()"
+                        style="background:var(--bg-panel); border:1px solid var(--primary); color:var(--primary);">Analyze
+                        BeerXML</button>
+                </div>
+
+                <div id="xmlResult" class="result-box" style="border:1px solid var(--primary);"></div>
+                <div id="recipeResults" class="result-box"></div>
+            </div>
+        </div>
+
+        <!-- YEAST TAB -->
+        <div id="yeast" class="tab-content">
+            <div class="card">
+                <h3>Yeast Meta Scraper</h3>
+                <div class="form-group">
+                    <label>Yeast Strain (e.g. WLP001, Imperial A38)</label>
+                    <input type="text" id="yeastQuery" placeholder="Enter strain name">
+                </div>
+                <button class="action-btn" onclick="runYeastSearch()">Scrape Metadata</button>
+                <div id="yeastResults" class="result-box"></div>
+            </div>
+        </div>
+
+        <!-- PIPELINE TAB (Was Alerts) -->
+        <div id="pipeline" class="tab-content">
+            <div class="card">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <h3><i class="fas fa-network-wired"></i> R&D Pipeline Monitor</h3>
+                    <button class="action-btn" onclick="refreshPipeline()" style="width:auto; font-size:0.9rem;">
+                        <i class="fas fa-sync"></i> Scan Active Batches
+                    </button>
+                </div>
+
+                <div id="pipelineContainer"
+                    style="display:grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap:1rem; margin-top:1rem;">
+                    <!-- Active Batches Injected Here -->
+                    <div style="text-align:center; padding:2rem; color:var(--text-dim);">
+                        Pipeline Idle. Click Scan to check Unitanks.
+                    </div>
+                </div>
+
+                <div style="margin-top:2rem; border-top:1px solid rgba(255,255,255,0.1); padding-top:1rem;">
+                    <h4 style="color:var(--text-dim);"><i class="fas fa-tools"></i> Manual Diagnostics</h4>
+                    <!-- Manual Tilt Analysis Tool -->
+                    <div class="form-group" style="margin-bottom:1.5rem;">
+                        <label>Data Source</label>
+                        <div style="display:flex; gap:1rem;">
+                            <button onclick="setAlertSource('csv')" id="btnSourceCsv" class="action-btn"
+                                style="width:auto; background:var(--bg-dark); color:var(--text-dim); border:1px solid var(--text-dim);">CSV
+                                Upload</button>
+                            <button onclick="setAlertSource('bf')" id="btnSourceBf" class="action-btn"
+                                style="width:auto; background:var(--bg-dark); color:var(--text-dim); border:1px solid var(--text-dim);">Brewfather
+                                Batch</button>
+                        </div>
+                    </div>
+
+                    <!-- CSV Input -->
+                    <div id="sourceCsv" class="source-panel">
+                        <div class="form-group">
+                            <label>Upload Tilt CSV Log</label>
+                            <input type="file" id="tiltFile" accept=".csv">
+                        </div>
+                    </div>
+
+                    <!-- Brewfather Input -->
+                    <div id="sourceBf" class="source-panel" style="display:none;">
+                        <div class="form-group">
+                            <label>Select Batch</label>
+                            <select id="bfBatchSelect">
+                                <option value="">Loading batches...</option>
+                            </select>
+                            <button onclick="loadBfBatches()"
+                                style="margin-top:0.5rem; background:none; border:none; color:var(--primary); cursor:pointer; font-size:0.8rem;">Refresh
+                                List</button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Target Temperature (°C)</label>
+                        <input type="number" id="tiltTarget" value="20.0">
+                    </div>
+
+                    <button class="action-btn" onclick="runAlerts()">Analyze Stability</button>
+                    <div id="alertResult" class="result-box"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- COMPARISON TAB -->
+        <div id="comparison-tab" class="tab-content">
+            <div class="card">
+                <h3 class="font-bold text-lg mb-4 text-emerald-400">Recipe Price Comparison (TMM vs GEB)</h3>
+
+                <div style="display:flex; gap:0.5rem; align-items:center; margin-bottom:1rem;">
+                    <select id="compareRecipeSelect" style="background:var(--bg-dark); padding:0.5rem; flex:1;">
+                        <option value="">Select Brewfather Recipe...</option>
+                    </select>
+                    <button onclick="runComparison()" class="action-btn"
+                        style="width:auto; background:var(--success); color:#000;">
+                        Compare Prices
+                    </button>
+                </div>
+
+                <div id="compareResults" class="hidden" style="display:none;">
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem; margin-bottom:1rem;">
+                        <div
+                            style="background:var(--bg-dark); padding:1rem; border-radius:8px; text-align:center; border:1px solid #333;">
+                            <div style="color:var(--text-dim); font-size:0.8rem;">The Malt Miller</div>
+                            <div id="totalTMM" style="font-size:1.5rem; font-weight:bold; color:white;">---</div>
+                        </div>
+                        <div
+                            style="background:var(--bg-dark); padding:1rem; border-radius:8px; text-align:center; border:1px solid #333;">
+                            <div style="color:var(--text-dim); font-size:0.8rem;">Get Er Brewed</div>
+                            <div id="totalGEB" style="font-size:1.5rem; font-weight:bold; color:white;">---</div>
+                        </div>
+                    </div>
+
+                    <div
+                        style="background:var(--bg-dark); border:1px solid #333; padding:0.5rem; text-align:center; border-radius:4px; margin-bottom:1rem;">
+                        Winner: <span id="winnerVendor" style="font-weight:bold; color:var(--primary);">---</span>
+                    </div>
+
+                    <table style="width:100%; text-align:left; border-collapse:collapse; font-size:0.9rem;">
+                        <thead style="color:var(--text-dim); border-bottom:1px solid #333;">
+                            <tr>
+                                <th style="padding:0.5rem;">Item</th>
+                                <th style="padding:0.5rem;">TMM</th>
+                                <th style="padding:0.5rem;">GEB</th>
+                                <th style="padding:0.5rem;">Best</th>
+                            </tr>
+                        </thead>
+                        <tbody id="compareTableBody">
+                            <!-- Rows -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal (Placeholder - would reuse existing if possible, or link to main settings) -->
+    <!-- For now, we rely on the main dashboard for settings config -->
+
+    <script>
+        // Tab Logic
+        function switchTab(id) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        // Scout Logic
+        async function runScout() {
+            const query = document.getElementById('scoutQuery').value;
+            const resBox = document.getElementById('scoutResults');
+            resBox.innerHTML = '<div style="text-align:center"><i class="fas fa-spinner fa-spin"></i> Searching...</div>';
+            resBox.classList.add('visible');
+
+            try {
+                const res = await fetch('/api/automation/scout', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query })
+                });
+                const data = await res.json();
+
+                if (data.error) {
+                    resBox.innerHTML = `<span style="color:var(--error)">${data.error}</span>`;
+                    return;
+                }
+
+                let html = '';
+                if (data.length === 0) html = 'No results found.';
+                else {
+                    data.slice(0, 10).forEach(item => {
+                        html += `
+                        <div class="result-item">
+                            <div>
+                                ${item.is_preferred ? '<span class="preferred"><i class="fas fa-star"></i> Preferred</span>' : ''}
+                                <a href="${item.link}" target="_blank" style="color:white; text-decoration:none; font-weight:600">${item.title}</a>
+                            </div>
+                            <div style="color:var(--text-dim); display:flex; justify-content:space-between; margin-top:0.2rem">
+                                <span>${item.source}</span>
+                                <span style="color:var(--primary)">${item.price}</span>
+                            </div>
+                        </div>`;
+                    });
+                }
+                resBox.innerHTML = html;
+            } catch (err) {
+                resBox.innerHTML = `<span style="color:var(--error)">Error: ${err.message}</span>`;
+            }
+        }
+
+        // IBU Logic
+        async function runIBU() {
+            const amount = document.getElementById('ibuAmount').value;
+            const alpha = document.getElementById('ibuAlpha').value;
+            const time = document.getElementById('ibuTime').value;
+            const volume = document.getElementById('ibuVolume').value;
+            const gravity = document.getElementById('ibuGravity').value;
+
+            const res = await fetch('/api/automation/calc_ibu', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ amount, alpha, time, volume, gravity })
+            });
+            const data = await res.json();
+            const box = document.getElementById('ibuResult');
+            box.classList.add('visible');
+            box.textContent = `Calculated IBU: ${data.ibu || data.error}`;
+        }
+
+        // Water Logic
+        async function loadWater() {
+            const profile = document.getElementById('waterSelect').value;
+            const res = await fetch(`/api/automation/water/${profile}`);
+            const data = await res.json();
+
+            const grid = document.getElementById('waterProfileDisplay');
+            if (data.error) return;
+
+            const map = {
+                'calcium': 'Calcium (Ca)',
+                'magnesium': 'Magnesium (Mg)',
+                'sodium': 'Sodium (Na)',
+                'chloride': 'Chloride (Cl)',
+                'sulfate': 'Sulfate (SO4)',
+                'bicarbonate': 'Bicarbonate (HCO3)',
+                'ph': 'Target pH'
+            };
+
+            let html = '';
+            for (const [key, label] of Object.entries(map)) {
+                html += `
+                <div class="profile-stat">
+                    <div class="val">${data[key]}</div>
+                    <div class="lbl">${label}</div>
+                </div>`;
+            }
+            grid.innerHTML = html;
+
+            // --- SMART SALT ADDITIONS (Rules of Thumb) ---
+            // --- SMART SALT LOGIC (Hybrid) ---
+            const additionsBox = document.getElementById('waterAdditions');
+            if (additionsBox) {
+                let content = '';
+
+                // Helper to check stock
+                const checkStock = (name) => {
+                    if (!inventoryData || !inventoryData.salts) return '';
+                    const key = Object.keys(inventoryData.salts).find(k => k.toLowerCase().includes(name.toLowerCase()));
+                    if (key) {
+                        return `<span style="font-size:0.7rem; color:var(--success); border:1px solid var(--success); padding:1px 4px; border-radius:4px; margin-left:0.5rem;">✅ In Stock: ${inventoryData.salts[key]}g</span>`;
+                    }
+                    return `<span style="font-size:0.7rem; color:var(--warning); border:1px solid var(--warning); padding:1px 4px; border-radius:4px; margin-left:0.5rem;">⚠️ Out of Stock</span>`;
+                };
+
+                // Detect Mode based on profile key strings
+                const isBrun = ['yellow', 'black', 'neipa_juicy', 'bru'].some(k => profile.includes(k));
+
+                if (isBrun) {
+                    // --- BRU'N WATER MODE (Input Check + Ratios) ---
+
+                    // Calculate Ratio
+                    const ratio = data.chloride > 0 ? (data.sulfate / data.chloride).toFixed(1) : 'High';
+                    let ratioDesc = 'Balanced';
+                    if (ratio > 2) ratioDesc = 'Very Bitter / Crisp';
+                    else if (ratio > 1.3) ratioDesc = 'Bitter Buildup';
+                    else if (ratio < 0.8) ratioDesc = 'Malty / Soft';
+
+                    let checkList = '';
+                    if (data.sulfate > 100) checkList += `<li><strong>Gypsum (CaSO4)</strong>: Required for Sulfate. ${checkStock('gypsum')}</li>`;
+                    if (data.chloride > 80) checkList += `<li><strong>Calcium Chloride (CaCl2)</strong>: Required for Chloride. ${checkStock('chloride')}</li>`;
+                    if (data.magnesium > 10) checkList += `<li><strong>Epsom Salt (MgSO4)</strong>: Likely required. ${checkStock('epsom')}</li>`;
+                    checkList += `<li><strong>Acid</strong>: Check Spreadsheet for pH adjustment. ${checkStock('acid')}</li>`;
+
+                    content = `
+                    <div style="margin-top:1rem; padding-top:1rem; border-top:1px solid rgba(255,255,255,0.1);">
+                        <div style="font-weight:bold; margin-bottom:0.5rem; color:var(--primary);">Bru'n Water Inputs</div>
+                        
+                        <div style="background:rgba(255,255,255,0.05); padding:0.8rem; border-radius:4px; margin-bottom:1rem; border-left:3px solid var(--info);">
+                            <div style="font-size:0.9rem; color:#fff;">Target Sulfate/Chloride Ratio: <strong style="color:var(--info); font-size:1.1rem;">${ratio}</strong></div>
+                            <div style="font-size:0.8rem; color:var(--text-dim); margin-top:0.2rem;">Effect: ${ratioDesc}</div>
+                        </div>
+
+                        <div style="font-size:0.8rem; color:var(--text-dim); margin-bottom:0.5rem;">Required Salts (Stock Check):</div>
+                        <ul style="list-style-type:none; padding-left:0; margin:0; line-height:2;">${checkList}</ul>
+                    </div>`;
+
+                } else {
+                    // --- SIMPLE MODE (Estimations) ---
+                    let suggestions = '';
+                    if (profile.includes('west_coast')) {
+                        suggestions = `<li>Gypsum: 4g ${checkStock('gypsum')}</li><li>CaCl2: 1g ${checkStock('chloride')}</li>`;
+                    } else if (profile.includes('neipa')) {
+                        suggestions = `<li>CaCl2: 5g ${checkStock('chloride')}</li><li>Gypsum: 2g ${checkStock('gypsum')}</li>`;
+                    } else {
+                        suggestions = `<li>Gypsum: 2g ${checkStock('gypsum')}</li><li>CaCl2: 2g ${checkStock('chloride')}</li>`;
+                    }
+
+                    content = `
+                    <div style="margin-top:1rem; padding-top:1rem; border-top:1px solid rgba(255,255,255,0.1);">
+                        <div style="font-weight:bold; margin-bottom:0.5rem; color:var(--primary);">Quick Recommendations (5 Gal)</div>
+                        <ul style="list-style-type:circle; padding-left:1.5rem; margin:0; line-height:1.6; color:#ddd;">${suggestions}</ul>
+                    </div>`;
+                }
+
+                additionsBox.innerHTML = content;
+            }
+        }
+
+        // Alerts Logic
+        // Alerts Logic
+        let currentSource = 'csv';
+
+        function setAlertSource(src) {
+            currentSource = src;
+            document.getElementById('sourceCsv').style.display = src === 'csv' ? 'block' : 'none';
+            document.getElementById('sourceBf').style.display = src === 'bf' ? 'block' : 'none';
+
+            const smartSec = document.getElementById('smartAlertSection');
+            if (smartSec) smartSec.style.display = src === 'bf' ? 'block' : 'none';
+
+            // Highlight buttons
+            const btnCsv = document.getElementById('btnSourceCsv');
+            const btnBf = document.getElementById('btnSourceBf');
+
+            if (btnCsv && btnBf) {
+                // Reset styles
+                [btnCsv, btnBf].forEach(b => {
+                    b.style.background = 'var(--bg-dark)';
+                    b.style.color = 'var(--text-dim)';
+                    b.style.borderColor = 'var(--text-dim)';
+                });
+
+                // Set Active
+                const activeBtn = src === 'csv' ? btnCsv : btnBf;
+                activeBtn.style.background = 'rgba(255, 215, 0, 0.1)';
+                activeBtn.style.color = 'var(--primary)';
+                activeBtn.style.borderColor = 'var(--primary)';
+            }
+
+            if (src === 'bf') loadBfBatches();
+        }
+
+        async function loadBfBatches() {
+            const sel = document.getElementById('bfBatchSelect');
+            sel.innerHTML = '<option>Loading...</option>';
+
+            try {
+                const res = await fetch('/api/automation/brewfather/batches');
+                const data = await res.json();
+
+                if (data.error) {
+                    sel.innerHTML = `<option>Error: ${data.error}</option>`;
+                    return;
+                }
+
+                sel.innerHTML = '';
+                if (data.length === 0) sel.innerHTML = '<option>No recent batches</option>';
+
+                data.forEach(b => {
+                    const opt = document.createElement('option');
+                    opt.value = b._id;
+                    opt.text = `${b.name} (${b.status})`;
+                    sel.appendChild(opt);
+                });
+            } catch (e) {
+                sel.innerHTML = '<option>Failed to load</option>';
+            }
+        }
+
+        async function runAlerts() {
+            const target = document.getElementById('tiltTarget').value;
+            const resBox = document.getElementById('alertResult');
+            resBox.innerHTML = '<div style="text-align:center"><i class="fas fa-spinner fa-spin"></i> Analyzing...</div>';
+            resBox.classList.add('visible');
+
+            let res;
+
+            try {
+                if (currentSource === 'csv') {
+                    const fileInput = document.getElementById('tiltFile');
+                    if (!fileInput.files[0]) { alert("Please select a file"); return; }
+
+                    const formData = new FormData();
+                    formData.append('file', fileInput.files[0]);
+                    formData.append('target', target);
+
+                    res = await fetch('/api/automation/alerts', { method: 'POST', body: formData });
+                } else {
+                    const batchId = document.getElementById('bfBatchSelect').value;
+                    if (!batchId) { alert("Select a batch"); return; }
+
+                    res = await fetch('/api/automation/brewfather/analyze', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ batch_id: batchId, target: target })
+                    });
+                }
+
+                const data = await res.json();
+
+                if (data.status === 'error' || data.error) {
+                    resBox.innerHTML = `<span style="color:var(--error)">${data.message || data.error}</span>`;
+                } else {
+                    const color = data.status === 'stable' ? 'var(--success)' : 'var(--error)';
+                    resBox.innerHTML = `
+                    <div style="font-size:1.2rem; margin-bottom:0.5rem; color:${color}">
+                        STATUS: ${data.status.toUpperCase()}
+                    </div>
+                    <div>Max Deviation: ${data.max_deviation}°</div>
+                    <div>Current Temp: ${data.current_temp}°</div>
+                    `;
+                }
+            } catch (e) {
+                resBox.innerHTML = `<span style="color:var(--error)">Error: ${e.message}</span>`;
+            }
+        }
+
+        // Recipe Logic
+        async function runRecipeSearch() {
+            const query = document.getElementById('recipeQuery').value;
+            const is_clone = document.getElementById('recipeClone').checked;
+            const is_all_grain = document.getElementById('recipeAllGrain').checked;
+
+            const resBox = document.getElementById('recipeResults');
+            resBox.innerHTML = '<div style="text-align:center"><i class="fas fa-spinner fa-spin"></i> Finding recipes...</div>';
+            resBox.classList.add('visible');
+
+            try {
+                const res = await fetch('/api/automation/recipes', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query, is_clone, is_all_grain })
+                });
+                const data = await res.json();
+
+                if (data.error) {
+                    resBox.innerHTML = `<span style="color:var(--error)">${data.error}</span>`;
+                    return;
+                }
+
+                let html = '';
+                if (data.length === 0) html = 'No recipes found.';
+                else {
+                    data.forEach(item => {
+                        html += `
+                        <div class="result-item">
+                            <div>
+                                <a href="${item.link}" target="_blank" style="color:white; text-decoration:none; font-weight:600; font-size:1.1rem;">${item.title}</a>
+                            </div>
+                            <div style="color:var(--text-dim); font-size:0.9rem; margin-top:0.3rem;">
+                                ${item.snippet}
+                            </div>
+                            <div style="color:var(--primary); font-size:0.8rem; margin-top:0.3rem; text-transform:uppercase;">
+                                ${item.source}
+                            </div>
+                        </div>`;
+                    });
+                }
+                resBox.innerHTML = html;
+            } catch (err) {
+                resBox.innerHTML = `<span style="color:var(--error)">Error: ${err.message}</span>`;
+            }
+        }
+
+        // Yeast Logic
+        async function runYeastSearch() {
+            const name = document.getElementById('yeastQuery').value;
+            const resBox = document.getElementById('yeastResults');
+            resBox.innerHTML = '<div style="text-align:center"><i class="fas fa-spinner fa-spin"></i> Scraping manufacturer site...</div>';
+            resBox.classList.add('visible');
+
+            try {
+                const res = await fetch('/api/automation/yeast', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name })
+                });
+                const data = await res.json();
+
+                if (data.error) {
+                    resBox.innerHTML = `<span style="color:var(--error)">${data.error}</span>`;
+                    return;
+                }
+
+                resBox.innerHTML = `
+                <div style="text-align:center; margin-bottom:1rem;">
+                    <a href="${data.url}" target="_blank" style="color:var(--primary); font-size:1.2rem; font-weight:600;">${data.name} <i class="fas fa-external-link-alt" style="font-size:0.8rem"></i></a>
+                </div>
+                <div class="profile-grid">
+                    <div class="profile-stat"><div class="val">${data.attenuation}</div><div class="lbl">Attenuation</div></div>
+                    <div class="profile-stat"><div class="val">${data.flocculation}</div><div class="lbl">Flocculation</div></div>
+                    <div class="profile-stat"><div class="val">${data.temp_range}</div><div class="lbl">Temp Range</div></div>
+                    <div class="profile-stat"><div class="val">${data.abv_tolerance}</div><div class="lbl">Tolerance</div></div>
+                </div>
+                `;
+            } catch (err) {
+                resBox.innerHTML = `<span style="color:var(--error)">Error: ${err.message}</span>`;
+            }
+        }
+
+        // Updated Recipe Logic with Water
+        // We are overriding the previous function definition if it exists above or this is a fresh insert
+        // Actually, to avoid duplicates, let's just add the NEW functions here.
+        // The user asked to update runRecipeSearch too.
+
+        async function scaleRecipe(idx, recipe) {
+            try {
+                const res = await fetch('/api/automation/recipes/scale', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(recipe)
+                });
+                const newRecipe = await res.json();
+
+                // Re-render just this card or force re-render?
+                // For simplicity, let's just hack the DOM update for this user demo
+                // Ideally we'd update state and re-render properly.
+
+                const card = document.getElementById(`recipe-card-${idx}`);
+                // Replace card content with new valid recipe
+                card.innerHTML = `
+                    <div>
+                        <div style="font-weight:600; color:#fff;">${newRecipe.name} 
+                            <span style="font-size:0.7rem; background:var(--primary); color:white; padding:2px 6px; border-radius:4px; margin-left:0.5rem;">SCALED</span>
+                        </div>
+                        <div style="font-size:0.8rem; color:var(--text-dim);">
+                            OG: ${newRecipe.og} | IBU: ${newRecipe.ibu} | ABV: ${newRecipe.abv}% | Vol: <b>${newRecipe.batch_size_l}L</b>
+                        </div>
+                        <div style="font-size:0.8rem; color:var(--text-dim); margin-top:0.2rem;">${newRecipe.hops_summary}</div>
+                        <div style="font-size:0.8rem; color:var(--text-dim);">Grain: <b>${newRecipe.total_grain_kg}kg</b> <span style="color:var(--success);">(Fits G40)</span></div>
+                    </div>
+                    <div>
+                        <button class="action-btn" style="width:auto; padding:0.5rem 1rem; font-size:0.8rem;" 
+                            onclick="importRecipe('${newRecipe.source_url}')">
+                            Import
+                        </button>
+                    </div>
+                `;
+
+            } catch (e) { alert("Scaling failed: " + e); }
+        }
+
+        async function runXmlAnalysis() {
+            const query = document.getElementById('recipeQuery').value;
+            const resBox = document.getElementById('xmlResult');
+            resBox.innerHTML = '<div style="text-align:center"><i class="fas fa-spinner fa-spin"></i> Scanning for BeerXML data...</div>';
+            resBox.classList.add('visible');
+
+            try {
+                const res = await fetch('/api/automation/recipes/analyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query })
+                });
+                const data = await res.json();
+
+                if (data.error) {
+                    resBox.innerHTML = `<span style="color:var(--error)">${data.error}</span>`;
+                    return;
+                }
+
+                resBox.innerHTML = `
+                <div style="text-align:center; margin-bottom:1rem;">
+                   <h4 style="color:var(--primary); margin:0;">XML Consensus (${data.count} recipes)</h4>
+                </div>
+                <div class="profile-grid">
+                    <div class="profile-stat"><div class="val">${data.avg_og}</div><div class="lbl">Avg OG</div></div>
+                    <div class="profile-stat"><div class="val">${data.avg_ibu}</div><div class="lbl">Avg IBU</div></div>
+                    <div class="profile-stat"><div class="val">${data.avg_abv}%</div><div class="lbl">Avg ABV</div></div>
+                </div>
+                <div style="margin-top:1rem; display:flex; gap:2rem;">
+                    <div style="flex:1">
+                        <h5 style="color:var(--text-dim); border-bottom:1px solid #333;">Top Hops (All)</h5>
+                         ${Object.keys(data.common_hops).map(k => `<div style="display:flex; justify-content:space-between;"><span>${k}</span><span>${data.common_hops[k]}</span></div>`).join('')}
+                    </div>
+                     <div style="flex:1">
+                        <h5 style="color:var(--text-dim); border-bottom:1px solid #333;">Top Dry Hops</h5>
+                         ${Object.keys(data.common_dry_hops || {}).map(k => `<div style="display:flex; justify-content:space-between; color:var(--accent);"><span>${k}</span><span>${data.common_dry_hops[k]}</span></div>`).join('')}
+                    </div>
+                     <div style="flex:1">
+                        <h5 style="color:var(--text-dim); border-bottom:1px solid #333;">Top Malts</h5>
+                          ${Object.keys(data.common_malts).map(k => `<div style="display:flex; justify-content:space-between;"><span>${k}</span><span>${data.common_malts[k]}</span></div>`).join('')}
+                    </div>
+                </div>
+                
+                 <div style="margin-top:1.5rem;">
+                     <h4 style="color:var(--primary); margin-bottom:1rem;">Found XML Recipes</h4>
+                     ${data.recipes.map((r, idx) => `
+                        <div class="result-item" style="display:flex; justify-content:space-between; align-items:center;" id="recipe-card-${idx}">
+                            <div>
+                                <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.3rem;">
+                                    <div style="font-weight:600; color:#fff;">${r.name}</div>
+                                    ${r.is_scaled ? '<span style="font-size:0.7rem; background:var(--primary); color:white; padding:2px 6px; border-radius:4px;">SCALED</span>' : ''}
+                                    
+                                    <!-- pH Triangulation Badge -->
+                                    <div style="font-size:0.75rem; background:#333; border:1px solid #555; border-radius:4px; display:flex; overflow:hidden;">
+                                        <div style="padding:1px 6px; background:#444; color:#fff;" title="Calculated from Ingredients">Est: ${r.est_ph}</div>
+                                        ${r.target_ph ? `<div style="padding:1px 6px; background:var(--primary); color:#000; font-weight:bold;" title="Stated in Recipe Notes">Target: ${r.target_ph}</div>` : ''}
+                                        <div style="padding:1px 6px; background:#222; color:#aaa; border-left:1px solid #555;" title="Style Consensus: ${r.wisdom?.desc || 'Standard'}">Style: ${r.wisdom?.ph_range || 'N/A'}</div>
+                                    </div>
+                                </div>
+
+                                <div style="font-size:0.8rem; color:var(--text-dim); margin-bottom:0.3rem;">
+                                    OG: <b>${r.og}</b> | IBU: <b>${r.ibu}</b> | ABV: <b>${r.abv}%</b> | Vol: <b>${r.batch_size_l}L</b>
+                                </div>
+                                
+                                <div style="font-size:0.8rem; color:#ccc; margin-bottom:0.3rem;">
+                                    <i class="fas fa-cubes"></i> ${r.grain_breakdown ? r.grain_breakdown.join(' | ') : 'Grain Bill Unknown'}
+                                </div>
+
+                                <div style="font-size:0.8rem; color:var(--text-dim); margin-top:0.2rem;">
+                                    <i class="fas fa-leaf"></i> ${r.hops_summary}
+                                </div>
+                                
+                                ${!r.hardware_valid ? 
+                                    `<div style="color:var(--error); font-weight:bold; font-size:0.8rem; margin-top:0.3rem;">
+                                        <i class="fas fa-exclamation-circle"></i> ${r.hardware_warnings.join(' ')}
+                                    </div>` : ''
+                                }
+                            </div>
+                            <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+                                ${!r.hardware_valid ?
+                                    `<button class="action-btn" style="width:auto; padding:0.5rem 1rem; font-size:0.8rem; background:var(--warning); color:#000; border:none;" 
+                                        onclick='scaleRecipe(${idx}, ${JSON.stringify(r)})'>
+                                        <i class="fas fa-magic"></i> Fit to G40
+                                    </button>` : ''
+                                }
+                                <button class="action-btn" style="width:auto; padding:0.5rem 1rem; font-size:0.8rem; background:linear-gradient(45deg, #6366f1, #a855f7);" onclick="runAiAudit('${r.style || 'Ale'}', ${r.og}, '${r.name}')">
+                                    <i class="fas fa-brain"></i> AI Audit
+                                </button>
+                                <button class="action-btn" style="width:auto; padding:0.5rem 1rem; font-size:0.8rem; ${!r.hardware_valid ? 'opacity:0.5; cursor:not-allowed;' : ''}" 
+                                    ${!r.hardware_valid ? 'disabled' : ''}
+                                    onclick="importRecipe('${r.source_url}')">
+                                    Import
+                                </button>
+                            </div>
+                            <div id="audit-${r.name.replace(/\s/g, '')}" style="margin-top:0.5rem; display:none; width:100%;" class="p-2 bg-slate-800 rounded text-sm"></div>
+                        </div>
+                     `).join('')}
+                </div>
+                `;
+            } catch (err) {
+                resBox.innerHTML = `<span style="color:var(--error)">Error: ${err.message}</span>`;
+            }
+        }
+
+        async function runAiAudit(style, og, name) {
+            const id = 'audit-' + name.replace(/\s/g, '');
+            const box = document.getElementById(id);
+            if(!box) return;
+            
+            box.style.display = 'block';
+            box.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Auditing History...';
+            
+            try {
+                const res = await fetch('/api/automation/learning/audit', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ style, og, name })
+                });
+                const data = await res.json();
+                
+                if(data.status === 'No Data') {
+                    box.innerHTML = `<span style="color:var(--text-dim);"><i class="fas fa-info-circle"></i> ${data.message}</span>`;
+                    return;
+                }
+                
+                let tipsHtml = data.tips.length > 0 ? 
+                    data.tips.map(t => `<div style="margin-bottom:0.2rem; display:flex; gap:0.5rem;"><span style="color:var(--warning);">⚠️</span><span>${t}</span></div>`).join('') :
+                    '<div style="color:var(--success);"><i class="fas fa-check"></i> Recipe matches your successful profiles perfectly!</div>';
+                    
+                box.innerHTML = `
+                    <div style="border-left:3px solid var(--primary); padding-left:0.5rem; background:rgba(255,255,255,0.05); padding:0.5rem; border-radius:4px;">
+                        <div style="font-weight:bold; color:var(--primary); margin-bottom:0.5rem; border-bottom:1px solid #444; padding-bottom:0.2rem;">
+                            <i class="fas fa-chart-line"></i> Performance Audit <span style="font-size:0.8rem; font-weight:normal; color:#aaa;">(vs ${data.peer_count} successful ${style}s)</span>
+                        </div>
+                        <div style="font-size:0.9rem;">
+                            ${tipsHtml}
+                        </div>
+                        <div style="margin-top:0.5rem; font-size:0.8rem; color:#888; display:flex; gap:1rem;">
+                            <span>Avg OG: ${data.avg_peer_og}</span>
+                            <span>Avg Att: ${data.avg_peer_att}%</span>
+                        </div>
+                    </div>
+                `;
+            } catch(e) {
+                box.innerHTML = `<span style="color:var(--error)">Audit Failed: ${e}</span>`;
+            }
+        }
+
+        async function importRecipe(url) {
+            if (!confirm("Import this recipe to Brewfather?")) return;
+
+            // Re-use xmlResult or show global toast? Let's use xmlResult for now or alert.
+            // A simple alert for MVP.
+
+            try {
+                const res = await fetch('/api/automation/brewfather/import', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url })
+                });
+                const data = await res.json();
+
+                if (data.error) {
+                    alert('Import Error: ' + data.error);
+                } else {
+                    alert(data.message);
+                }
+            } catch (e) {
+                alert('Connection Error: ' + e.message);
+            }
+        }
+
+        async function runSmartAlert() {
+            const batchId = document.getElementById('bfBatchSelect').value;
+            const resBox = document.getElementById('smartResult');
+            resBox.innerHTML = '<div style="text-align:center"><i class="fas fa-spinner fa-spin"></i> Predicting...</div>';
+            resBox.classList.add('visible');
+
+            try {
+                const res = await fetch('/api/automation/alerts/smart', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ batch_id: batchId, current_gravity: 1.015 })
+                });
+                const data = await res.json();
+
+                if (data.error) {
+                    resBox.innerHTML = `< span style = "color:var(--error)" > ${data.error}</span > `;
+                    return;
+                }
+
+                const statusColor = data.status === 'Finished' ? 'var(--success)' : 'var(--accent)';
+
+                resBox.innerHTML = `
+                < div > Yeast: <strong>${data.yeast_name}</strong> (${data.attenuation_avg}%)</div >
+                 <div style="font-size:1.2rem; margin:0.5rem 0;">Expected FG: <span style="color:var(--primary)">${data.expected_fg}</span></div>
+                 <div style="color:${statusColor}; font-weight:600;">Prediction: ${data.status}</div>
+            `;
+            } catch (e) {
+                resBox.innerHTML = `< span style = "color:var(--error)" > Error: ${e.message}</span > `;
+            }
+        }
+
+
+        async function calcAdjustment() {
+            const target_ibu = document.getElementById('adjTargetIBU').value;
+            const current_gravity = document.getElementById('adjGravity').value;
+            const volume = document.getElementById('adjVol').value;
+            const time = document.getElementById('adjTime').value;
+            const alpha = document.getElementById('adjAlpha').value;
+
+            const resBox = document.getElementById('adjResult');
+            resBox.innerHTML = '<div style="text-align:center"><i class="fas fa-spinner fa-spin"></i> Calculating...</div>';
+            resBox.classList.add('visible');
+
+            try {
+                const res = await fetch('/api/automation/calc/adjustment', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ target_ibu, current_gravity, volume, time, alpha })
+                });
+                const data = await res.json();
+
+                if (data.error) {
+                    resBox.innerHTML = `< span style = "color:var(--error)" > ${data.error}</span > `;
+                    return;
+                }
+
+                resBox.innerHTML = `
+                < div style = "text-align:center;" >
+                    <div style="font-size:0.9rem; color:var(--text-dim);">Required Hop Weight</div>
+                    <div style="font-size:2rem; font-weight:bold; color:var(--primary);">${data.required_grams}g</div>
+                    <div style="font-size:0.8rem; color:var(--text-dim); margin-top:0.5rem;">Based on Utilization: ${data.utilization}</div>
+                </div >
+                `;
+            } catch (e) {
+                resBox.innerHTML = `< span style = "color:var(--error)" > Error: ${e.message}</span > `;
+            }
+        }
+
+        // --- Sourcing & Utils ---
+        async function togglePizza() {
+            const div = document.getElementById('pizzaSchedule');
+            if (div.style.display === 'none') {
+                div.style.display = 'block';
+                if (!div.innerHTML.includes('li')) {
+                    const res = await fetch('/api/automation/pizza');
+                    const data = await res.json();
+                    document.getElementById('pizzaList').innerHTML = data.map(i => `
+                < li style = "margin-bottom:0.5rem;" >
+                    <span style="color:var(--primary); font-weight:bold;">${i.time}:</span> ${i.step}
+                        </li >
+                `).join('');
+                }
+            } else {
+                div.style.display = 'none';
+            }
+        }
+
+        async function searchSource() {
+            const q = document.getElementById('sourceQuery').value;
+            const div = document.getElementById('sourceSearchRes');
+            div.innerHTML = 'Searching...';
+            const res = await fetch('/api/automation/sourcing/search', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ query: q })
+            });
+            const data = await res.json();
+            div.innerHTML = data.map(d => `
+                < div style = "background:var(--bg-dark); padding:0.5rem; margin-bottom:0.5rem; border-radius:4px;" >
+                    <a href="${d.link}" target="_blank" style="color:var(--accent); font-weight:bold;">${d.title}</a>
+                    <div style="font-size:0.8rem; color:#888;">${d.source}</div>
+                </div >
+                `).join('');
+        }
+
+        // Mock State for Sourcing
+        async function generateShoppingList() {
+            const hops = [{ name: 'Citra', amount_g: 100 }, { name: 'Mosaic', amount_g: 50 }];
+            const ferms = [{ name: 'Pilsner Malt', amount_kg: 5 }];
+
+            const div = document.getElementById('shoppingListRes');
+            div.innerHTML = 'Calculating costs...';
+
+            const res = await fetch('/api/automation/sourcing/list', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ hops: hops, fermentables: ferms })
+            });
+            const data = await res.json();
+
+            div.innerHTML = `
+                < div style = "font-size:1.2rem; margin-bottom:1rem; color:var(--success);" > Est.Total: £${data.total_est_cost}</div >
+                    <table style="width:100%; font-size:0.9rem; text-align:left;">
+                        <thead style="color:var(--text-dim);"><tr><th>Item</th><th>Buy</th><th>Cost</th></tr></thead>
+                        <tbody>
+                            ${data.items.map(i => `
+                            <tr>
+                                <td>${i.name}</td>
+                                <td>${i.buy}</td>
+                                <td>£${i.est_cost}</td>
+                            </tr>
+                        `).join('')}
+                        </tbody>
+                    </table>
+            `;
+        }
+
+        async function createBrewLog() {
+            if (!confirm("Create GitHub Brew Log?")) return;
+
+            // In real usage, pull from loaded recipe state
+            const payload = {
+                name: "Julius Clone (Auto-Log)",
+                batch: { og: 1.065, fg: 1.012, volume: 23, time: 60 },
+                water: { name: "NEIPA", calcium: 130, chloride: 150, sulfate: 80 }
+            };
+
+            const res = await fetch('/api/automation/logger/create', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            if (data.error) alert("Error: " + data.error);
+            else alert(data.message);
+        }
+
+        // Init
+        loadWater(); // Load initial water profile
+        setTimeout(() => setAlertSource('csv'), 100);
+
+        function openSettings() {
+            // Basic redirect since we don't have the shared modal code handy right now
+            // Users can access settings from the main dashboard
+            window.location.href = '/?settings=true';
+        }
+
+        // Simulation Logic
+        function addGrainInput() {
+            const div = document.createElement('div');
+            div.className = 'form-group';
+            div.style.borderLeft = '2px solid var(--accent)';
+            div.style.paddingLeft = '0.5rem';
+            div.style.marginBottom = '0.5rem';
+            div.innerHTML = `
+                < label > Grain Weight(kg)</label >
+                    <input type="number" class="grain-weight" value="0.5">
+                        <label style="margin-top:0.2rem;">Potential (SG)</label>
+                        <input type="number" class="grain-pot" value="1.035" step="0.001">
+                            `;
+            document.getElementById('grainInputs').appendChild(div);
+        }
+
+        async function runSimulation() {
+            const eff = document.getElementById('simEff').value;
+            const vol = document.getElementById('simVol').value;
+            const yeast = document.getElementById('simYeast').value;
+
+            const grains = [];
+            const weights = document.querySelectorAll('.grain-weight');
+            const pots = document.querySelectorAll('.grain-pot');
+
+            weights.forEach((w, i) => {
+                const weight = parseFloat(w.value);
+                if (weight > 0) {
+                    grains.push({
+                        weight_kg: weight,
+                        potential: parseFloat(pots[i].value)
+                    });
+                }
+            });
+
+            const resBox = document.getElementById('simResult');
+            resBox.innerHTML = 'Simulating...';
+            resBox.classList.add('visible');
+
+            try {
+                const res = await fetch('/api/automation/learning/simulate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ efficiency: eff, volume: vol, grains: grains, yeast: yeast })
+                });
+                const data = await res.json();
+
+                let fermHtml = '';
+                if (data.predicted_fg) {
+                    fermHtml = `
+                    <div style="margin-top:1rem; padding-top:1rem; border-top:1px solid #333;">
+                        <div style="font-size:0.9rem; color:var(--text-dim);">Fermentation Prediction (${yeast})</div>
+                        <div style="display:flex; justify-content:center; gap:2rem; margin-top:0.5rem;">
+                            <div>
+                                <div style="font-size:0.8rem; color:#888;">Est. FG</div>
+                                <div style="font-size:1.5rem; font-weight:bold; color:var(--accent);">${data.predicted_fg}</div>
+                            </div>
+                             <div>
+                                <div style="font-size:0.8rem; color:#888;">Est. ABV</div>
+                                <div style="font-size:1.5rem; font-weight:bold; color:var(--accent);">${data.predicted_abv}%</div>
+                            </div>
+                        </div>
+                        <div style="font-size:0.8rem; color:var(--text-dim); margin-top:0.5rem;">Confidence: ${data.confidence} (Avg Att: ${data.avg_attenuation}%)</div>
+                    </div>
+                    `;
+                }
+
+                resBox.innerHTML = `
+                            <div style="text-align:center;">
+                                ${data.hardware_error ? `<div style="background:rgba(255,0,0,0.1); border:1px solid var(--error); color:var(--error); padding:0.5rem; border-radius:4px; margin-bottom:1rem; font-weight:bold;">${data.hardware_error}</div>` : ''}
+                                ${data.hardware_warning ? `<div style="background:rgba(255,215,0,0.1); border:1px solid var(--warning); color:var(--warning); padding:0.5rem; border-radius:4px; margin-bottom:1rem;">${data.hardware_warning}</div>` : ''}
+
+                                <div style="font-size:0.9rem; color:var(--text-dim);">Predicted Pre-Boil/OG</div>
+                                <div style="font-size:2.5rem; font-weight:bold; color:var(--success);">${data.predicted_og}</div>
+                                <div style="font-size:0.8rem; color:var(--text-dim);">Total Potential Points: ${data.total_potential_points}</div>
+                                ${data.ph_warning ? `<div style="margin-top:0.5rem; color:var(--warning); font-size:0.8rem; border:1px solid var(--warning); padding:0.25rem; border-radius:4px;"><i class="fas fa-exclamation-triangle"></i> ${data.ph_warning}</div>` : ''}
+                                ${fermHtml}
+                            </div>
+                            `;
+            } catch (e) {
+                resBox.innerHTML = 'Error: ' + e.message;
+            }
+        }
+
+
+        async function loadRecipes() {
+            try {
+                const res = await fetch('/api/automation/brewfather/recipes');
+                const data = await res.json();
+                const sel = document.getElementById('compareRecipeSelect');
+                if (data.length) {
+                    sel.innerHTML = '<option value="">Select Brewfather Recipe...</option>';
+                    data.forEach(r => {
+                        const opt = document.createElement('option');
+                        opt.value = r._id;
+                        opt.innerText = r.name;
+                        sel.appendChild(opt);
+                    });
+                }
+            } catch (e) { console.error(e); }
+        }
+
+        async function runComparison() {
+            const id = document.getElementById('compareRecipeSelect').value;
+            if (!id) return alert("Select a recipe!");
+
+            const btn = document.querySelector('button[onclick="runComparison()"]');
+            btn.innerText = "Analyzing...";
+            btn.disabled = true;
+
+            try {
+                const res = await fetch('/api/automation/sourcing/compare', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ recipe_id: id })
+                });
+                const data = await res.json();
+
+                document.getElementById('compareResults').classList.remove('hidden');
+                document.getElementById('totalTMM').innerText = "£" + data.total_tmm;
+                document.getElementById('totalGEB').innerText = "£" + data.total_geb;
+                document.getElementById('winnerVendor').innerText = data.winner;
+
+                const tbody = document.getElementById('compareTableBody');
+                tbody.innerHTML = '';
+
+                data.breakdown.forEach(row => {
+                    const tr = document.createElement('tr');
+                    tr.className = "border-b border-slate-800";
+                    tr.innerHTML = `
+                            <td class="p-2">${row.name} <span class="text-xs text-slate-500">(${row.amount})</span></td>
+                            <td class="p-2 text-slate-300">£${row.tmm_price}</td>
+                            <td class="p-2 text-slate-300">£${row.geb_price}</td>
+                            <td class="p-2 font-bold ${row.best_vendor === 'TMM' ? 'text-blue-400' : 'text-orange-400'}">${row.best_vendor}</td>
+                            `;
+                    tbody.appendChild(tr);
+                });
+
+            } catch (e) {
+                alert("Comparison Failed: " + e);
+            } finally {
+                btn.innerText = "Compare Prices";
+                btn.disabled = false;
+            }
+        }
+
+        // Inventory Logic
+        let inventoryData = {};
+        let currentInvCat = 'hops';
+
+        async function loadInventory() {
+            try {
+                const res = await fetch('/api/automation/inventory');
+                inventoryData = await res.json();
+                renderInventory();
+            } catch (e) { console.error(e); }
+        }
+
+        function showInvCat(cat) {
+            currentInvCat = cat;
+            document.querySelectorAll('#inventory .tab-btn').forEach(b => {
+                b.classList.remove('active');
+                if (b.innerText.toLowerCase().includes(cat === 'fermentables' ? 'malt' : cat)) b.classList.add('active');
+            });
+            renderInventory();
+        }
+
+        function renderInventory() {
+            const container = document.getElementById('invEditor');
+            const items = inventoryData[currentInvCat] || {};
+
+            let html = `
+                            <table style="width:100%; text-align:left; border-collapse:collapse;">
+                                <thead>
+                                    <tr style="color:var(--text-dim); border-bottom:1px solid #333;">
+                                        <th style="padding:0.5rem;">Item Name</th>
+                                        <th style="padding:0.5rem;">Amount ${currentInvCat === 'hops' ? '(g)' : currentInvCat === 'fermentables' ? '(kg)' : '(units)'}</th>
+                                        <th style="padding:0.5rem;">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    `;
+
+            for (const [name, amount] of Object.entries(items)) {
+                html += `
+                <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                    <td style="padding:0.5rem;">
+                        <input type="text" value="${name}" onchange="updateInvKey('${name}', this.value)" style="background:none; border:none; color:white; width:100%;">
+                    </td>
+                    <td style="padding:0.5rem;">
+                        <input type="number" value="${amount}" onchange="updateInvVal('${name}', this.value)" style="width:80px;">
+                    </td>
+                    <td style="padding:0.5rem;">
+                        <button onclick="deleteInvItem('${name}')" style="color:var(--error); background:none; border:none; cursor:pointer;"><i class="fas fa-trash"></i></button>
+                    </td>
+                </tr>
+                `;
+            }
+
+            // Add New Row
+            html += `
+                                    <tr style="background:rgba(255,255,255,0.02);">
+                                        <td style="padding:0.5rem;"><input type="text" id="newInvName" placeholder="Add new..." style="background:rgba(0,0,0,0.3); border:1px solid #444;"></td>
+                                        <td style="padding:0.5rem;"><input type="number" id="newInvAmount" placeholder="0" style="width:80px; background:rgba(0,0,0,0.3); border:1px solid #444;"></td>
+                                        <td style="padding:0.5rem;"><button onclick="addInvItem()" style="color:var(--success); background:none; border:none; cursor:pointer;"><i class="fas fa-plus"></i></button></td>
+                                    </tr>
+            `;
+
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+
+        function updateInvVal(key, val) {
+            inventoryData[currentInvCat][key] = parseFloat(val);
+        }
+
+        function updateInvKey(oldKey, newKey) {
+            if (oldKey === newKey) return;
+            const val = inventoryData[currentInvCat][oldKey];
+            delete inventoryData[currentInvCat][oldKey];
+            inventoryData[currentInvCat][newKey] = val;
+            renderInventory();
+        }
+
+        function deleteInvItem(key) {
+            if (!confirm("Remove " + key + "?")) return;
+            delete inventoryData[currentInvCat][key];
+            renderInventory();
+        }
+
+        function addInvItem() {
+            const name = document.getElementById('newInvName').value;
+            const amount = parseFloat(document.getElementById('newInvAmount').value);
+            if (name && !isNaN(amount)) {
+                inventoryData[currentInvCat][name.toLowerCase()] = amount;
+                renderInventory();
+            }
+        }
+
+        async function saveInventory() {
+            try {
+                const res = await fetch('/api/automation/inventory/save', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(inventoryData)
+                });
+                const data = await res.json();
+                if (data.status === 'success') alert("Inventory Saved!");
+                else alert("Error saving");
+            } catch (e) { alert(e); }
+        }
+
+        async function syncInventory() {
+            if (!confirm("Overwrite local inventory with Brewfather data?")) return;
+
+            const btn = document.querySelector('button[onclick="syncInventory()"]');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Syncing...';
+            btn.disabled = true;
+
+            try {
+                const res = await fetch('/api/automation/inventory/sync', { method: 'POST' });
+                const data = await res.json();
+
+                if (data.error) {
+                    alert("Sync Error: " + data.error);
+                } else {
+                    inventoryData = data.inventory;
+                    renderInventory();
+                    alert("Successfully synced with Brewfather!");
+                }
+            } catch (e) {
+                alert("Connection Error: " + e.message);
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        }
+
+        // Init
+        loadRecipes();
+        loadInventory();
+
+
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,16 @@
+{
+    "name": "Grainfather G40 & SS Unitanks",
+    "type": "All-in-One + Fermenters",
+    "batch_size_max_l": 40,
+    "pre_boil_vol_max_l": 46,
+    "min_vol_l": 10,
+    "max_grain_weight_kg": 13.0,
+    "boil_off_rate_l_hr": 3.5,
+    "system_efficiency_percent": 72,
+    "fermentation": {
+        "vessels": 2,
+        "name": "SS Brewtech Unitank 7 Gal",
+        "max_vol_l": 26.5,
+        "safe_vol_l": 24.0
+    }
+}

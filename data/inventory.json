@@ -1,0 +1,22 @@
+{
+    "hops": {
+        "citra": 0,
+        "mosaic": 0
+    },
+    "fermentables": {
+        "pilsner": 0,
+        "oats": 0
+    },
+    "yeast": {
+        "us-05": 0
+    },
+    "misc": {
+        "caputo nuvola": 1000
+    },
+    "salts": {
+        "gypsum": 100,
+        "calcium chloride": 100,
+        "epsom salt": 50,
+        "lactic acid": 50
+    }
+}
