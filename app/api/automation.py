@@ -313,7 +313,14 @@ def monitoring_scan():
     """
     from app.services import alerts
     res = alerts.monitor_active_batches()
+    res = alerts.monitor_active_batches()
     return jsonify(res)
+
+@automation_bp.route('/api/automation/recipes', methods=['POST'])
+def search_recipes():
+    data = request.json
+    from app.services import scout
+    return jsonify(scout.search_recipes(data.get('query')))
 
 @automation_bp.route('/api/automation/recipes/analyze', methods=['POST'])
 def exp_analyze_recipes():

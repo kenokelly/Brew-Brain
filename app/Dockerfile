@@ -25,6 +25,7 @@ RUN mkdir -p static/js && \
 # Copy Application Code
 # Copy Application Code
 COPY . /app
+ENV PYTHONPATH=/
 
 RUN mkdir -p /data
 

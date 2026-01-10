@@ -52,6 +52,40 @@ def search_ingredients(query):
         logger.error(f"Error executing search: {e}")
         return {"error": str(e)}
 
+def search_recipes(query):
+    """
+    Searches for homebrew recipes using SerpApi (Google).
+    Targeting popular recipe sites.
+    """
+    api_key = get_config("serp_api_key")
+    if not api_key:
+        return [{"title": "API Key Missing", "link": "#", "snippet": "Please set serp_api_key in settings."}]
+        
+    params = {
+        "engine": "google",
+        "q": f"site:brewersfriend.com OR site:brewfather.app OR site:grainfather.com {query} recipe",
+        "api_key": api_key,
+        "num": 10
+    }
+    
+    try:
+        search = GoogleSearch(params)
+        results = search.get_dict()
+        organic = results.get("organic_results", [])
+        
+        cleaned = []
+        for r in organic:
+            cleaned.append({
+                "title": r.get("title"),
+                "link": r.get("link"),
+                "snippet": r.get("snippet", "")
+            })
+            
+        return cleaned
+    except Exception as e:
+        logger.error(f"Recipe Search Error: {e}")
+        return [{"title": "Search Error", "link": "#", "snippet": str(e)}]
+
 def analyze_xml_recipes(query):
     """
     Searches for BeerXML recipes and analyzes them against G40 specs.
