@@ -609,6 +609,42 @@
             fetchStatus();
         }
 
+        // Updated Settings Logic
+        async function openSettings() {
+            document.getElementById('settingsModal').style.display = 'flex';
+            try {
+                const res = await fetch('/api/config');
+                const data = await res.json();
+
+                // Map fields
+                const fields = ['offset', 'bf_user', 'bf_key', 'alert_telegram_token', 'alert_telegram_chat', 'serp_api_key', 'tilt_timeout_min', 'temp_max'];
+                fields.forEach(f => {
+                    if (document.getElementById(f)) {
+                        document.getElementById(f).value = data[f] || '';
+                    }
+                });
+
+            } catch (e) { console.error(e); }
+        }
+
+        async function saveSettings() {
+            const payload = {};
+            const fields = ['offset', 'bf_user', 'bf_key', 'alert_telegram_token', 'alert_telegram_chat', 'serp_api_key', 'tilt_timeout_min', 'temp_max'];
+
+            fields.forEach(f => {
+                const el = document.getElementById(f);
+                if (el) payload[f] = el.value;
+            });
+
+            await fetch('/api/config', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            closeSettings();
+            location.reload();
+        }
+
         async function saveIntegration(type) {
             let payload = {};
             if (type === 'bf') {

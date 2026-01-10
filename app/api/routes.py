@@ -109,7 +109,9 @@ def settings():
         "og": float, "target_fg": float, "offset": float, "temp_max": float, "tilt_timeout_min": int,
         "batch_name": str, "batch_notes": str, "start_date": str,
         "test_sg_start": float, "test_temp_base": float,
-        "serp_api_key": str, "brewfather_api_key": str
+        "serp_api_key": str, "bf_user": str, "bf_key": str,
+        "alert_telegram_token": str, "alert_telegram_chat": str,
+        "alert_start_time": str, "alert_end_time": str, "tiltpi_url": str
     }
     
     for key, value in data.items():
