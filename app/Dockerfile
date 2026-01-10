@@ -5,14 +5,17 @@ WORKDIR /app
 # Install System Dependencies
 RUN apt-get update && apt-get install -y \
     libatlas-base-dev \
+    libopenblas-dev \
     gfortran \
     libgpiod2 \
     wget \
+    build-essential \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python Dependencies
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --upgrade pip setuptools wheel && \
+    pip install --no-cache-dir -r requirements.txt
 
 # Download Offline Assets (Tailwind & Lucide)
 RUN mkdir -p static/js && \
