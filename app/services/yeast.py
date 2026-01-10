@@ -3,7 +3,7 @@ from bs4 import BeautifulSoup
 import logging
 import re
 from serpapi import GoogleSearch
-from core.config import get_config
+from app.core.config import get_config
 
 logger = logging.getLogger(__name__)
 

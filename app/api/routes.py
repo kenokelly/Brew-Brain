@@ -4,8 +4,8 @@ import json
 import base64
 from datetime import datetime, timezone
 from flask import Blueprint, jsonify, request, send_from_directory, send_file, Response
-from core.config import get_config, set_config, get_all_config, DATA_DIR, BACKUP_DIR
-from core.influx import query_api, write_api, INFLUX_BUCKET, INFLUX_ORG
+from app.core.config import get_config, set_config, get_all_config, DATA_DIR, BACKUP_DIR
+from app.core.influx import query_api, write_api, INFLUX_BUCKET, INFLUX_ORG
 from influxdb_client import Point
 from services.status import get_status_dict
 from services.label_maker import generate_label

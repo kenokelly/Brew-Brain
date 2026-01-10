@@ -2,7 +2,7 @@ import logging
 import requests
 import json
 import math
-from core.config import get_config
+from app.core.config import get_config
 from serpapi import GoogleSearch
 
 logger = logging.getLogger(__name__)

@@ -1,5 +1,5 @@
-from core.config import get_config
-from core.influx import query_api, INFLUX_BUCKET
+from app.core.config import get_config
+from app.core.influx import query_api, INFLUX_BUCKET
 
 def get_pi_temp():
     try:

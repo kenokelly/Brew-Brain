@@ -3,7 +3,7 @@ import logging
 from flask import Flask
 from flask_cors import CORS
 from waitress import serve
-from core.config import refresh_config_from_influx, logger
+from app.core.config import refresh_config_from_influx, logger
 from services.worker import process_data, check_alerts
 from services.telegram import telegram_poller
 from api.routes import api_bp

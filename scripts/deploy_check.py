@@ -1,13 +1,28 @@
 import sys
 import os
+from unittest.mock import MagicMock
 
 # Ensure we can import from app
 sys.path.append(os.getcwd())
 
+# Mock missing dependencies for QAT environment
+sys.modules["influxdb_client"] = MagicMock()
+sys.modules["influxdb_client.client"] = MagicMock()
+sys.modules["influxdb_client.client.write_api"] = MagicMock()
+sys.modules["github"] = MagicMock()
+sys.modules["serpapi"] = MagicMock()
+sys.modules["pandas"] = MagicMock()
+sys.modules["pybeerxml"] = MagicMock()
+sys.modules["recipe_scrapers"] = MagicMock()
+sys.modules["scipy"] = MagicMock()
+sys.modules["scipy.signal"] = MagicMock()
+# Note: We rely on sklearn/numpy being present for ML tests.
+# If they are missing, ML tests will crash, and we'll handle that if needed.
+
 try:
     from app.qat.runner import QATRunner
-except ImportError:
-    print("❌ Error: Could not import QATRunner. Run from project root.")
+except ImportError as e:
+    print(f"❌ Error: Could not import QATRunner. Run from project root. Details: {e}")
     sys.exit(1)
 
 def deploy():

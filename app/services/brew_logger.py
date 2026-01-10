@@ -10,7 +10,7 @@ from services.github_integration import push_recipe_to_repo
 # unless I decide to refactor it (which I should for quality).
 
 from github import Github
-from core.config import get_config
+from app.core.config import get_config
 
 logger = logging.getLogger(__name__)
 

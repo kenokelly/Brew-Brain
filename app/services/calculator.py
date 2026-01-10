@@ -89,8 +89,9 @@ def validate_equipment(volume, grain_weight):
     """
     import json
     import os
+    from app.core.config import DATA_DIR
     
-    eq_file = 'data/equipment.json'
+    eq_file = os.path.join(DATA_DIR, 'equipment.json')
     if not os.path.exists(eq_file):
         return {"valid": True, "warnings": []} # No profile
         
@@ -142,8 +143,9 @@ def scale_recipe_to_equipment(recipe):
     """
     import json
     import os
+    from app.core.config import DATA_DIR
     
-    eq_file = 'data/equipment.json'
+    eq_file = os.path.join(DATA_DIR, 'equipment.json')
     if not os.path.exists(eq_file):
         return {"error": "No equipment profile"}
         

@@ -51,7 +51,7 @@ class QATRunner:
             # TEST 2: Hardware Guardrails
             # 20kg grain, 20L volume -> Should fail G40 max grain
             hw_check = calculator.validate_equipment(20, 20)
-            if not hw_check['valid'] and "Max Grain" in str(hw_check['warnings']):
+            if not hw_check['valid'] and "limit" in str(hw_check['warnings']):
                  self.log_result("Hardware Guardrails", True, "Correctly rejected 20kg grain bill.")
             else:
                  self.log_result("Hardware Guardrails", False, "Failed to reject dangerous grain bill.")

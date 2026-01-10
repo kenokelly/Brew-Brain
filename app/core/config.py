@@ -1,14 +1,17 @@
 import os
 import logging
+import json
 from logging.handlers import RotatingFileHandler
 from datetime import datetime, timezone
 from influxdb_client import Point
-from core.influx import write_api, query_api, INFLUX_BUCKET, INFLUX_ORG
+from app.core.influx import write_api, query_api, INFLUX_BUCKET, INFLUX_ORG
 
 # --- CONFIGURATION & LOGGING ---
-DATA_DIR = "/data"
-LOG_FILE = f"{DATA_DIR}/brew_brain.log"
-BACKUP_DIR = f"{DATA_DIR}/backups"
+# Use Env Var or Default to local 'data' folder
+DATA_DIR = os.environ.get("BREW_BRAIN_DATA", "data")
+LOG_FILE = os.path.join(DATA_DIR, "brew_brain.log")
+BACKUP_DIR = os.path.join(DATA_DIR, "backups")
+config_file = os.path.join(DATA_DIR, "config.json")
 
 for d in [DATA_DIR, BACKUP_DIR]:
     if not os.path.exists(d): os.makedirs(d)

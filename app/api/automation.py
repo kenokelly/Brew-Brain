@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, request
 from app.core.decorators import api_safe
-from services import scout, calculator, water, alerts
+from app.services import scout, calculator, water, alerts
 import io
 import logging
 
@@ -96,27 +96,27 @@ def sourcing_list():
     data = request.json
     hops = data.get('hops', [])
     fermentables = data.get('fermentables', [])
-    from services import sourcing
+    from app.services import sourcing
     res = sourcing.generate_shopping_list(hops, fermentables)
     return jsonify(res)
 
 @automation_bp.route('/api/automation/sourcing/search', methods=['POST'])
 def sourcing_search():
     data = request.json
-    from services import sourcing
+    from app.services import sourcing
     res = sourcing.search_ingredient(data.get('query'))
     return jsonify(res)
 
 @automation_bp.route('/api/automation/sourcing/watch', methods=['POST'])
 def sourcing_watch():
-    from services import sourcing
+    from app.services import sourcing
     # Trigger the check manually for now (can be cron'd)
     res = sourcing.check_price_watch()
     return jsonify(res)
 
 @automation_bp.route('/api/automation/brewfather/recipes', methods=['GET'])
 def get_bf_recipes():
-    from services import alerts
+    from app.services import alerts
     return jsonify(alerts.fetch_brewfather_recipes())
 
 @automation_bp.route('/api/automation/sourcing/compare', methods=['POST'])
@@ -124,7 +124,7 @@ def compare_prices():
     data = request.json
     recipe_id = data.get('recipe_id')
     
-    from services import alerts, sourcing
+    from app.services import alerts, sourcing
     
     # 1. Get Recipe
     recipe = alerts.fetch_recipe_details(recipe_id)
@@ -136,13 +136,13 @@ def compare_prices():
 
 @automation_bp.route('/api/automation/pizza', methods=['GET'])
 def get_pizza():
-    from services import calculator
+    from app.services import calculator
     return jsonify(calculator.get_pizza_schedule())
 
 @automation_bp.route('/api/automation/logger/create', methods=['POST'])
 def create_log():
     data = request.json
-    from services import brew_logger
+    from app.services import brew_logger
     content = brew_logger.generate_log_content(
         data.get('name', 'Brew Day'),
         data.get('batch', {}),
@@ -209,7 +209,7 @@ def save_inventory():
 
 @automation_bp.route('/api/automation/inventory/sync', methods=['POST'])
 def sync_inventory():
-    from services import alerts
+    from app.services import alerts
     import json
     
     # 1. Fetch from BF
@@ -227,13 +227,13 @@ def sync_inventory():
 
 @automation_bp.route('/api/automation/learning/save', methods=['POST'])
 def learn_save():
-    from services import learning
+    from app.services import learning
     res = learning.save_brew_outcome(request.json)
     return jsonify(res)
 
 @automation_bp.route('/api/automation/learning/audit', methods=['POST'])
 def learn_audit():
-    from services import learning
+    from app.services import learning
     # recipe: {style, og, ibu, abv, name}
     res = learning.audit_recipe(request.json)
     return jsonify(res)
@@ -241,7 +241,7 @@ def learn_audit():
 @automation_bp.route('/api/automation/learning/simulate', methods=['POST'])
 def learn_simulate():
     data = request.json
-    from services import learning, calculator
+    from app.services import learning, calculator
     
     # Pre-Validation
     grains = data.get('grains', [])
@@ -274,7 +274,7 @@ def learn_simulate():
 @automation_bp.route('/api/automation/learning/import_log', methods=['POST'])
 def learn_import():
     data = request.json
-    from services import learning
+    from app.services import learning
     # Expects: csv_content, recipe_name, yeast_name
     res = learning.learn_from_logs(
         data.get('csv_content'),
@@ -286,7 +286,7 @@ def learn_import():
 @automation_bp.route('/api/automation/monitoring/check', methods=['POST'])
 def monitor_check():
     data = request.json
-    from services import learning
+    from app.services import learning
     # Expects: current_sg, original_gravity, yeast_name, days_in, temp, style, batch_name, stability
     res = learning.check_batch_health(
         data.get('current_sg'),
@@ -311,20 +311,20 @@ def monitoring_scan():
     Triggers the full R&D pipeline scan:
     Brewfather -> Tilt Data -> Health Check -> Telegram
     """
-    from services import alerts
+    from app.services import alerts
     res = alerts.monitor_active_batches()
     return jsonify(res)
 
 @automation_bp.route('/api/automation/recipes/analyze', methods=['POST'])
 def exp_analyze_recipes():
     data = request.json
-    from services import scout
+    from app.services import scout
     return jsonify(scout.analyze_xml_recipes(data.get('query')))
 
 @automation_bp.route('/api/automation/recipes/scale', methods=['POST'])
 def scale_recipe():
     data = request.json
-    from services import calculator
+    from app.services import calculator
     return jsonify(calculator.scale_recipe_to_equipment(data))
 
 @automation_bp.route('/api/automation/brewfather/import', methods=['POST'])
