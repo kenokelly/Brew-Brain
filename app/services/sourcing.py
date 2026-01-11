@@ -276,7 +276,9 @@ def compare_recipe_prices(recipe_details):
     total_geb = 0.0
     
     api_key = get_config("serp_api_key")
-    if not api_key: return {"error": "Missing SerpApi Key"}
+    if not api_key:
+        logger.error("Missing SerpApi Key - Cannot perform price comparison")
+        return {"error": "Missing SerpApi Key"}
     
     def search_price(query):
         try:

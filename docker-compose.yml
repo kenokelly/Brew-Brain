@@ -61,9 +61,10 @@ services:
     environment:
       - INFLUX_URL=http://influxdb:8086
       - INFLUX_TOKEN=${INFLUX_TOKEN}
-      - INFLUX_ORG=homebrew
+      - INFLUX_OR=homebrew
       - INFLUX_BUCKET=fermentation
       - TZ=Europe/London
+      - BREW_BRAIN_DATA=/data
     volumes:
       - ./brain_data:/data
     networks:

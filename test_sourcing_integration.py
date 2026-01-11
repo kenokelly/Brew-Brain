@@ -2,6 +2,12 @@ import sys
 import os
 from unittest.mock import MagicMock, patch
 
+# Mock missing dependencies
+sys.modules['influxdb_client'] = MagicMock()
+sys.modules['influxdb_client.client.write_api'] = MagicMock()
+sys.modules['serpapi'] = MagicMock() # Mock serpapi directly too
+sys.modules['pandas'] = MagicMock() # Just in case
+
 # Add app to path
 sys.path.append(os.getcwd())
 
@@ -10,6 +16,7 @@ with patch('app.services.sourcing.get_config') as mock_config:
     mock_config.return_value = "fake_api_key"
     
     # Import SUT
+    # We need to ensure sourcing is imported AFTER mocks are set
     from app.services import sourcing
 
     def test_integration():
