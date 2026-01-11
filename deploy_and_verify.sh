@@ -20,11 +20,18 @@ scp $LOCAL_DIR/docker-compose.yml $HOST:$REMOTE_DIR/
 scp -r $LOCAL_DIR/grafana $HOST:$REMOTE_DIR/
 scp $LOCAL_DIR/telegraf.conf $HOST:$REMOTE_DIR/
 
+# Check for Patch Mode
+BUILD_ARGS="--no-cache"
+if [[ "$1" == "--patch" ]]; then
+    echo "🩹 Patch Mode: Skipping cache bust for faster build..."
+    BUILD_ARGS=""
+fi
+
 # 3. Remote Build & Restart
 echo "🏗️  Rebuilding and Restarting remote container..."
 # Using 'set -e' locally handles local errors, but for remote SSH, we need to ensure we catch its exit code.
 # We also explicitly capture logs if build fails.
-if ssh $HOST "cd $REMOTE_DIR && docker compose down && docker compose build --no-cache && docker compose up -d"; then
+if ssh $HOST "cd $REMOTE_DIR && docker compose down && docker compose build $BUILD_ARGS && docker compose up -d"; then
     echo "✅ Build & Startup Command Successful"
 else
     echo "❌ Remote Build/Startup Failed"

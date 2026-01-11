@@ -2,10 +2,42 @@ import logging
 import requests
 import json
 import math
+import re
 from app.core.config import get_config
 from serpapi import GoogleSearch
 
 logger = logging.getLogger(__name__)
+
+# Helper to extract price from text (e.g. "£13.95" or "13.95")
+def extract_price(text):
+    if not text: return None
+    # Clean text
+    text = text.replace(',', '') # Handle 1,000.00
+    
+    # 1. Look for £ followed by digits (e.g. £13.95)
+    match = re.search(r'[£$€]\s?(\d+(?:\.\d{2})?)', text)
+    if match:
+            return float(match.group(1))
+
+    # 2. Look for digits followed by GBP (e.g. 7.50 GBP)
+    match = re.search(r'(\d+(?:\.\d{2})?)\s?GBP', text, re.IGNORECASE)
+    if match:
+        return float(match.group(1))
+
+    # 3. Look for "Price/Cost:" followed by digits (e.g. Price: 10.00)
+    match = re.search(r'(?:Price|Cost):\s?£?(\d+(?:\.\d{2})?)', text, re.IGNORECASE)
+    if match:
+        return float(match.group(1))
+            
+    # 4. Fallback: Pure number if context suggests (simplified)
+    # Be careful not to pick up "2023" or "100g" as price blindly, but for snippets often the price field is clean.
+    try:
+        # If text is just a number (common in rich snippet 'price' field)
+        return float(text)
+    except:
+        pass
+        
+    return None
 
 def search_ingredient(name, ingredient_type="hop"):
     """
@@ -169,7 +201,10 @@ def check_price_watch():
             "engine": "google_shopping",
             "q": query + " site:themaltmiller.co.uk OR site:geterbrewed.com",
             "api_key": api_key,
-            "num": 3
+            "num": 3,
+            "gl": "uk",
+            "hl": "en",
+            "currency": "GBP"
         }
         
         try:
@@ -212,6 +247,7 @@ def check_price_watch():
 def compare_recipe_prices(recipe_details):
     """
     Takes full recipe object (from BF) and compares basket cost.
+    Uses Google Organic Search + Snippet Parsing for broader coverage than Google Shopping.
     """
     # Parse Ingredients
     items_to_check = []
@@ -242,11 +278,43 @@ def compare_recipe_prices(recipe_details):
     api_key = get_config("serp_api_key")
     if not api_key: return {"error": "Missing SerpApi Key"}
     
-    # We'll batch or limit to avoid too many requests in this demo.
-    # PROD: Use asyncio or queue. Here: Limit to top 5 items for speed/cost.
-    # sorting by amount?
-    
-    for item in items_to_check[:6]: # Limit 6 items for prototype
+    def search_price(query):
+        try:
+             params = {
+                "engine": "google",
+                "q": query,
+                "api_key": api_key,
+                "num": 2, # Top 2 organic results
+                "gl": "uk",
+                "hl": "en"
+             }
+             search = GoogleSearch(params)
+             data = search.get_dict()
+             organic = data.get("organic_results", [])
+             
+             logger.info(f"DEBUG: Found {len(organic)} organic results for query '{query}'")
+
+             for i, res in enumerate(organic):
+                 logger.info(f"DEBUG: Result {i} Snippet: {res.get('snippet')}")
+                 logger.info(f"DEBUG: Result {i} Rich: {res.get('rich_snippet')}")
+                 
+                 # 1. Try Rich Snippet (if available)
+                 rich = res.get("rich_snippet", {}).get("top", {}).get("detected_extensions", {})
+                 if rich.get("price"):
+                     p = extract_price(f"£{rich['price']}") # often just number
+                     if p: return p
+                 
+                 # 2. Try Snippet
+                 snippet = res.get("snippet", "")
+                 p = extract_price(snippet)
+                 if p: return p
+                 
+        except Exception as e:
+            logger.error(f"Search Error: {e}")
+        return None
+
+    # Limit to top 5 items for speed/cost (Prototype)
+    for item in items_to_check[:6]: 
         row = {
             "name": item['name'],
             "type": item['type'],
@@ -257,36 +325,16 @@ def compare_recipe_prices(recipe_details):
         }
         
         # Search TMM
-        try:
-            params_tmm = {
-                "engine": "google_shopping",
-                "q": f"{item['name']} site:themaltmiller.co.uk",
-                "api_key": api_key,
-                "num": 1
-            }
-            res_tmm = GoogleSearch(params_tmm).get_dict().get("shopping_results", [])
-            if res_tmm:
-                p_str = res_tmm[0].get("price", "0").replace('£', '')
-                price = float(p_str)
-                row['tmm_price'] = price
-                total_tmm += price
-        except: pass
-
+        p_tmm = search_price(f"{item['name']} site:themaltmiller.co.uk")
+        if p_tmm:
+            row['tmm_price'] = p_tmm
+            total_tmm += p_tmm
+            
         # Search GEB
-        try:
-            params_geb = {
-                "engine": "google_shopping",
-                "q": f"{item['name']} site:geterbrewed.com",
-                "api_key": api_key,
-                "num": 1
-            }
-            res_geb = GoogleSearch(params_geb).get_dict().get("shopping_results", [])
-            if res_geb:
-                p_str = res_geb[0].get("price", "0").replace('£', '')
-                price = float(p_str)
-                row['geb_price'] = price
-                total_geb += price
-        except: pass
+        p_geb = search_price(f"{item['name']} site:geterbrewed.com")
+        if p_geb:
+            row['geb_price'] = p_geb
+            total_geb += p_geb
         
         # Determine Winner
         try:
@@ -331,7 +379,10 @@ def get_restock_suggestions():
                 "engine": "google_shopping",
                 "q": f"{query} site:themaltmiller.co.uk",
                 "api_key": api_key,
-                "num": 1
+                "num": 1,
+                "gl": "uk",
+                "hl": "en",
+                "currency": "GBP"
             }
             res = GoogleSearch(params).get_dict().get("shopping_results", [])
             if res: return res[0].get("link", "#")
