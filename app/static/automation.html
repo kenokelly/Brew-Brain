@@ -296,6 +296,43 @@
             </div>
         </div>
 
+        <!-- SIMULATION TAB -->
+        <div id="simulation" class="tab-content">
+            <div class="card">
+                <h3>Brew Day Simulator (AI)</h3>
+                <div class="form-group">
+                    <label>Brewhouse Efficiency (%)</label>
+                    <input type="number" id="simEff" value="75">
+                </div>
+                <div class="form-group">
+                    <label>Batch Volume (L)</label>
+                    <input type="number" id="simVol" value="23">
+                </div>
+                <div class="form-group">
+                    <label>Target Yeast (for FG Prediction)</label>
+                    <input type="text" id="simYeast" placeholder="e.g. US-05">
+                </div>
+
+                <h4 style="color:var(--text-dim); border-bottom:1px solid #333; margin-top:1.5rem;">Grain Bill</h4>
+                <div id="grainInputs">
+                    <div class="form-group"
+                        style="border-left:2px solid var(--accent); padding-left:0.5rem; margin-bottom:0.5rem;">
+                        <label>Grain Weight (kg)</label>
+                        <input type="number" class="grain-weight" value="5.0">
+                        <label style="margin-top:0.2rem;">Potential (SG)</label>
+                        <input type="number" class="grain-pot" value="1.037" step="0.001">
+                    </div>
+                </div>
+                <button class="action-btn" onclick="addGrainInput()"
+                    style="background:var(--bg-dark); color:var(--text-dim); border:1px solid #444; margin-bottom:1rem; width:auto;">
+                    <i class="fas fa-plus"></i> Add Grain
+                </button>
+
+                <button class="action-btn" onclick="runSimulation()">Run Simulation</button>
+                <div id="simResult" class="result-box"></div>
+            </div>
+        </div>
+
         <!-- INVENTORY TAB -->
         <div id="inventory" class="tab-content">
             <div class="card">
@@ -345,7 +382,7 @@
                 </div>
                 <div class="form-group">
                     <label>Batch Volume (L)</label>
-                    <input type="number" id="simVol" value="23">
+                    <input type="number" id="ibuVolume" value="23">
                 </div>
                 <div class="form-group">
                     <label>Target Yeast (for FG Prediction)</label>
@@ -539,7 +576,7 @@
         </div>
 
         <!-- COMPARISON TAB -->
-        <div id="comparison-tab" class="tab-content">
+        <div id="comparison" class="tab-content">
             <div class="card">
                 <h3 class="font-bold text-lg mb-4 text-emerald-400">Recipe Price Comparison (TMM vs GEB)</h3>
 
@@ -1069,19 +1106,19 @@
                                     <i class="fas fa-leaf"></i> ${r.hops_summary}
                                 </div>
                                 
-                                ${!r.hardware_valid ? 
-                                    `<div style="color:var(--error); font-weight:bold; font-size:0.8rem; margin-top:0.3rem;">
+                                ${!r.hardware_valid ?
+                        `<div style="color:var(--error); font-weight:bold; font-size:0.8rem; margin-top:0.3rem;">
                                         <i class="fas fa-exclamation-circle"></i> ${r.hardware_warnings.join(' ')}
                                     </div>` : ''
-                                }
+                    }
                             </div>
                             <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
                                 ${!r.hardware_valid ?
-                                    `<button class="action-btn" style="width:auto; padding:0.5rem 1rem; font-size:0.8rem; background:var(--warning); color:#000; border:none;" 
+                        `<button class="action-btn" style="width:auto; padding:0.5rem 1rem; font-size:0.8rem; background:var(--warning); color:#000; border:none;" 
                                         onclick='scaleRecipe(${idx}, ${JSON.stringify(r)})'>
                                         <i class="fas fa-magic"></i> Fit to G40
                                     </button>` : ''
-                                }
+                    }
                                 <button class="action-btn" style="width:auto; padding:0.5rem 1rem; font-size:0.8rem; background:linear-gradient(45deg, #6366f1, #a855f7);" onclick="runAiAudit('${r.style || 'Ale'}', ${r.og}, '${r.name}')">
                                     <i class="fas fa-brain"></i> AI Audit
                                 </button>
@@ -1104,28 +1141,28 @@
         async function runAiAudit(style, og, name) {
             const id = 'audit-' + name.replace(/\s/g, '');
             const box = document.getElementById(id);
-            if(!box) return;
-            
+            if (!box) return;
+
             box.style.display = 'block';
             box.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Auditing History...';
-            
+
             try {
                 const res = await fetch('/api/automation/learning/audit', {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ style, og, name })
                 });
                 const data = await res.json();
-                
-                if(data.status === 'No Data') {
+
+                if (data.status === 'No Data') {
                     box.innerHTML = `<span style="color:var(--text-dim);"><i class="fas fa-info-circle"></i> ${data.message}</span>`;
                     return;
                 }
-                
-                let tipsHtml = data.tips.length > 0 ? 
+
+                let tipsHtml = data.tips.length > 0 ?
                     data.tips.map(t => `<div style="margin-bottom:0.2rem; display:flex; gap:0.5rem;"><span style="color:var(--warning);">⚠️</span><span>${t}</span></div>`).join('') :
                     '<div style="color:var(--success);"><i class="fas fa-check"></i> Recipe matches your successful profiles perfectly!</div>';
-                    
+
                 box.innerHTML = `
                     <div style="border-left:3px solid var(--primary); padding-left:0.5rem; background:rgba(255,255,255,0.05); padding:0.5rem; border-radius:4px;">
                         <div style="font-weight:bold; color:var(--primary); margin-bottom:0.5rem; border-bottom:1px solid #444; padding-bottom:0.2rem;">
@@ -1140,7 +1177,7 @@
                         </div>
                     </div>
                 `;
-            } catch(e) {
+            } catch (e) {
                 box.innerHTML = `<span style="color:var(--error)">Audit Failed: ${e}</span>`;
             }
         }
@@ -1443,8 +1480,27 @@
             if (!id) return alert("Select a recipe!");
 
             const btn = document.querySelector('button[onclick="runComparison()"]');
-            btn.innerText = "Analyzing...";
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Scanning Vendors...';
             btn.disabled = true;
+
+            // Show loading state in results immediately
+            const resDiv = document.getElementById('compareResults');
+            resDiv.classList.remove('hidden');
+            resDiv.style.display = 'block'; // Ensure visibility
+            // Save current content or clear it? Better to show a large loader overlay or replace content temp.
+            // For now, let's just use the button and maybe a status text.
+            // Actually user asked for feedback "doing something as well", implying more than just button.
+            // Let's inject a loader into the logic.
+
+            // Mask the results with a loader
+            const tbody = document.getElementById('compareTableBody');
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:2rem;"><i class="fas fa-circle-notch fa-spin fa-2x" style="color:var(--primary)"></i><br><br>Live scraping The Malt Miller & GEB...<br>This can take 10-15 seconds.</td></tr>';
+
+            // Clear totals temporarily
+            document.getElementById('totalTMM').innerText = "---";
+            document.getElementById('totalGEB').innerText = "---";
+            document.getElementById('winnerVendor').innerText = "---";
 
             try {
                 const res = await fetch('/api/automation/sourcing/compare', {
@@ -1454,7 +1510,7 @@
                 });
                 const data = await res.json();
 
-                document.getElementById('compareResults').classList.remove('hidden');
+                // document.getElementById('compareResults').classList.remove('hidden'); // Already done
                 document.getElementById('totalTMM').innerText = "£" + data.total_tmm;
                 document.getElementById('totalGEB').innerText = "£" + data.total_geb;
                 document.getElementById('winnerVendor').innerText = data.winner;
@@ -1612,6 +1668,60 @@
             } finally {
                 btn.innerHTML = originalText;
                 btn.disabled = false;
+            }
+        }
+
+        // Pipeline Logic
+        async function refreshPipeline() {
+            const container = document.getElementById('pipelineContainer');
+            container.innerHTML = '<div style="text-align:center"><i class="fas fa-spinner fa-spin"></i> Scanning Unitanks...</div>';
+
+            try {
+                const res = await fetch('/api/automation/monitoring/scan', { method: 'POST' });
+                const data = await res.json();
+
+                if (data.status === 'No active batches') {
+                    container.innerHTML = `
+                        <div style="text-align:center; padding:2rem; color:var(--text-dim);">
+                            <i class="fas fa-bed" style="font-size:2rem; margin-bottom:1rem;"></i><br>
+                            No active fermentations found in Brewfather.
+                        </div>
+                    `;
+                    return;
+                }
+
+                let html = '';
+                data.actions.forEach(action => {
+                    // Check type for icon
+                    let icon = 'info-circle';
+                    let color = 'primary';
+                    if (action.type === 'ALERT') { icon = 'exclamation-triangle'; color = 'error'; }
+                    if (action.type === 'CHECK') { icon = 'check-circle'; color = 'success'; }
+
+                    html += `
+                    <div style="background:var(--bg-dark); padding:1rem; border-radius:8px; margin-bottom:1rem; border-left:4px solid var(--${color});">
+                        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                            <div style="font-weight:bold; color:#fff; font-size:1.1rem;">
+                                ${action.batch} <span style="font-size:0.8rem; font-weight:normal; color:#888;">(${action.action})</span>
+                            </div>
+                            <div style="color:var(--${color});"><i class="fas fa-${icon}"></i></div>
+                        </div>
+                        <div style="margin-top:0.5rem; color:#ccc; font-size:0.95rem;">
+                            ${action.message}
+                        </div>
+                        ${action.details ? `
+                            <div style="margin-top:0.5rem; background:rgba(0,0,0,0.3); padding:0.5rem; border-radius:4px; font-size:0.85rem; color:#aaa;">
+                                ${action.details}
+                            </div>
+                        ` : ''}
+                    </div>
+                    `;
+                });
+
+                container.innerHTML = html;
+
+            } catch (e) {
+                container.innerHTML = `<span style="color:var(--error)">Pipeline Error: ${e.message}</span>`;
             }
         }
 

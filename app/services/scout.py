@@ -205,13 +205,46 @@ def analyze_xml_recipes(query):
         
     consensus = {
         "count": len(mock_recipes),
-        "recipes": []
+        "recipes": [],
+        "avg_og": 0,
+        "avg_ibu": 0,
+        "avg_abv": 0,
+        "common_hops": {},
+        "common_malts": {},
+        "common_dry_hops": {}
     }
     
+    total_og, total_ibu, total_abv = 0, 0, 0
+    all_hops, all_malts = [], []
+
     for r in mock_recipes:
         hw = validate_equipment(r['batch_size_l'], r['total_grain_kg'])
         r['hardware_valid'] = hw['valid']
         r['hardware_warnings'] = hw['warnings']
         consensus['recipes'].append(r)
         
+        total_og += r.get('og', 1.000)
+        total_ibu += r.get('ibu', 0)
+        total_abv += r.get('abv', 0)
+        
+        # Mock aggregation for demo
+        if "citra" in r.get('hops_summary', '').lower(): all_hops.append("Citra")
+        if "simcoe" in r.get('hops_summary', '').lower(): all_hops.append("Simcoe")
+        
+        grain_str = str(r.get('grain_breakdown', []))
+        if "pale" in grain_str.lower(): all_malts.append("Pale Malt")
+        if "oats" in grain_str.lower(): all_malts.append("Flaked Oats")
+
+    if consensus['count'] > 0:
+        consensus['avg_og'] = round(total_og / consensus['count'], 3)
+        consensus['avg_ibu'] = round(total_ibu / consensus['count'], 1)
+        consensus['avg_abv'] = round(total_abv / consensus['count'], 1)
+        
+        # Simple counts
+        from collections import Counter
+        consensus['common_hops'] = dict(Counter(all_hops).most_common(5))
+        consensus['common_malts'] = dict(Counter(all_malts).most_common(5))
+        # Adding dummy dry hops for now
+        consensus['common_dry_hops'] = {"Citra": 2, "Mosaic": 1} if "neipa" in query.lower() else {}
+
     return consensus

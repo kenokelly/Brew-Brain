@@ -182,9 +182,7 @@ def get_profiles():
     if os.path.exists(PROFILE_FILE):
         with open(PROFILE_FILE, 'r') as f:
             return jsonify(json.load(f))
-    if os.path.exists(PROFILE_FILE):
-        with open(PROFILE_FILE, 'r') as f:
-            return jsonify(json.load(f))
+
     return jsonify({})
 
 @automation_bp.route('/api/automation/inventory', methods=['GET'])
@@ -312,7 +310,6 @@ def monitoring_scan():
     Brewfather -> Tilt Data -> Health Check -> Telegram
     """
     from app.services import alerts
-    res = alerts.monitor_active_batches()
     res = alerts.monitor_active_batches()
     return jsonify(res)
 
