@@ -301,9 +301,13 @@ def compare_recipe_prices(recipe_details):
                  logger.info(f"DEBUG: Result {i} Rich: {res.get('rich_snippet')}")
                  
                  # 1. Try Rich Snippet (if available)
-                 rich = res.get("rich_snippet", {}).get("top", {}).get("detected_extensions", {})
-                 if rich.get("price"):
-                     p = extract_price(f"£{rich['price']}") # often just number
+                 # structure varies: top.detected_extensions OR bottom.detected_extensions
+                 rich = res.get("rich_snippet", {})
+                 box = rich.get("top", {}) or rich.get("bottom", {})
+                 extensions = box.get("detected_extensions", {})
+                 
+                 if extensions.get("price"):
+                     p = extract_price(f"£{extensions['price']}") # often just number
                      if p: return p
                  
                  # 2. Try Snippet
