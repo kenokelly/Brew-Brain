@@ -18,7 +18,7 @@ processing_state = { "last_processed_time": datetime.now(timezone.utc) - timedel
 def sigmoid(t, L, k, t0, C):
     return C + (L / (1 + np.exp(k * (t - t0))))
 
-def predict_fermentation(times, readings, og=None, attenuation=None):
+def predict_fg_from_curve(times, readings, og=None, attenuation=None):
     try:
         if len(times) < 50: return None, None
         
@@ -71,15 +71,16 @@ def predict_fermentation(times, readings, og=None, attenuation=None):
                     # Refine L (Total Drop) guess based on OG
                     # L = OG - FG
                     guess_L = og_val - expected_fg
-            except:
-                pass # Fallback to data-driven guess
+            except Exception as e:
+                logger.debug(f"Physics guess failed, using data-driven: {e}")
 
         try:
             mid_gravity = current_max - ((current_max - current_min) / 2)
             idx = (np.abs(y_data_smooth - mid_gravity)).argmin()
             estimated_midpoint = x_data[idx]
             if estimated_midpoint < 0: estimated_midpoint = 24
-        except:
+        except Exception as e:
+            logger.debug(f"Midpoint estimation failed: {e}")
             estimated_midpoint = 48
 
         p0 = [guess_L, guess_k, estimated_midpoint, guess_C]
@@ -99,11 +100,6 @@ def predict_fermentation(times, readings, og=None, attenuation=None):
     except Exception as e:
         logger.error(f"Prediction Math Error: {e}")
         return None, None
-
-logger = logging.getLogger("BrewBrain")
-
-alert_state = { "last_tilt_alert": 0, "last_temp_alert": 0 }
-processing_state = { "last_processed_time": datetime.now(timezone.utc) - timedelta(minutes=10) }
 
 def process_data():
     while True:
@@ -151,8 +147,8 @@ def process_data():
                         for r in t.records:
                             val = r.get_value()
                             current_temp = (val - 32) * 5/9 # F to C
-                except:
-                    pass
+                except Exception as e:
+                    logger.debug(f"Temp query issue: {e}")
 
                 # 2. Process SG for calibration/prediction
                 query = f'from(bucket: "{INFLUX_BUCKET}") |> range(start: -21d) |> filter(fn: (r) => r["_measurement"] == "sensor_data") |> filter(fn: (r) => r["_field"] == "SG")'
@@ -184,7 +180,7 @@ def process_data():
                 og = get_config("og")
                 attenuation = get_config("yeast_attenuation")
                 
-                pred_fg, pred_date = predict_fermentation(times, readings, og, attenuation)
+                pred_fg, pred_date = predict_fg_from_curve(times, readings, og, attenuation)
                 if pred_fg:
                     p_pred = Point("predictions").field("predicted_fg", pred_fg).time(datetime.now(timezone.utc))
                     if pred_date:

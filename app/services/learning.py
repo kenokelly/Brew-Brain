@@ -12,7 +12,8 @@ def get_history():
     try:
         with open(HISTORY_FILE, 'r') as f:
             return json.load(f)
-    except:
+    except Exception as e:
+        logger.warning(f"Failed to load history: {e}")
         return []
 
 def save_brew_outcome(data):
@@ -179,7 +180,7 @@ def predict_efficiency(grain_weight_kg):
         "model": model
     }
 
-def predict_fermentation(yeast_name, original_gravity, style=None):
+def predict_fg_from_history_knn(yeast_name, original_gravity, style=None):
     """
     Predicts FG using K-Nearest Neighbors (KNN) logic.
     Finds historical brews with similar OG and Yeast.
@@ -322,7 +323,8 @@ def check_batch_health(current_sg, original_gravity, yeast_name, days_in, temp=N
         current_sg = float(current_sg)
         original_gravity = float(original_gravity)
         current_att = ((original_gravity - current_sg) / (original_gravity - 1)) * 100
-    except:
+    except Exception as e:
+        logger.warning(f"Health check gravity parse error: {e}")
         return {"error": "Invalid gravity values"}
         
     # 3. Analyze Health
@@ -432,7 +434,7 @@ def check_batch_health(current_sg, original_gravity, yeast_name, days_in, temp=N
         "avg_velocity": round(avg_hist_velocity, 1)
     }
 
-def predict_fermentation(yeast_name, original_gravity):
+def predict_fg_from_history(yeast_name, original_gravity):
     """
     Predicts FG and ABV based on historical yeast performance.
     """
@@ -502,7 +504,8 @@ def learn_from_logs(csv_content, recipe_name, yeast_name):
                 if 1.000 < val < 1.150:
                     ogs.append(val)
                     fgs.append(val)
-            except: pass
+            except Exception as e:
+                logger.debug(f"Skipping row: {e}")
             
         if not ogs: return {"error": "No valid gravity readings"}
         
@@ -526,8 +529,10 @@ def learn_from_logs(csv_content, recipe_name, yeast_name):
                 try: 
                     t = float(r[temp_idx])
                     if 0 < t < 50: temps.append(t) # Filter valid C
-                except: pass
-        except: pass
+                except Exception as e:
+                    logger.debug(f"Temp parse skip: {e}")
+        except Exception as e:
+            logger.debug(f"Temp extraction failed: {e}")
         
         temp_stability = 0.0
         if temps and len(temps) > 1:

@@ -31,7 +31,7 @@ fi
 echo "🏗️  Rebuilding and Restarting remote container..."
 # Using 'set -e' locally handles local errors, but for remote SSH, we need to ensure we catch its exit code.
 # We also explicitly capture logs if build fails.
-if ssh $HOST "cd $REMOTE_DIR && docker compose down && docker compose build $BUILD_ARGS && docker compose up -d"; then
+if ssh $HOST "cd $REMOTE_DIR && docker compose down && docker system prune -af && docker compose build $BUILD_ARGS && docker compose up -d"; then
     echo "✅ Build & Startup Command Successful"
 else
     echo "❌ Remote Build/Startup Failed"

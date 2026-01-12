@@ -15,7 +15,8 @@ RUN apt-get update && apt-get install -y \
 # Install Python Dependencies
 COPY requirements.txt .
 RUN pip install --upgrade pip setuptools wheel && \
-    pip install --no-cache-dir -r requirements.txt
+    pip install --no-cache-dir -r requirements.txt && \
+    playwright install --with-deps chromium
 
 # Download Offline Assets (Tailwind & Lucide)
 RUN mkdir -p static/js && \

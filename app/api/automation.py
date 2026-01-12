@@ -264,7 +264,7 @@ def learn_simulate():
     
     # Add Fermentation Prediction if yeast provided
     if data.get('yeast'):
-        ferm_pred = learning.predict_fermentation(data.get('yeast'), res['predicted_og'])
+        ferm_pred = learning.predict_fg_from_history(data.get('yeast'), res['predicted_og'])
         res.update(ferm_pred)
         
     return jsonify(res)

@@ -3,6 +3,7 @@ import requests
 import json
 import math
 import re
+from bs4 import BeautifulSoup
 from app.core.config import get_config
 from serpapi import GoogleSearch
 
@@ -34,10 +35,166 @@ def extract_price(text):
     try:
         # If text is just a number (common in rich snippet 'price' field)
         return float(text)
-    except:
-        pass
+    except Exception as e:
+        logger.debug(f"Price parse fallback failed: {e}")
         
     return None
+
+# Rate limiting - track last request time per domain
+_last_request_time = {}
+_MIN_REQUEST_INTERVAL = 2.0  # Minimum 2 seconds between requests to same domain
+
+def get_page_content(url, retries=2, use_browser=False):
+    """
+    Fetches page HTML. Tries requests first, falls back to Playwright if blocked.
+    Set use_browser=True to force Playwright (slower but bypasses anti-bot).
+    Includes rate limiting to be respectful to vendor sites.
+    """
+    import time as _time
+    from urllib.parse import urlparse
+    
+    # Rate limiting - wait if we've requested this domain recently
+    domain = urlparse(url).netloc
+    now = _time.time()
+    if domain in _last_request_time:
+        elapsed = now - _last_request_time[domain]
+        if elapsed < _MIN_REQUEST_INTERVAL:
+            wait_time = _MIN_REQUEST_INTERVAL - elapsed
+            logger.debug(f"Rate limiting: waiting {wait_time:.1f}s before requesting {domain}")
+            _time.sleep(wait_time)
+    _last_request_time[domain] = _time.time()
+    
+    # Try requests first (fast path)
+    if not use_browser:
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+            'Accept-Language': 'en-GB,en;q=0.9,en-US;q=0.8',
+            'Accept-Encoding': 'gzip, deflate',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1',
+            'Sec-Fetch-Dest': 'document',
+            'Sec-Fetch-Mode': 'navigate',
+            'Sec-Fetch-Site': 'none',
+            'Sec-Fetch-User': '?1',
+            'Cache-Control': 'max-age=0',
+            'Sec-Ch-Ua': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
+            'Sec-Ch-Ua-Mobile': '?0',
+            'Sec-Ch-Ua-Platform': '"macOS"',
+        }
+        
+        for attempt in range(retries + 1):
+            try:
+                r = requests.get(url, headers=headers, timeout=15, allow_redirects=True)
+                r.raise_for_status()
+                return r.text
+            except requests.exceptions.RequestException as e:
+                if attempt < retries:
+                    wait_time = 2 ** attempt
+                    logger.warning(f"Retry {attempt + 1}/{retries} for {url} after {wait_time}s: {e}")
+                    _time.sleep(wait_time)
+                else:
+                    # If requests fails with 403, try Playwright
+                    if "403" in str(e):
+                        logger.info(f"403 detected, falling back to Playwright for {url}")
+                        return get_page_content_browser(url)
+                    logger.error(f"Failed to fetch {url} after {retries + 1} attempts: {e}")
+                    return None
+    else:
+        return get_page_content_browser(url)
+
+def get_page_content_browser(url):
+    """
+    Fetches page HTML using Playwright headless browser.
+    Slower but bypasses Cloudflare/anti-bot protection.
+    """
+    try:
+        from playwright.sync_api import sync_playwright
+    except ImportError:
+        logger.error("Playwright not installed. Run: pip install playwright && playwright install chromium")
+        return None
+    
+    try:
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True)
+            context = browser.new_context(
+                user_agent='Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                viewport={'width': 1920, 'height': 1080}
+            )
+            page = context.new_page()
+            # Navigate and wait for network to be idle (Cloudflare challenge completes)
+            page.goto(url, wait_until="networkidle", timeout=45000)
+            # Extra wait for any JS rendering
+            page.wait_for_timeout(3000)
+            content = page.content()
+            browser.close()
+            logger.info(f"Successfully fetched {url} via Playwright ({len(content)} chars)")
+            return content
+    except Exception as e:
+        logger.error(f"Playwright fetch failed for {url}: {e}")
+        return None
+
+def parse_product_page(html, source):
+    """
+    Extracts price and weight/pack-size from HTML.
+    """
+    if not html: return None
+    
+    soup = BeautifulSoup(html, 'html.parser')
+    data = {"price": None, "weight": None}
+    
+    try:
+        # Debugging
+        # print(f"DEBUG: Parsing {source}...")
+
+        # --- THE MALT MILLER (WooCommerce) ---
+        if "malt miller" in str(source).lower() or soup.select('.tmm-logo'):
+            # Price
+            # Generic WooCommerce Price
+            price_tag = soup.select_one('.price .amount')
+            if price_tag:
+                 # Extract text but handle nested tags like <bdi>
+                 data['price'] = extract_price(price_tag.get_text())
+            
+            # Weight/Size
+            # 1. Attribute table
+            # 2. Product Title
+            title = soup.select_one('h1.product_title') or soup.find('h1')
+            title_text = title.get_text() if title else ""
+            
+            # Extract grams/kg from title
+
+            weight_match = re.search(r'(\d+)\s?(g|kg|ml|l)', title_text, re.IGNORECASE)
+            if weight_match:
+                data['weight'] = f"{weight_match.group(1)}{weight_match.group(2)}"
+                
+        # --- GET ER BREWED ---
+        elif "get er brewed" in str(source).lower() or "geterbrewed" in str(source).lower():
+             # Price
+             price_tag = soup.select_one('[itemprop="price"]') or soup.select_one('.product-price')
+             if price_tag:
+                # content attribute often cleans "12.50"
+                 p_text = price_tag.get("content") or price_tag.get_text()
+                 data['price'] = extract_price(p_text)
+                 
+             # Weight
+             title = soup.select_one('h1')
+             title_text = title.get_text() if title else ""
+             weight_match = re.search(r'(\d+)\s?(g|kg|ml|l)', title_text, re.IGNORECASE)
+             if weight_match:
+                data['weight'] = f"{weight_match.group(1)}{weight_match.group(2)}"
+
+        # --- GENERIC FALLBACK ---
+        else:
+             # Try generic meta tags
+             price_meta = soup.select_one('meta[property="product:price:amount"]') or soup.select_one('meta[property="og:price:amount"]')
+             if price_meta:
+                 data['price'] = float(price_meta['content'])
+                 
+    except Exception as e:
+        logger.error(f"Page Parsing Error: {e}")
+        
+    return data
 
 def search_ingredient(name, ingredient_type="hop"):
     """
@@ -91,7 +248,8 @@ def get_inventory():
     try:
         with open("data/inventory.json", "r") as f:
             return json.load(f)
-    except:
+    except Exception as e:
+        logger.debug(f"Inventory load failed: {e}")
         return {}
 
 def generate_shopping_list(recipe_hops, recipe_fermentables):
@@ -280,7 +438,7 @@ def compare_recipe_prices(recipe_details):
         logger.error("Missing SerpApi Key - Cannot perform price comparison")
         return {"error": "Missing SerpApi Key"}
     
-    def search_price(query):
+    def search_price(query, source_name):
         try:
              params = {
                 "engine": "google",
@@ -296,25 +454,44 @@ def compare_recipe_prices(recipe_details):
              
              logger.info(f"DEBUG: Found {len(organic)} organic results for query '{query}'")
 
+             # Best Candidate
+             best_price = None
+             best_weight = None
+             best_link = None
+             
              for i, res in enumerate(organic):
-                 logger.info(f"DEBUG: Result {i} Snippet: {res.get('snippet')}")
-                 logger.info(f"DEBUG: Result {i} Rich: {res.get('rich_snippet')}")
+                 link = res.get("link")
+                 title = res.get("title", "")
                  
-                 # 1. Try Rich Snippet (if available)
-                 # structure varies: top.detected_extensions OR bottom.detected_extensions
+                 # 1. VISITING PAGE (Highest Accuracy)
+                 if i == 0: # Only visit top hit for now to save time/bandwidth
+                     logger.info(f"Visiting {link}...")
+                     html = get_page_content(link)
+                     page_data = parse_product_page(html, source_name)
+                     
+                     if page_data and page_data['price']:
+                         return {
+                             "price": page_data['price'],
+                             "weight": page_data.get('weight') or "Unknown",
+                             "link": link
+                         }
+
+                 # 2. Try Rich Snippet (Fallback)
                  rich = res.get("rich_snippet", {})
                  box = rich.get("top", {}) or rich.get("bottom", {})
                  extensions = box.get("detected_extensions", {})
                  
                  if extensions.get("price"):
-                     p = extract_price(f"£{extensions['price']}") # often just number
-                     if p: return p
+                     p = extract_price(f"£{extensions['price']}")
+                     if p: 
+                         return {"price": p, "weight": "Snippet", "link": link}
                  
-                 # 2. Try Snippet
+                 # 3. Try Snippet
                  snippet = res.get("snippet", "")
                  p = extract_price(snippet)
-                 if p: return p
-                 
+                 if p:
+                      return {"price": p, "weight": "Snippet", "link": link}
+                  
         except Exception as e:
             logger.error(f"Search Error: {e}")
         return None
@@ -331,16 +508,19 @@ def compare_recipe_prices(recipe_details):
         }
         
         # Search TMM
-        p_tmm = search_price(f"{item['name']} site:themaltmiller.co.uk")
-        if p_tmm:
-            row['tmm_price'] = p_tmm
-            total_tmm += p_tmm
+        res_tmm = search_price(f"{item['name']} site:themaltmiller.co.uk", "The Malt Miller")
+        if res_tmm:
+            row['tmm_price'] = res_tmm['price']
+            row['tmm_weight'] = res_tmm['weight']
+            # Only add to total if it seems like a normal pack (optional logic)
+            total_tmm += res_tmm['price']
             
         # Search GEB
-        p_geb = search_price(f"{item['name']} site:geterbrewed.com")
-        if p_geb:
-            row['geb_price'] = p_geb
-            total_geb += p_geb
+        res_geb = search_price(f"{item['name']} site:geterbrewed.com", "Get Er Brewed")
+        if res_geb:
+            row['geb_price'] = res_geb['price']
+            row['geb_weight'] = res_geb.get('weight', 'N/A')
+            total_geb += res_geb['price']
         
         # Determine Winner
         try:
