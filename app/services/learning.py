@@ -1,10 +1,196 @@
 import json
 import os
 import logging
+import numpy as np
+from datetime import datetime, timezone, timedelta
+from scipy.optimize import curve_fit
+from scipy.signal import medfilt
 
 logger = logging.getLogger(__name__)
 
 HISTORY_FILE = 'data/brew_history.json'
+
+
+def _sigmoid_4pl(t, L, k, t0, C):
+    """
+    4-Parameter Logistic (4PL) sigmoid function for fermentation curve fitting.
+    
+    Parameters:
+    - L: Upper asymptote (OG - drop magnitude)
+    - k: Steepness/rate of fermentation
+    - t0: Midpoint time (hours to 50% attenuation)
+    - C: Lower asymptote (predicted FG)
+    
+    Returns gravity at time t
+    """
+    return C + (L / (1 + np.exp(k * (t - t0))))
+
+
+def predict_fg_4pl(times, readings, og=None, yeast_attenuation=None):
+    """
+    Predicts Final Gravity using 4-Parameter Logistic curve fitting.
+    
+    Args:
+        times: List of datetime objects
+        readings: List of SG readings
+        og: Original Gravity (for physics-informed bounds)
+        yeast_attenuation: Expected attenuation % (e.g., 78.0)
+    
+    Returns:
+        Dict with predicted_fg, hours_to_terminal, confidence, and model_params
+    """
+    try:
+        # Need minimum 20 data points for reliable fit
+        if len(times) < 20:
+            return {
+                "predicted_fg": None,
+                "hours_to_terminal": None,
+                "confidence": "Insufficient Data",
+                "error": f"Need at least 20 readings, got {len(times)}"
+            }
+        
+        # Clean and filter data
+        clean_data = []
+        for t, r in zip(times, readings):
+            if 0.980 <= r <= 1.150:  # Valid gravity range
+                clean_data.append((t, r))
+        
+        if len(clean_data) < 20:
+            return {
+                "predicted_fg": None,
+                "hours_to_terminal": None,
+                "confidence": "Insufficient Valid Data",
+                "error": f"Only {len(clean_data)} valid readings after filtering"
+            }
+        
+        clean_times, clean_readings = zip(*clean_data)
+        
+        # Convert times to hours from start
+        start_time = clean_times[0]
+        x_data = np.array([(t - start_time).total_seconds() / 3600 for t in clean_times])
+        y_data = np.array(clean_readings)
+        
+        # Apply median filter to smooth noise
+        if len(y_data) > 10:
+            y_data_smooth = medfilt(y_data, kernel_size=5)
+        else:
+            y_data_smooth = y_data
+        
+        # Calculate data-driven initial guesses
+        current_max = max(y_data_smooth)
+        current_min = min(y_data_smooth)
+        
+        # --- PHYSICS-INFORMED BOUNDS ---
+        # Default bounds
+        guess_L = current_max - current_min  # Drop magnitude
+        guess_C = current_min  # Asymptote (FG)
+        guess_k = 0.1  # Moderate fermentation rate
+        
+        # Refine with yeast metadata if available
+        if og and yeast_attenuation:
+            try:
+                og_val = float(og)
+                att_val = float(yeast_attenuation)
+                
+                if og_val > 1.0 and 50 < att_val < 100:
+                    # Expected FG = OG - (Attenuation% * (OG - 1))
+                    expected_fg = og_val - ((att_val / 100.0) * (og_val - 1.0))
+                    guess_C = expected_fg
+                    guess_L = og_val - expected_fg
+                    
+            except Exception as e:
+                logger.debug(f"Physics bounds calculation failed: {e}")
+        
+        # Estimate midpoint (time to 50% drop)
+        try:
+            mid_gravity = current_max - ((current_max - current_min) / 2)
+            idx = (np.abs(y_data_smooth - mid_gravity)).argmin()
+            estimated_midpoint = x_data[idx]
+            if estimated_midpoint < 0:
+                estimated_midpoint = 48  # Default 2 days
+        except Exception:
+            estimated_midpoint = 48
+        
+        # Initial parameter guess
+        p0 = [guess_L, guess_k, estimated_midpoint, guess_C]
+        
+        # Bounds: [L, k, t0, C]
+        # L: 0.005 to 0.100 (5 to 100 gravity points drop)
+        # k: 0.01 to 2.0 (slow to fast fermentation)
+        # t0: 6 to 500 hours (6h to 21 days midpoint)
+        # C: 0.990 to 1.050 (typical FG range)
+        bounds = (
+            [0.005, 0.01, 6, 0.990],  # Lower bounds
+            [0.100, 2.0, 500, 1.050]   # Upper bounds
+        )
+        
+        # Fit the curve
+        popt, pcov = curve_fit(
+            _sigmoid_4pl, 
+            x_data, 
+            y_data_smooth, 
+            p0=p0, 
+            bounds=bounds,
+            maxfev=10000
+        )
+        
+        L_fit, k_fit, t0_fit, C_fit = popt
+        predicted_fg = round(C_fit, 3)
+        
+        # Calculate time to terminal (99% of final drop)
+        # Solve for when curve is within 0.001 of C (terminal)
+        try:
+            # At terminal: L/(1+exp(k*(t-t0))) < 0.001
+            # Rearranging: t = t0 + (1/k) * ln(L/0.001 - 1)
+            terminal_hours = t0_fit + (1/k_fit) * np.log((L_fit / 0.001) - 1)
+            
+            if np.isnan(terminal_hours) or terminal_hours < 0 or terminal_hours > 1000:
+                terminal_hours = None
+                completion_date = None
+            else:
+                completion_date = start_time + timedelta(hours=terminal_hours)
+        except Exception:
+            terminal_hours = None
+            completion_date = None
+        
+        # Calculate confidence based on fit quality
+        # Use residual sum of squares
+        residuals = y_data_smooth - _sigmoid_4pl(x_data, *popt)
+        ss_res = np.sum(residuals ** 2)
+        ss_tot = np.sum((y_data_smooth - np.mean(y_data_smooth)) ** 2)
+        r_squared = 1 - (ss_res / ss_tot) if ss_tot > 0 else 0
+        
+        if r_squared > 0.95:
+            confidence = "High"
+        elif r_squared > 0.85:
+            confidence = "Moderate"
+        else:
+            confidence = "Low"
+        
+        return {
+            "predicted_fg": predicted_fg,
+            "hours_to_terminal": round(terminal_hours, 1) if terminal_hours else None,
+            "completion_date": completion_date.isoformat() if completion_date else None,
+            "confidence": confidence,
+            "r_squared": round(r_squared, 3),
+            "model_params": {
+                "L": round(L_fit, 4),
+                "k": round(k_fit, 4),
+                "t0": round(t0_fit, 1),
+                "C": round(C_fit, 4)
+            },
+            "data_points": len(clean_data)
+        }
+        
+    except Exception as e:
+        logger.error(f"4PL Prediction Error: {e}")
+        return {
+            "predicted_fg": None,
+            "hours_to_terminal": None,
+            "confidence": "Error",
+            "error": str(e)
+        }
+
 
 def get_history():
     if not os.path.exists(HISTORY_FILE):

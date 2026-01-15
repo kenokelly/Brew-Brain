@@ -9,7 +9,62 @@ from serpapi import GoogleSearch
 
 logger = logging.getLogger(__name__)
 
-# Helper to extract price from text (e.g. "£13.95" or "13.95")
+# Lazy import to avoid circular dependency
+def _get_inventory():
+    """Fetches inventory from Brewfather (cached for duration of request)."""
+    from app.services import alerts
+    return alerts.fetch_brewfather_inventory()
+
+# Ingredient name aliases - maps Brewfather names to simpler search terms
+INGREDIENT_ALIASES = {
+    # Common malts with origin/supplier info
+    "pilsner (2 row) ger": ["pilsner malt", "german pilsner malt"],
+    "pilsner (2 row) bel": ["pilsner malt", "belgian pilsner malt"],
+    "pale malt (2 row) uk": ["pale malt", "maris otter"],
+    "pale malt (2 row) us": ["pale malt", "2 row malt"],
+    "best chit malt (bestmalz)": ["chit malt"],
+    "wheat, flaked": ["flaked wheat"],
+    "white wheat malt": ["wheat malt"],
+    "oats, flaked": ["flaked oats"],
+    "barley, flaked": ["flaked barley"],
+    "caramunich i": ["caramunich malt"],
+    "caramunich ii": ["caramunich malt"],
+    "caramunich iii": ["caramunich malt"],
+    "carafa special i": ["carafa malt"],
+    "carafa special ii": ["carafa malt"],
+    "carafa special iii": ["carafa malt"],
+    # Hops with codes
+    "mosaic (hbc 369)": ["mosaic hops"],
+    "sabro (hbc 438)": ["sabro hops"],
+    "strata (x-331)": ["strata hops"],
+    "idaho 7 (a07270)": ["idaho 7 hops"],
+    "nelson sauvin (hop)": ["nelson sauvin hops"],
+}
+
+def normalize_ingredient_name(name):
+    """
+    Normalizes ingredient name for better search results.
+    - Removes parenthetical content (origin, supplier, codes)
+    - Strips common suffixes
+    """
+    if not name:
+        return name
+    
+    # Lowercase for matching
+    normalized = name.lower().strip()
+    
+    # Check aliases first
+    if normalized in INGREDIENT_ALIASES:
+        return INGREDIENT_ALIASES[normalized][0]  # Return primary alias
+    
+    # Remove parenthetical content like "(2 Row)", "(HBC 369)", "(BESTMALZ)"
+    normalized = re.sub(r'\s*\([^)]*\)', '', normalized)
+    
+    # Remove trailing origin codes like "Ger", "UK", "US", "Bel"
+    normalized = re.sub(r'\s+(ger|uk|us|bel|aus|nz)$', '', normalized, flags=re.IGNORECASE)
+    
+    return normalized.strip()
+
 def extract_price(text):
     if not text: return None
     # Clean text
@@ -407,6 +462,12 @@ def compare_recipe_prices(recipe_details):
     Takes full recipe object (from BF) and compares basket cost.
     Uses Google Organic Search + Snippet Parsing for broader coverage than Google Shopping.
     """
+    # DEBUG: Log incoming recipe structure
+    logger.info(f"DEBUG compare_recipe_prices: Received recipe keys: {list(recipe_details.keys()) if isinstance(recipe_details, dict) else 'NOT A DICT'}")
+    logger.info(f"DEBUG compare_recipe_prices: Hops field: {recipe_details.get('hops', 'MISSING')}")
+    logger.info(f"DEBUG compare_recipe_prices: Fermentables field: {recipe_details.get('fermentables', 'MISSING')}")
+    logger.info(f"DEBUG compare_recipe_prices: Yeasts field: {recipe_details.get('yeasts', 'MISSING')}")
+    
     # Parse Ingredients
     items_to_check = []
     
@@ -428,6 +489,18 @@ def compare_recipe_prices(recipe_details):
     for yeast in recipe_details.get('yeasts', []):
         name = yeast.get('name')
         items_to_check.append({"name": name, "amount": 1, "unit": "pack", "type": "Yeast"})
+    
+    # DEBUG: Log parsed items
+    logger.info(f"DEBUG compare_recipe_prices: Parsed {len(items_to_check)} items: {items_to_check}")
+    
+    # Fetch inventory to check stock levels
+    inventory = {}
+    try:
+        inventory = _get_inventory()
+        if isinstance(inventory, dict) and 'error' not in inventory:
+            logger.info(f"DEBUG: Loaded inventory with {len(inventory.get('hops', {}))} hops, {len(inventory.get('fermentables', {}))} malts")
+    except Exception as e:
+        logger.warning(f"Could not fetch inventory: {e}")
         
     results = []
     total_tmm = 0.0
@@ -504,23 +577,84 @@ def compare_recipe_prices(recipe_details):
             "amount": f"{item['amount']} {item['unit']}",
             "tmm_price": "N/A",
             "geb_price": "N/A",
-            "best_vendor": "None"
+            "best_vendor": "None",
+            "searched_as": None,  # Track if we used an alternative name
+            "in_stock": False,
+            "stock_qty": 0
         }
         
-        # Search TMM
-        res_tmm = search_price(f"{item['name']} site:themaltmiller.co.uk", "The Malt Miller")
+        # Check inventory stock
+        item_name_lower = item['name'].lower() if item['name'] else ""
+        needed_amount = item.get('amount', 0)
+        
+        if inventory and not inventory.get('error'):
+            # Map type to inventory category
+            inv_category = {"Hop": "hops", "Malt": "fermentables", "Yeast": "yeast"}.get(item['type'])
+            
+            if inv_category and inv_category in inventory:
+                # Try exact match first
+                stock = inventory[inv_category].get(item_name_lower, 0)
+                
+                # Partial match fallback
+                if stock == 0:
+                    for inv_name, inv_qty in inventory[inv_category].items():
+                        if item_name_lower in inv_name or inv_name in item_name_lower:
+                            stock = inv_qty
+                            break
+                
+                row['stock_qty'] = round(stock, 2)
+                row['in_stock'] = stock >= needed_amount
+                
+                if row['in_stock']:
+                    row['best_vendor'] = "In Stock"
+        
+        original_name = item['name']
+        normalized_name = normalize_ingredient_name(original_name)
+        
+        # Build list of names to try: original first, then normalized, then aliases
+        names_to_try = [original_name]
+        if normalized_name and normalized_name.lower() != original_name.lower():
+            names_to_try.append(normalized_name)
+        
+        # Add aliases if available
+        lower_name = original_name.lower().strip()
+        if lower_name in INGREDIENT_ALIASES:
+            for alias in INGREDIENT_ALIASES[lower_name]:
+                if alias not in [n.lower() for n in names_to_try]:
+                    names_to_try.append(alias)
+        
+        # Search TMM - try each name until we get a result
+        res_tmm = None
+        used_name_tmm = None
+        for try_name in names_to_try:
+            res_tmm = search_price(f"{try_name} site:themaltmiller.co.uk", "The Malt Miller")
+            if res_tmm:
+                used_name_tmm = try_name if try_name != original_name else None
+                break
+        
         if res_tmm:
             row['tmm_price'] = res_tmm['price']
             row['tmm_weight'] = res_tmm['weight']
-            # Only add to total if it seems like a normal pack (optional logic)
             total_tmm += res_tmm['price']
+            if used_name_tmm:
+                row['searched_as'] = used_name_tmm
             
-        # Search GEB
-        res_geb = search_price(f"{item['name']} site:geterbrewed.com", "Get Er Brewed")
+        # Search GEB - try each name until we get a result
+        res_geb = None
+        used_name_geb = None
+        for try_name in names_to_try:
+            res_geb = search_price(f"{try_name} site:geterbrewed.com", "Get Er Brewed")
+            if res_geb:
+                used_name_geb = try_name if try_name != original_name else None
+                break
+                
         if res_geb:
             row['geb_price'] = res_geb['price']
             row['geb_weight'] = res_geb.get('weight', 'N/A')
             total_geb += res_geb['price']
+            # Only set searched_as if TMM didn't already set it
+            if used_name_geb and not row.get('searched_as'):
+                row['searched_as'] = used_name_geb
         
         # Determine Winner
         try:

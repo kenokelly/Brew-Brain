@@ -61,7 +61,22 @@ def fetch_brewfather_recipes(limit=20):
         r = requests.get(url, headers=headers, timeout=10)
         if r.status_code != 200:
             return {"error": f"API Error {r.status_code}"}
-        return r.json()
+        recipes = r.json()
+        
+        # Post-process: Add fallback name for recipes with empty names
+        for recipe in recipes:
+            if not recipe.get('name') or recipe.get('name', '').strip() == '':
+                style_name = recipe.get('style', {}).get('name', '')
+                author = recipe.get('author', '')
+                
+                if style_name:
+                    recipe['name'] = f"Untitled {style_name}"
+                elif author:
+                    recipe['name'] = f"{author}'s Recipe"
+                else:
+                    recipe['name'] = f"Untitled Recipe"
+        
+        return recipes
     except Exception as e:
         return {"error": str(e)}
 
@@ -76,7 +91,14 @@ def fetch_recipe_details(recipe_id):
     try:
         r = requests.get(url, headers=headers, timeout=10)
         if r.status_code != 200: return {"error": f"API Error {r.status_code}"}
-        return r.json()
+        data = r.json()
+        # DEBUG: Log the response structure
+        logger.info(f"DEBUG fetch_recipe_details: Recipe ID {recipe_id}, Keys: {list(data.keys()) if isinstance(data, dict) else 'NOT A DICT'}")
+        if isinstance(data, dict):
+            logger.info(f"DEBUG fetch_recipe_details: hops={len(data.get('hops', []))}, fermentables={len(data.get('fermentables', []))}, yeasts={len(data.get('yeasts', []))}")
+            if data.get('hops'):
+                logger.info(f"DEBUG fetch_recipe_details: First hop structure: {data['hops'][0] if data['hops'] else 'EMPTY'}")
+        return data
     except Exception as e:
         return {"error": str(e)}
 

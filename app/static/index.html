@@ -9,6 +9,7 @@
     <link rel="manifest" href="/static/manifest.json">
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
     <title>Brew Brain</title>
+    <link rel="stylesheet" href="/static/shared.css">
     <script src="/static/js/tailwindcss.js"></script>
     <script src="/static/js/lucide.js"></script>
     <style>
@@ -55,6 +56,45 @@
             100% {
                 transform: rotate(360deg);
             }
+        }
+
+        /* Touch-friendly targets */
+        button,
+        a,
+        input,
+        select {
+            min-height: 44px;
+        }
+
+        /* Larger screen enhancements */
+        @media (min-width: 768px) {
+            .glass-panel {
+                transition: transform 0.2s, box-shadow 0.2s;
+            }
+
+            .glass-panel:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+            }
+        }
+
+        @media (min-width: 1024px) {
+            body {
+                font-size: 16px;
+            }
+
+            .glass-panel {
+                padding: 1.5rem;
+            }
+        }
+
+        /* Safe areas for notched devices */
+        .safe-top {
+            padding-top: env(safe-area-inset-top);
+        }
+
+        .safe-bottom {
+            padding-bottom: env(safe-area-inset-bottom);
         }
     </style>
 </head>
@@ -421,7 +461,7 @@
                             Simulation</button>
                     </div>
 
-                    <p class="text-center text-xs text-slate-600 mt-4">Brew Brain v2.1 • Running on Raspberry Pi</p>
+                    <p class="text-center text-xs text-slate-600 mt-4">Brew Brain v2.1 • G40 Mission Control</p>
                 </div>
             </div>
         </div>

@@ -20,13 +20,24 @@ def calculate_tinseth_ibu(amount_g, alpha_acid, boil_time_min, boil_volume_l, or
     ibu = concentration_mg_l * utilization
     return round(ibu, 2)
 
-def calculate_batch_cost(items):
+def calculate_batch_cost(items, batch_size_l=23):
     """
-    Calculates the total cost.
+    Calculates the total cost and cost per pint.
     items: list of dicts {'cost': float}
+    batch_size_l: batch volume in liters (default: G40 standard 23L)
+    Returns: dict with total_cost and cost_per_pint
     """
     total = sum(i.get('cost', 0.0) for i in items)
-    return round(total, 2)
+    
+    # UK pint = 568ml, so pints = liters * 1000 / 568
+    pints = (batch_size_l * 1000) / 568
+    cost_per_pint = total / pints if pints > 0 else 0
+    
+    return {
+        "total_cost": round(total, 2),
+        "cost_per_pint": round(cost_per_pint, 2),
+        "pints": round(pints, 1)
+    }
 
 def calculate_hop_adjustment(target_ibu, current_gravity, volume_l, boil_time_min, alpha_acid):
     """

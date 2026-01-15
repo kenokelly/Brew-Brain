@@ -4,10 +4,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Taplist</title>
+    <meta name="theme-color" content="#0f172a">
+    <title>Brew Brain | Tap List</title>
+    <link rel="stylesheet" href="/static/shared.css">
+    <script src="/static/js/lucide.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700;900&family=Oswald:wght@500&display=swap');
-
         :root {
             --bg-color: #050505;
             --card-bg: #111;
@@ -344,15 +345,20 @@
 
 <body>
 
-    <header>
-        <h1>On Tap</h1>
-        <div style="display:flex; gap:1rem; align-items:center;">
-            <a href="/static/automation.html" class="settings-trigger">Automation</a>
-            <a href="/" class="settings-trigger">Settings &rarr;</a>
-        </div>
+    <header class="bb-header">
+        <a href="/" class="bb-header-brand">
+            <i data-lucide="beer" class="text-amber"></i>
+            <h1>Brew Brain</h1>
+        </a>
+        <nav class="bb-header-nav">
+            <a href="/" class="bb-nav-link" title="Dashboard"><i data-lucide="layout-dashboard"></i></a>
+            <a href="/static/taplist.html" class="bb-nav-link active" title="Tap List"><i data-lucide="beer"></i></a>
+            <a href="/static/automation.html" class="bb-nav-link" title="Automation"><i data-lucide="bot"></i></a>
+            <a href="/static/help.html" class="bb-nav-link" title="Help"><i data-lucide="circle-help"></i></a>
+        </nav>
     </header>
 
-    <main>
+    <main style="margin-top: var(--header-height);">
         <div class="grid-header">
             <div class="text-center">Tap</div>
             <div class="text-center">Glass</div>
@@ -665,6 +671,7 @@
 
         setInterval(update, 5000);
         update();
+        lucide.createIcons();
     </script>
 </body>
 

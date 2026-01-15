@@ -4,83 +4,37 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0f172a">
     <title>Brew Brain | Automation</title>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/shared.css">
+    <script src="/static/js/lucide.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         :root {
-            --bg-dark: #0f1115;
-            --bg-panel: #181b21;
-            --primary: #FFD700;
-            --accent: #E1AD01;
-            --text-main: #ffffff;
-            --text-dim: #8b9bb4;
-            --success: #00E676;
-            --error: #FF5252;
-            --glass: rgba(24, 27, 33, 0.7);
+            --bg-dark: #0f172a;
+            --bg-panel: rgba(30, 41, 59, 0.7);
+            --primary: #f59e0b;
+            --accent: #fbbf24;
+            --text-main: #f8fafc;
+            --text-dim: #94a3b8;
+            --success: #22c55e;
+            --error: #ef4444;
+            --glass: rgba(30, 41, 59, 0.7);
         }
 
         body {
-            font-family: 'Outfit', sans-serif;
             background-color: var(--bg-dark);
             color: var(--text-main);
             margin: 0;
-            display: flex;
-            height: 100vh;
-            overflow: hidden;
+            min-height: 100vh;
         }
 
-        /* Sidebar Navigation */
-        .sidebar {
-            width: 80px;
-            background: var(--bg-panel);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding-top: 2rem;
-            border-right: 1px solid rgba(255, 255, 255, 0.05);
-            z-index: 100;
-        }
-
-        .nav-item {
-            color: var(--text-dim);
-            font-size: 1.5rem;
-            margin-bottom: 2rem;
-            text-decoration: none;
-            transition: all 0.3s ease;
-            position: relative;
-            width: 50px;
-            height: 50px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 12px;
-        }
-
-        .nav-item:hover,
-        .nav-item.active {
-            color: var(--primary);
-            background: rgba(255, 215, 0, 0.1);
-        }
-
-        .nav-item.active::after {
-            content: '';
-            position: absolute;
-            left: -15px;
-            top: 50%;
-            transform: translateY(-50%);
-            height: 20px;
-            width: 4px;
-            background: var(--primary);
-            border-radius: 0 4px 4px 0;
-        }
-
-        /* Main Content */
+        /* Main Content - now uses header */
         .main-content {
-            flex: 1;
-            padding: 2rem;
+            padding: calc(var(--header-height) + 1.5rem) 1rem 2rem;
+            max-width: 1000px;
+            margin: 0 auto;
             overflow-y: auto;
-            position: relative;
         }
 
         h1 {
@@ -94,13 +48,15 @@
             margin-bottom: 2rem;
         }
 
-        /* Tabs */
+        /* Tabs - horizontal scrollable on mobile */
         .tabs {
             display: flex;
-            gap: 1rem;
-            margin-bottom: 2rem;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            padding-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
         }
 
         .tab-btn {
@@ -108,11 +64,13 @@
             border: none;
             color: var(--text-dim);
             font-family: inherit;
-            font-size: 1rem;
-            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+            padding: 0.5rem 0.75rem;
             cursor: pointer;
             transition: color 0.3s;
             position: relative;
+            white-space: nowrap;
+            min-height: 44px;
         }
 
         .tab-btn.active {
@@ -123,8 +81,7 @@
         .tab-btn.active::after {
             content: '';
             position: absolute;
-            bottom: -17px;
-            /* Align with border-bottom of .tabs */
+            bottom: -12px;
             left: 0;
             width: 100%;
             height: 2px;
@@ -142,14 +99,14 @@
             opacity: 1;
         }
 
-        /* Cards */
+        /* Cards - match dashboard glass panels */
         .card {
             background: var(--bg-panel);
+            backdrop-filter: blur(12px);
             border-radius: 16px;
-            padding: 2rem;
-            border: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.08);
             margin-bottom: 1.5rem;
-            max-width: 800px;
         }
 
         .form-group {
@@ -160,19 +117,20 @@
             display: block;
             color: var(--text-dim);
             margin-bottom: 0.4rem;
-            font-size: 0.9rem;
+            font-size: 0.875rem;
         }
 
         input,
         select {
             background: rgba(0, 0, 0, 0.2);
             border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 8px;
+            border-radius: 12px;
             color: white;
-            padding: 0.8rem;
+            padding: 0.75rem 1rem;
             width: 100%;
             box-sizing: border-box;
             font-family: inherit;
+            min-height: 44px;
         }
 
         input:focus {
@@ -188,22 +146,24 @@
             background: linear-gradient(135deg, var(--primary), var(--accent));
             border: none;
             color: #000;
-            padding: 0.8rem 1.5rem;
-            border-radius: 8px;
+            padding: 0.75rem 1.5rem;
+            border-radius: 12px;
             font-weight: 600;
             cursor: pointer;
             transition: transform 0.2s;
             width: 100%;
+            min-height: 44px;
         }
 
         button.action-btn:hover {
             transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
         }
 
         .result-box {
             margin-top: 1.5rem;
             background: rgba(0, 0, 0, 0.3);
-            border-radius: 8px;
+            border-radius: 12px;
             padding: 1rem;
             display: none;
         }
@@ -223,48 +183,216 @@
 
         .preferred {
             color: var(--success);
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             text-transform: uppercase;
             letter-spacing: 1px;
             margin-right: 0.5rem;
         }
 
-        /* Water Profile Table */
+        /* Water Profile Grid */
         .profile-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 1rem;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 0.75rem;
             margin-top: 1rem;
         }
 
         .profile-stat {
             background: rgba(255, 255, 255, 0.03);
             padding: 1rem;
-            border-radius: 8px;
+            border-radius: 12px;
             text-align: center;
         }
 
         .profile-stat .val {
-            font-size: 1.5rem;
+            font-size: 1.25rem;
             color: var(--primary);
         }
 
         .profile-stat .lbl {
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             color: var(--text-dim);
         }
+    </style>
+
+    /* Tabs */
+    .tabs {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 1rem;
+    }
+
+    .tab-btn {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-family: inherit;
+    font-size: 1rem;
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    transition: color 0.3s;
+    position: relative;
+    }
+
+    .tab-btn.active {
+    color: var(--primary);
+    font-weight: 600;
+    }
+
+    .tab-btn.active::after {
+    content: '';
+    position: absolute;
+    bottom: -17px;
+    /* Align with border-bottom of .tabs */
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: var(--primary);
+    }
+
+    .tab-content {
+    display: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    }
+
+    .tab-content.active {
+    display: block;
+    opacity: 1;
+    }
+
+    /* Cards */
+    .card {
+    background: var(--bg-panel);
+    border-radius: 16px;
+    padding: 2rem;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    margin-bottom: 1.5rem;
+    max-width: 800px;
+    }
+
+    .form-group {
+    margin-bottom: 1.2rem;
+    }
+
+    label {
+    display: block;
+    color: var(--text-dim);
+    margin-bottom: 0.4rem;
+    font-size: 0.9rem;
+    }
+
+    input,
+    select {
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    color: white;
+    padding: 0.8rem;
+    width: 100%;
+    box-sizing: border-box;
+    font-family: inherit;
+    }
+
+    input:focus {
+    outline: none;
+    border-color: var(--primary);
+    }
+
+    input[type="file"] {
+    padding: 0.5rem;
+    }
+
+    button.action-btn {
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    border: none;
+    color: #000;
+    padding: 0.8rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s;
+    width: 100%;
+    }
+
+    button.action-btn:hover {
+    transform: translateY(-2px);
+    }
+
+    .result-box {
+    margin-top: 1.5rem;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+    padding: 1rem;
+    display: none;
+    }
+
+    .result-box.visible {
+    display: block;
+    }
+
+    .result-item {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 0.8rem 0;
+    }
+
+    .result-item:last-child {
+    border-bottom: none;
+    }
+
+    .preferred {
+    color: var(--success);
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-right: 0.5rem;
+    }
+
+    /* Water Profile Table */
+    .profile-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+    }
+
+    .profile-stat {
+    background: rgba(255, 255, 255, 0.03);
+    padding: 1rem;
+    border-radius: 8px;
+    text-align: center;
+    }
+
+    .profile-stat .val {
+    font-size: 1.5rem;
+    color: var(--primary);
+    }
+
+    .profile-stat .lbl {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    }
     </style>
 </head>
 
 <body>
 
-    <nav class="sidebar">
-        <a href="/" class="nav-item" title="Dashboard"><i class="fas fa-home"></i></a>
-        <a href="/taplist" class="nav-item" title="Tap List"><i class="fas fa-beer"></i></a>
-        <a href="/static/automation.html" class="nav-item active" title="Automation"><i class="fas fa-robot"></i></a>
-        <div style="flex:1"></div>
-        <a href="#" class="nav-item" title="Settings" onclick="openSettings()"><i class="fas fa-cog"></i></a>
-    </nav>
+    <!-- Unified Header -->
+    <header class="bb-header">
+        <a href="/" class="bb-header-brand">
+            <i data-lucide="beer"></i>
+            <h1>Brew Brain</h1>
+        </a>
+        <nav class="bb-header-nav">
+            <a href="/" class="bb-nav-link" title="Dashboard"><i data-lucide="layout-dashboard"></i></a>
+            <a href="/static/taplist.html" class="bb-nav-link" title="Tap List"><i data-lucide="beer"></i></a>
+            <a href="/static/automation.html" class="bb-nav-link active" title="Automation"><i
+                    data-lucide="bot"></i></a>
+            <a href="/static/help.html" class="bb-nav-link" title="Help"><i data-lucide="circle-help"></i></a>
+        </nav>
+    </header>
 
     <div class="main-content">
         <h1>Brew Automation</h1>
@@ -1728,6 +1856,7 @@
         // Init
         loadRecipes();
         loadInventory();
+        lucide.createIcons();
 
 
     </script>

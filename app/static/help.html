@@ -4,7 +4,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0f172a">
     <title>Brew Brain - User Guide</title>
+    <link rel="stylesheet" href="/static/shared.css">
     <script src="/static/js/tailwindcss.js"></script>
     <script src="/static/js/lucide.js"></script>
     <style>
@@ -18,6 +20,28 @@
             backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.08);
         }
+
+        .toc-link {
+            transition: all 0.2s;
+        }
+
+        .toc-link:hover {
+            color: #f59e0b;
+            padding-left: 0.5rem;
+        }
+
+        details summary {
+            cursor: pointer;
+            list-style: none;
+        }
+
+        details summary::-webkit-details-marker {
+            display: none;
+        }
+
+        details[open] .chevron {
+            transform: rotate(180deg);
+        }
     </style>
 </head>
 
@@ -25,123 +49,394 @@
 
     <!-- Header -->
     <div class="fixed top-0 left-0 right-0 bg-slate-900/90 backdrop-blur-md z-50 border-b border-slate-800 safe-top">
-        <div class="max-w-3xl mx-auto px-4 h-16 flex items-center justify-between">
+        <div class="max-w-4xl mx-auto px-4 h-16 flex items-center justify-between">
             <div class="flex items-center gap-2">
-                <a href="/" class="p-2 -ml-2 text-slate-400 hover:text-white transition-colors"><i
-                        data-lucide="arrow-left" class="w-6 h-6"></i></a>
+                <a href="/" class="p-2 -ml-2 text-slate-400 hover:text-white transition-colors">
+                    <i data-lucide="arrow-left" class="w-6 h-6"></i>
+                </a>
+                <i data-lucide="book-open" class="text-amber-500 w-6 h-6"></i>
                 <h1 class="font-bold text-xl text-slate-100">User Guide</h1>
             </div>
+            <span class="text-xs text-slate-500">v2.0</span>
         </div>
     </div>
 
     <!-- Content -->
-    <div class="pt-24 px-4 max-w-3xl mx-auto space-y-8">
+    <div class="pt-24 px-4 max-w-4xl mx-auto space-y-6">
 
-        <!-- Intro -->
+        <!-- Table of Contents -->
         <div class="glass-panel p-6 rounded-2xl">
-            <h2 class="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                <i data-lucide="settings-2" class="text-blue-400"></i> Batch Settings
+            <h2 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                <i data-lucide="list" class="text-blue-400 w-5 h-5"></i> Quick Navigation
             </h2>
-            <p class="mb-4">Configure these in the <span class="font-bold text-white">Settings</span> tab to ensure
-                accurate stats.</p>
-            <ul class="space-y-2 list-disc list-inside text-sm">
-                <li><strong class="text-slate-200">Start Date:</strong> When you pitched the yeast.</li>
-                <li><strong class="text-slate-200">OG (Original Gravity):</strong> Measured before fermentation (e.g.,
-                    1.050).</li>
-                <li><strong class="text-slate-200">Target FG:</strong> Expected finishing gravity (e.g., 1.010).</li>
-            </ul>
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
+                <a href="#getting-started" class="toc-link text-slate-400">→ Getting Started</a>
+                <a href="#dashboard" class="toc-link text-slate-400">→ Dashboard</a>
+                <a href="#settings" class="toc-link text-slate-400">→ Settings</a>
+                <a href="#brewfather" class="toc-link text-slate-400">→ Brewfather Sync</a>
+                <a href="#telegram" class="toc-link text-slate-400">→ Telegram Alerts</a>
+                <a href="#automation" class="toc-link text-slate-400">→ Automation</a>
+                <a href="#sourcing" class="toc-link text-slate-400">→ Price Comparison</a>
+                <a href="#ml" class="toc-link text-slate-400">→ ML Predictions</a>
+                <a href="#hardware" class="toc-link text-slate-400">→ Hardware Setup</a>
+            </div>
         </div>
 
-        <!-- Telegram -->
-        <div class="glass-panel p-6 rounded-2xl">
+        <!-- Getting Started -->
+        <div id="getting-started" class="glass-panel p-6 rounded-2xl">
             <h2 class="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                <i data-lucide="send" class="text-sky-400"></i> Setup Alerts
+                <i data-lucide="rocket" class="text-green-400"></i> Getting Started
             </h2>
+            <div class="space-y-4 text-sm">
+                <p>Brew Brain is a fermentation monitoring and automation system designed for the <strong
+                        class="text-amber-400">Grainfather G40</strong> with SS Brewtech Unitanks.</p>
 
-            <div class="space-y-6">
-                <div>
-                    <h3 class="font-bold text-white mb-2">1. Create a Bot</h3>
-                    <p class="text-sm">Talk to <strong class="text-sky-400">@BotFather</strong> on Telegram. Send <code
-                            class="bg-slate-800 px-1 rounded">/newbot</code> and follow instructions to get your
-                        <strong>Token</strong>.
-                    </p>
+                <div class="bg-slate-800/50 p-4 rounded-xl">
+                    <h3 class="font-bold text-white mb-2">First-Time Setup</h3>
+                    <ol class="list-decimal list-inside space-y-2 text-slate-300">
+                        <li>Connect your <strong class="text-blue-400">Tilt Hydrometer</strong> to TiltPi</li>
+                        <li>Configure <strong>Brewfather API</strong> in Settings</li>
+                        <li>Set up <strong>Telegram Bot</strong> for alerts</li>
+                        <li>Enter your <strong>Batch Details</strong> (OG, Target FG)</li>
+                    </ol>
                 </div>
+            </div>
+        </div>
 
-                <div>
-                    <h3 class="font-bold text-white mb-2">2. Get Chat ID</h3>
-                    <p class="text-sm">Talk to <strong class="text-sky-400">@userinfobot</strong> on Telegram to get
-                        your numeric <strong>ID</strong>.</p>
-                </div>
+        <!-- Dashboard -->
+        <div id="dashboard" class="glass-panel p-6 rounded-2xl">
+            <h2 class="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                <i data-lucide="layout-dashboard" class="text-purple-400"></i> Dashboard
+            </h2>
+            <div class="space-y-4 text-sm">
+                <p>The main dashboard shows real-time fermentation data:</p>
 
-                <div>
-                    <h3 class="font-bold text-white mb-2">3. Connect</h3>
-                    <p class="text-sm">Enter the Token and Chat ID in Brew-Brain Settings.</p>
-                </div>
-
-                <div class="bg-slate-800/50 p-4 rounded-xl border border-slate-700/50">
-                    <h4 class="text-xs uppercase font-bold text-slate-500 mb-2">Bot Commands</h4>
-                    <div class="space-y-1 font-mono text-sm">
-                        <div class="flex justify-between"><span class="text-sky-400">/status</span> <span>Get current
-                                readings</span></div>
-                        <div class="flex justify-between"><span class="text-sky-400">/ping</span> <span>Check
-                                connection</span></div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-amber-500/10 p-3 rounded-xl border border-amber-500/20">
+                        <strong class="text-amber-400">Temperature</strong>
+                        <p class="text-xs text-slate-400 mt-1">Current fermenter temp from Tilt</p>
+                    </div>
+                    <div class="bg-emerald-500/10 p-3 rounded-xl border border-emerald-500/20">
+                        <strong class="text-emerald-400">Gravity (SG)</strong>
+                        <p class="text-xs text-slate-400 mt-1">Specific gravity reading</p>
+                    </div>
+                    <div class="bg-purple-500/10 p-3 rounded-xl border border-purple-500/20">
+                        <strong class="text-purple-400">Attenuation</strong>
+                        <p class="text-xs text-slate-400 mt-1">% of sugars consumed</p>
+                    </div>
+                    <div class="bg-blue-500/10 p-3 rounded-xl border border-blue-500/20">
+                        <strong class="text-blue-400">ABV</strong>
+                        <p class="text-xs text-slate-400 mt-1">Estimated alcohol content</p>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Calibration -->
-        <div class="glass-panel p-6 rounded-2xl">
-            <h2 class="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                <i data-lucide="scale" class="text-amber-400"></i> Calibration
-            </h2>
-            <p class="mb-4 text-sm">If your Tilt reads <code class="text-amber-400">1.020</code> but your manual
-                hydrometer says <code class="text-green-400">1.015</code>:</p>
-            <ol class="list-decimal list-inside space-y-2 text-sm bg-slate-800/50 p-4 rounded-xl">
-                <li>Go to Settings > Calibration.</li>
-                <li>Enter <code class="text-green-400">1.015</code> in the box.</li>
-                <li>Click <strong>Set</strong>.</li>
-            </ol>
-            <p class="mt-4 text-xs text-slate-500">The system calculates the offset (-0.005) automatically.</p>
-        </div>
+        <!-- Settings -->
+        <div id="settings" class="glass-panel p-6 rounded-2xl">
+            <details>
+                <summary class="flex items-center justify-between">
+                    <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                        <i data-lucide="settings" class="text-blue-400"></i> Settings & Calibration
+                    </h2>
+                    <i data-lucide="chevron-down" class="chevron w-5 h-5 text-slate-500 transition-transform"></i>
+                </summary>
+                <div class="mt-4 space-y-4 text-sm">
+                    <div>
+                        <h3 class="font-bold text-white mb-2">Batch Settings</h3>
+                        <ul class="space-y-1 list-disc list-inside text-slate-300">
+                            <li><strong>Batch Name:</strong> Identifier for current brew</li>
+                            <li><strong>Start Date:</strong> When you pitched yeast</li>
+                            <li><strong>OG:</strong> Original Gravity (e.g., 1.055)</li>
+                            <li><strong>Target FG:</strong> Expected finish (e.g., 1.010)</li>
+                        </ul>
+                    </div>
 
-        <!-- AI Intelligence -->
-        <div class="glass-panel p-6 rounded-2xl">
-            <h2 class="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                <i data-lucide="brain" class="text-purple-400"></i> AI & Intelligence
-            </h2>
-            <div class="space-y-4">
-                <p class="text-sm">The Brain uses <strong>Physics-Informed ML</strong> and <strong>Yeast Memory</strong>
-                    to protect your brew.</p>
-                <ul class="list-disc list-inside space-y-2 text-sm bg-slate-800/50 p-4 rounded-xl">
-                    <li><strong class="text-purple-300">Sync:</strong> Downloads Yeast Specs (Temp Range, Attenuation)
-                        from Brewfather.</li>
-                    <li><strong class="text-purple-300">Safety:</strong> Alerts if you exceed the Manufacturer's Max
-                        Temp.</li>
-                    <li><strong class="text-purple-300">Anomaly:</strong> Warns if fermentation is suspiciously fast
-                        (>2.5x normal rate).</li>
-                </ul>
-            </div>
+                    <div class="bg-slate-800/50 p-4 rounded-xl">
+                        <h3 class="font-bold text-white mb-2">Tilt Calibration</h3>
+                        <p class="text-slate-300 mb-2">If Tilt reads different from your hydrometer:</p>
+                        <ol class="list-decimal list-inside space-y-1">
+                            <li>Take a sample and read with manual hydrometer</li>
+                            <li>Enter the actual reading in Calibration box</li>
+                            <li>Click <strong class="text-amber-400">Set</strong></li>
+                        </ol>
+                        <p class="text-xs text-slate-500 mt-2">The offset is calculated automatically.</p>
+                    </div>
+                </div>
+            </details>
         </div>
 
         <!-- Brewfather -->
-        <div class="glass-panel p-6 rounded-2xl">
-            <h2 class="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                <i data-lucide="cloud-rain" class="text-blue-400"></i> Brewfather
-            </h2>
-            <div class="space-y-4">
-                <p class="text-sm">Sync recipe data (Target F.G, OG, Name) from Brewfather.</p>
-                <ol class="list-decimal list-inside space-y-2 text-sm bg-slate-800/50 p-4 rounded-xl">
-                    <li>Go to Brewfather <strong>Settings</strong> > <strong>Power Controller & API</strong>.</li>
-                    <li>Generate an API Key.</li>
-                    <li>Enter <strong>User ID</strong> and <strong>Key</strong> in Brew-Brain.</li>
-                    <li>Click <strong>Save</strong>, then <strong>Sync Batch</strong>.</li>
-                </ol>
-                <div class="flex items-center gap-2 text-xs text-amber-500 bg-amber-500/10 p-2 rounded">
-                    <i data-lucide="triangle-alert" class="w-4 h-4"></i>
-                    <span>Must have a batch status set to "Fermenting" in Brewfather.</span>
+        <div id="brewfather" class="glass-panel p-6 rounded-2xl">
+            <details>
+                <summary class="flex items-center justify-between">
+                    <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                        <i data-lucide="cloud" class="text-blue-400"></i> Brewfather Integration
+                    </h2>
+                    <i data-lucide="chevron-down" class="chevron w-5 h-5 text-slate-500 transition-transform"></i>
+                </summary>
+                <div class="mt-4 space-y-4 text-sm">
+                    <p>Sync recipe data, yeast specs, and inventory from Brewfather.</p>
+
+                    <div class="bg-slate-800/50 p-4 rounded-xl">
+                        <h3 class="font-bold text-white mb-2">Setup</h3>
+                        <ol class="list-decimal list-inside space-y-2">
+                            <li>Go to Brewfather → <strong>Settings</strong> → <strong>API & Power Controller</strong>
+                            </li>
+                            <li>Enable <strong>Custom Stream</strong> and copy your <strong>User ID</strong></li>
+                            <li>Generate an <strong>API Key</strong></li>
+                            <li>Enter both in Brew Brain Settings</li>
+                        </ol>
+                    </div>
+
+                    <div class="flex items-center gap-2 text-xs text-amber-500 bg-amber-500/10 p-2 rounded">
+                        <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+                        <span>Your batch must be set to "Fermenting" status in Brewfather to sync.</span>
+                    </div>
                 </div>
-            </div>
+            </details>
+        </div>
+
+        <!-- Telegram -->
+        <div id="telegram" class="glass-panel p-6 rounded-2xl">
+            <details>
+                <summary class="flex items-center justify-between">
+                    <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                        <i data-lucide="send" class="text-sky-400"></i> Telegram Alerts
+                    </h2>
+                    <i data-lucide="chevron-down" class="chevron w-5 h-5 text-slate-500 transition-transform"></i>
+                </summary>
+                <div class="mt-4 space-y-4 text-sm">
+                    <div class="space-y-3">
+                        <div>
+                            <h3 class="font-bold text-white mb-1">1. Create a Bot</h3>
+                            <p>Talk to <strong class="text-sky-400">@BotFather</strong> on Telegram. Send <code
+                                    class="bg-slate-800 px-1 rounded">/newbot</code> and follow instructions.</p>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-white mb-1">2. Get Your Chat ID</h3>
+                            <p>Talk to <strong class="text-sky-400">@userinfobot</strong> to get your numeric ID.</p>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-white mb-1">3. Enter in Settings</h3>
+                            <p>Paste both Token and Chat ID into Brew Brain.</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-800/50 p-4 rounded-xl">
+                        <h4 class="text-xs uppercase font-bold text-slate-500 mb-2">Bot Commands</h4>
+                        <div class="space-y-1 font-mono text-sm">
+                            <div class="flex justify-between"><span class="text-sky-400">/status</span> <span>Get
+                                    current readings</span></div>
+                            <div class="flex justify-between"><span class="text-sky-400">/ping</span> <span>Check
+                                    connection</span></div>
+                            <div class="flex justify-between"><span class="text-sky-400">/prediction</span> <span>Get FG
+                                    prediction</span></div>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-800/50 p-4 rounded-xl">
+                        <h4 class="text-xs uppercase font-bold text-slate-500 mb-2">Alert Types</h4>
+                        <ul class="space-y-1 text-sm">
+                            <li>🔥 <strong>Temperature Warning</strong> - Exceeds yeast max</li>
+                            <li>⚠️ <strong>Stall Alert</strong> - Gravity not dropping</li>
+                            <li>🚨 <strong>Anomaly</strong> - Unusual fermentation speed</li>
+                            <li>📡 <strong>Connection Lost</strong> - Tilt not reporting</li>
+                        </ul>
+                    </div>
+                </div>
+            </details>
+        </div>
+
+        <!-- Automation -->
+        <div id="automation" class="glass-panel p-6 rounded-2xl">
+            <details>
+                <summary class="flex items-center justify-between">
+                    <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                        <i data-lucide="zap" class="text-yellow-400"></i> Automation Dashboard
+                    </h2>
+                    <i data-lucide="chevron-down" class="chevron w-5 h-5 text-slate-500 transition-transform"></i>
+                </summary>
+                <div class="mt-4 space-y-4 text-sm">
+                    <p>Access advanced automation features via the ⚡ icon or <code
+                            class="bg-slate-800 px-1 rounded">/static/automation.html</code></p>
+
+                    <div class="grid gap-3">
+                        <div class="bg-slate-800/50 p-3 rounded-xl">
+                            <strong class="text-purple-400">Recipe Scout</strong>
+                            <p class="text-xs text-slate-400">Search for recipes online and import to G40</p>
+                        </div>
+                        <div class="bg-slate-800/50 p-3 rounded-xl">
+                            <strong class="text-green-400">G40 Scaler</strong>
+                            <p class="text-xs text-slate-400">Automatically scale recipes to fit 9kg grain limit</p>
+                        </div>
+                        <div class="bg-slate-800/50 p-3 rounded-xl">
+                            <strong class="text-blue-400">Water Calculator</strong>
+                            <p class="text-xs text-slate-400">Build water from RO using 8 regional profiles</p>
+                        </div>
+                        <div class="bg-slate-800/50 p-3 rounded-xl">
+                            <strong class="text-amber-400">Brew Logger</strong>
+                            <p class="text-xs text-slate-400">Generate markdown logs and push to GitHub</p>
+                        </div>
+                    </div>
+                </div>
+            </details>
+        </div>
+
+        <!-- Sourcing -->
+        <div id="sourcing" class="glass-panel p-6 rounded-2xl">
+            <details>
+                <summary class="flex items-center justify-between">
+                    <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                        <i data-lucide="shopping-cart" class="text-green-400"></i> Price Comparison
+                    </h2>
+                    <i data-lucide="chevron-down" class="chevron w-5 h-5 text-slate-500 transition-transform"></i>
+                </summary>
+                <div class="mt-4 space-y-4 text-sm">
+                    <p>Compare ingredient prices between <strong class="text-amber-400">The Malt Miller</strong> and
+                        <strong class="text-green-400">Get Er Brewed</strong>.</p>
+
+                    <div class="bg-slate-800/50 p-4 rounded-xl">
+                        <h3 class="font-bold text-white mb-2">Features</h3>
+                        <ul class="list-disc list-inside space-y-1">
+                            <li><strong>Inventory Check</strong> - Shows what's already in stock (Brewfather)</li>
+                            <li><strong>Smart Search</strong> - Handles malt naming variations</li>
+                            <li><strong>Cost per Pint</strong> - Calculates actual cost breakdown</li>
+                        </ul>
+                    </div>
+
+                    <div class="flex items-center gap-2 text-xs text-blue-400 bg-blue-500/10 p-2 rounded">
+                        <i data-lucide="info" class="w-4 h-4"></i>
+                        <span>Requires SerpApi key in Settings for price lookups.</span>
+                    </div>
+                </div>
+            </details>
+        </div>
+
+        <!-- ML Predictions -->
+        <div id="ml" class="glass-panel p-6 rounded-2xl">
+            <details>
+                <summary class="flex items-center justify-between">
+                    <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                        <i data-lucide="brain" class="text-purple-400"></i> ML Predictions
+                    </h2>
+                    <i data-lucide="chevron-down" class="chevron w-5 h-5 text-slate-500 transition-transform"></i>
+                </summary>
+                <div class="mt-4 space-y-4 text-sm">
+                    <p>Brew Brain uses <strong class="text-purple-400">Physics-Informed Machine Learning</strong> to
+                        predict fermentation outcomes.</p>
+
+                    <div class="bg-slate-800/50 p-4 rounded-xl">
+                        <h3 class="font-bold text-white mb-2">4PL Sigmoid Model</h3>
+                        <p class="text-slate-300 mb-2">A 4-Parameter Logistic curve is fitted to your gravity readings
+                            to predict:</p>
+                        <ul class="list-disc list-inside space-y-1">
+                            <li><strong>Final Gravity (FG)</strong> - Where fermentation will stop</li>
+                            <li><strong>Time to Terminal</strong> - Hours until completion</li>
+                            <li><strong>Confidence Score</strong> - R² fit quality (High/Moderate/Low)</li>
+                        </ul>
+                    </div>
+
+                    <div class="bg-slate-800/50 p-4 rounded-xl">
+                        <h3 class="font-bold text-white mb-2">Yeast Memory</h3>
+                        <p class="text-slate-300">The system learns from your brewing history:</p>
+                        <ul class="list-disc list-inside space-y-1 mt-2">
+                            <li>Historical attenuation rates per yeast strain</li>
+                            <li>Expected fermentation velocity</li>
+                            <li>Anomaly detection (infection warning)</li>
+                        </ul>
+                    </div>
+                </div>
+            </details>
+        </div>
+
+        <!-- Hardware -->
+        <div id="hardware" class="glass-panel p-6 rounded-2xl">
+            <details open>
+                <summary class="flex items-center justify-between">
+                    <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                        <i data-lucide="cpu" class="text-red-400"></i> Hardware Setup
+                    </h2>
+                    <i data-lucide="chevron-down" class="chevron w-5 h-5 text-slate-500 transition-transform"></i>
+                </summary>
+                <div class="mt-4 space-y-4 text-sm">
+                    <div class="bg-slate-800/50 p-4 rounded-xl">
+                        <h3 class="font-bold text-white mb-2">Current System</h3>
+                        <ul class="space-y-1">
+                            <li><strong>Pi:</strong> Raspberry Pi 5 (4GB recommended)</li>
+                            <li><strong>Brewing:</strong> Grainfather G40 (23L batch)</li>
+                            <li><strong>Fermentation:</strong> 2× 7gal SS Brewtech Unitanks</li>
+                            <li><strong>Cooling:</strong> 1/5hp Glycol Chiller</li>
+                            <li><strong>Sensors:</strong> Tilt Hydrometer via TiltPi</li>
+                        </ul>
+                    </div>
+
+                    <div class="bg-green-500/10 p-4 rounded-xl border border-green-500/20">
+                        <h3 class="font-bold text-green-400 mb-2">💡 Recommended Upgrades</h3>
+                        <ul class="space-y-2">
+                            <li>
+                                <strong class="text-white">Pi 5 8GB</strong>
+                                <p class="text-xs text-slate-400">Better for ML curve fitting and multi-tab dashboard
+                                </p>
+                            </li>
+                            <li>
+                                <strong class="text-white">NVMe SSD (via HAT)</strong>
+                                <p class="text-xs text-slate-400">Faster InfluxDB queries, extends SD card life</p>
+                            </li>
+                            <li>
+                                <strong class="text-white">Active Cooling</strong>
+                                <p class="text-xs text-slate-400">Pi 5 Active Cooler or Argon case for stable ML
+                                    workloads</p>
+                            </li>
+                            <li>
+                                <strong class="text-white">UPS (Power Bank)</strong>
+                                <p class="text-xs text-slate-400">Keeps monitoring during power outages</p>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </details>
+        </div>
+
+        <!-- Troubleshooting -->
+        <div class="glass-panel p-6 rounded-2xl">
+            <details>
+                <summary class="flex items-center justify-between">
+                    <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                        <i data-lucide="help-circle" class="text-amber-400"></i> Troubleshooting
+                    </h2>
+                    <i data-lucide="chevron-down" class="chevron w-5 h-5 text-slate-500 transition-transform"></i>
+                </summary>
+                <div class="mt-4 space-y-4 text-sm">
+                    <div class="space-y-3">
+                        <div class="bg-slate-800/50 p-3 rounded-xl">
+                            <strong class="text-white">No data showing?</strong>
+                            <p class="text-xs text-slate-400 mt-1">Check Tilt is in range, TiltPi is running, and both
+                                are on same network.</p>
+                        </div>
+                        <div class="bg-slate-800/50 p-3 rounded-xl">
+                            <strong class="text-white">Brewfather sync failing?</strong>
+                            <p class="text-xs text-slate-400 mt-1">Verify API credentials and ensure batch is set to
+                                "Fermenting" status.</p>
+                        </div>
+                        <div class="bg-slate-800/50 p-3 rounded-xl">
+                            <strong class="text-white">Telegram not working?</strong>
+                            <p class="text-xs text-slate-400 mt-1">Start a chat with your bot first. It can't message
+                                you until you message it.</p>
+                        </div>
+                        <div class="bg-slate-800/50 p-3 rounded-xl">
+                            <strong class="text-white">Price comparison shows N/A?</strong>
+                            <p class="text-xs text-slate-400 mt-1">Check SerpApi key is valid. Some specialty malts may
+                                need manual lookup.</p>
+                        </div>
+                    </div>
+                </div>
+            </details>
+        </div>
+
+        <!-- Footer -->
+        <div class="text-center text-xs text-slate-600 py-4">
+            Brew Brain v2.0 • G40 Mission Control
         </div>
 
     </div>

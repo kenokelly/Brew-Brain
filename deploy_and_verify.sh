@@ -6,11 +6,24 @@ HOST="kokelly@192.168.155.226"
 REMOTE_DIR="brew-brain"
 LOCAL_DIR="$(pwd)"
 
+# Parse Arguments
+BUILD_MODE="incremental"  # Default: use Docker cache
+if [[ "$1" == "--full" ]]; then
+    BUILD_MODE="full"
+    echo "🔄 Full Rebuild Mode: Clearing cache and rebuilding everything..."
+elif [[ "$1" == "--restart-only" ]] || [[ "$1" == "-r" ]]; then
+    BUILD_MODE="restart"
+    echo "⚡ Restart Mode: Syncing code and restarting container only..."
+elif [[ "$1" == "--patch" ]]; then
+    BUILD_MODE="incremental"
+    echo "🩹 Patch Mode (now default): Using Docker cache..."
+fi
+
 echo "🚀 Starting Deployment to $HOST..."
 
 # 1. Clean Local Cache
 echo "🧹 Cleaning local __pycache__..."
-find . -type d -name "__pycache__" -exec rm -rf {} +
+find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
 
 # 2. Sync Files
 echo "📡 Syncing files to remote..."
@@ -20,28 +33,35 @@ scp $LOCAL_DIR/docker-compose.yml $HOST:$REMOTE_DIR/
 scp -r $LOCAL_DIR/grafana $HOST:$REMOTE_DIR/
 scp $LOCAL_DIR/telegraf.conf $HOST:$REMOTE_DIR/
 
-# Check for Patch Mode
-BUILD_ARGS="--no-cache"
-if [[ "$1" == "--patch" ]]; then
-    echo "🩹 Patch Mode: Skipping cache bust for faster build..."
-    BUILD_ARGS=""
-fi
+# 3. Remote Build & Restart (based on mode)
+case $BUILD_MODE in
+    "restart")
+        echo "🔄 Restarting container with new code..."
+        ssh $HOST "cd $REMOTE_DIR && docker compose restart brew-brain"
+        ;;
+    "full")
+        echo "🏗️  Full rebuild (clearing Docker cache)..."
+        ssh $HOST "cd $REMOTE_DIR && docker compose down && docker system prune -af && docker compose build --no-cache && docker compose up -d"
+        ;;
+    *)
+        echo "🏗️  Incremental build (using Docker layer cache)..."
+        ssh $HOST "cd $REMOTE_DIR && docker compose down && docker compose build && docker compose up -d"
+        ;;
+esac
 
-# 3. Remote Build & Restart
-echo "🏗️  Rebuilding and Restarting remote container..."
-# Using 'set -e' locally handles local errors, but for remote SSH, we need to ensure we catch its exit code.
-# We also explicitly capture logs if build fails.
-if ssh $HOST "cd $REMOTE_DIR && docker compose down && docker system prune -af && docker compose build $BUILD_ARGS && docker compose up -d"; then
-    echo "✅ Build & Startup Command Successful"
-else
-    echo "❌ Remote Build/Startup Failed"
-    exit 1
-fi
+echo "✅ Build & Startup Command Successful"
 
 # 4. Verification
 echo "🔍 Verifying Deployment..."
-echo "   Waiting for service to stabilize (25s)..."
-ssh $HOST "sleep 25"
+
+# Shorter wait for restart mode
+if [[ "$BUILD_MODE" == "restart" ]]; then
+    echo "   Waiting for service to stabilize (10s)..."
+    ssh $HOST "sleep 10"
+else
+    echo "   Waiting for service to stabilize (25s)..."
+    ssh $HOST "sleep 25"
+fi
 
 # CHECK 1: Container Status (Must be RUNNING, not restarting)
 echo "   [1/3] Checking Containers..."
@@ -88,4 +108,9 @@ else
 fi
 
 echo "🎉 DEPLOYMENT FULLY VERIFIED!"
+echo ""
+echo "📋 Deploy Modes:"
+echo "   (default)       - Incremental build with Docker cache"
+echo "   --restart-only  - Code sync + container restart (~30s)"
+echo "   --full          - Full rebuild, no cache (~15min)"
 exit 0
