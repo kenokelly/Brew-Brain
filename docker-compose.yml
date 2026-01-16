@@ -67,6 +67,7 @@ services:
       - BREW_BRAIN_DATA=/data
     volumes:
       - ./brain_data:/data
+      - ./app/static:/app/static:ro  # Mount static files for hot reload without rebuild
     networks:
       - brewery-net
     depends_on:
