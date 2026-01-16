@@ -131,6 +131,62 @@ h1, h2, h3 {
     height: 20px;
 }
 
+/* Header Right Section */
+.bb-header-right {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+/* Status Indicators */
+.bb-status-indicators {
+    display: none;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.75rem;
+    font-family: 'SF Mono', 'Monaco', monospace;
+    color: var(--text-muted);
+}
+
+@media (min-width: 768px) {
+    .bb-status-indicators {
+        display: flex;
+    }
+}
+
+.bb-status-item {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.bb-status-item svg,
+.bb-status-item i {
+    width: 12px;
+    height: 12px;
+}
+
+.bb-status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    transition: background-color 0.3s;
+}
+
+.bb-status-dot.online {
+    background-color: var(--green);
+}
+
+.bb-status-dot.offline {
+    background-color: var(--red);
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
 /* ===== MAIN CONTENT ===== */
 .bb-content {
     padding-top: calc(var(--header-height) + 1rem);

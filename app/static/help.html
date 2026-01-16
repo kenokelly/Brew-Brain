@@ -47,19 +47,8 @@
 
 <body class="text-slate-300 font-sans pb-10 select-none">
 
-    <!-- Header -->
-    <div class="fixed top-0 left-0 right-0 bg-slate-900/90 backdrop-blur-md z-50 border-b border-slate-800 safe-top">
-        <div class="max-w-4xl mx-auto px-4 h-16 flex items-center justify-between">
-            <div class="flex items-center gap-2">
-                <a href="/" class="p-2 -ml-2 text-slate-400 hover:text-white transition-colors">
-                    <i data-lucide="arrow-left" class="w-6 h-6"></i>
-                </a>
-                <i data-lucide="book-open" class="text-amber-500 w-6 h-6"></i>
-                <h1 class="font-bold text-xl text-slate-100">User Guide</h1>
-            </div>
-            <span class="text-xs text-slate-500">v2.0</span>
-        </div>
-    </div>
+    <!-- Shared Navigation -->
+    <div id="bb-nav"></div>
 
     <!-- Content -->
     <div class="pt-24 px-4 max-w-4xl mx-auto space-y-6">
@@ -294,7 +283,8 @@
                 </summary>
                 <div class="mt-4 space-y-4 text-sm">
                     <p>Compare ingredient prices between <strong class="text-amber-400">The Malt Miller</strong> and
-                        <strong class="text-green-400">Get Er Brewed</strong>.</p>
+                        <strong class="text-green-400">Get Er Brewed</strong>.
+                    </p>
 
                     <div class="bg-slate-800/50 p-4 rounded-xl">
                         <h3 class="font-bold text-white mb-2">Features</h3>
@@ -441,6 +431,10 @@
 
     </div>
 
+    <!-- Shared Mobile Navigation -->
+    <div id="bb-mobile-nav"></div>
+
+    <script src="/static/js/nav.js"></script>
     <script>lucide.createIcons();</script>
 </body>
 

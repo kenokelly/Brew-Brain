@@ -15,7 +15,7 @@ jobstores = {
 }
 
 executors = {
-    'default': ThreadPoolExecutor(max_workers=4)
+    'default': ThreadPoolExecutor(max_workers=8)
 }
 
 job_defaults = {

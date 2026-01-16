@@ -90,8 +90,8 @@ def telegram_poll_once():
         
     try:
         url = f"https://api.telegram.org/bot{token}/getUpdates"
-        params = {"offset": _last_update_id + 1, "timeout": 30}
-        resp = requests.get(url, params=params, timeout=35)
+        params = {"offset": _last_update_id + 1, "timeout": 2}
+        resp = requests.get(url, params=params, timeout=5)
         if resp.status_code == 200:
             data = resp.json()
             for result in data.get("result", []):
