@@ -345,18 +345,8 @@
 
 <body>
 
-    <header class="bb-header">
-        <a href="/" class="bb-header-brand">
-            <i data-lucide="beer" class="text-amber"></i>
-            <h1>Brew Brain</h1>
-        </a>
-        <nav class="bb-header-nav">
-            <a href="/" class="bb-nav-link" title="Dashboard"><i data-lucide="layout-dashboard"></i></a>
-            <a href="/static/taplist.html" class="bb-nav-link active" title="Tap List"><i data-lucide="beer"></i></a>
-            <a href="/static/automation.html" class="bb-nav-link" title="Automation"><i data-lucide="bot"></i></a>
-            <a href="/static/help.html" class="bb-nav-link" title="Help"><i data-lucide="circle-help"></i></a>
-        </nav>
-    </header>
+    <!-- Shared Navigation with Status -->
+    <div id="bb-nav" data-show-status="true"></div>
 
     <main style="margin-top: var(--header-height);">
         <div class="grid-header">
