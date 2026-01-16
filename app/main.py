@@ -1,11 +1,8 @@
-import threading
 import logging
 from flask import Flask
 from flask_cors import CORS
 from waitress import serve
 from app.core.config import refresh_config_from_influx, logger
-from services.worker import process_data, check_alerts
-from services.telegram import telegram_poller
 from api.routes import api_bp
 from api.automation import automation_bp
 
@@ -20,10 +17,9 @@ if __name__ == '__main__':
     # Initialize Config from InfluxDB
     refresh_config_from_influx()
     
-    # Start Background Threads
-    threading.Thread(target=process_data, daemon=True).start()
-    threading.Thread(target=check_alerts, daemon=True).start()
-    threading.Thread(target=telegram_poller, daemon=True).start()
+    # Initialize APScheduler (replaces manual threading)
+    from services.scheduler import init_scheduler
+    init_scheduler()
     
     logger.info("Starting Production Server (Waitress) on port 5000...")
     serve(app, host='0.0.0.0', port=5000)

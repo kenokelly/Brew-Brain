@@ -74,3 +74,39 @@ def telegram_poller():
         except Exception as e:
             logger.error(f"Telegram Poll Error: {e}")
             time.sleep(15)
+
+
+# Global state for poll_once
+_last_update_id = 0
+
+
+def telegram_poll_once():
+    """Single execution of Telegram polling for APScheduler."""
+    global _last_update_id
+    
+    token = get_config("alert_telegram_token")
+    if not token:
+        return
+        
+    try:
+        url = f"https://api.telegram.org/bot{token}/getUpdates"
+        params = {"offset": _last_update_id + 1, "timeout": 30}
+        resp = requests.get(url, params=params, timeout=35)
+        if resp.status_code == 200:
+            data = resp.json()
+            for result in data.get("result", []):
+                _last_update_id = result["update_id"]
+                message = result.get("message", {})
+                text = message.get("text", "")
+                chat_id = message.get("chat", {}).get("id")
+                
+                configured_chat = get_config("alert_telegram_chat")
+                if str(chat_id) != str(configured_chat):
+                    continue
+                if text.startswith("/"):
+                    parts = text.split(" ", 1)
+                    cmd = parts[0]
+                    payload = parts[1] if len(parts) > 1 else ""
+                    handle_telegram_command(chat_id, cmd, payload)
+    except Exception as e:
+        logger.error(f"Telegram Poll Error: {e}")

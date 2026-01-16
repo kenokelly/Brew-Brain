@@ -101,6 +101,101 @@ def predict_fg_from_curve(times, readings, og=None, attenuation=None):
         logger.error(f"Prediction Math Error: {e}")
         return None, None
 
+
+def process_data_once():
+    """Single execution of data processing for APScheduler."""
+    try:
+        offset = float(get_config("offset") or 0.0)
+        test_mode = get_config("test_mode") == "true"
+        target_temp = float(get_config("target_temp") or 20.0)
+        current_temp = None
+        points_to_write = []
+        
+        if test_mode:
+            # Load Configurable Parameters
+            sg_start = float(get_config("test_sg_start") or 1.060)
+            temp_base = float(get_config("test_temp_base") or 20.0)
+            
+            now = datetime.now(timezone.utc)
+            # progress goes from 0 to 1 over 60 seconds for demo loop
+            progress = (now.minute + now.second/60) / 60
+            
+            # Simulate drop from sg_start by up to 0.040 points
+            fake_sg = sg_start - (0.040 * progress) 
+            
+            # Simulate temp wave around base
+            fake_temp = temp_base + (np.sin(now.timestamp()/100) * 0.5)
+            fake_rssi = -60 + int(np.sin(now.timestamp()/50) * 10)
+            
+            current_temp = fake_temp # For Controller
+            
+            p = Point("test_readings")\
+                .tag("Color", "TEST")\
+                .field("sg", fake_sg)\
+                .field("temp", fake_temp)\
+                .field("rssi", fake_rssi)\
+                .time(now)
+            points_to_write.append(p)
+            
+        else:
+            # Normal Processing: Calibrate existing sensor data
+            # 1. Get latest temp for controller
+            try:
+                q_t = f'from(bucket: "{INFLUX_BUCKET}") |> range(start: -15m) |> filter(fn: (r) => r["_measurement"] == "sensor_data") |> filter(fn: (r) => r["_field"] == "Temp") |> last()'
+                t_res = query_api.query(q_t)
+                for t in t_res:
+                    for r in t.records:
+                        val = r.get_value()
+                        current_temp = (val - 32) * 5/9 # F to C
+            except Exception as e:
+                logger.debug(f"Temp query issue: {e}")
+
+            # 2. Process SG for calibration/prediction
+            query = f'from(bucket: "{INFLUX_BUCKET}") |> range(start: -21d) |> filter(fn: (r) => r["_measurement"] == "sensor_data") |> filter(fn: (r) => r["_field"] == "SG")'
+            tables = query_api.query(query)
+            readings = []
+            times = []
+            
+            for table in tables:
+                for record in table.records:
+                    rec_time = record.get_time()
+                    val = record.get_value() + offset
+                    times.append(rec_time)
+                    readings.append(val)
+                    if rec_time.tzinfo is None: rec_time = rec_time.replace(tzinfo=timezone.utc)
+                    if processing_state["last_processed_time"].tzinfo is None: processing_state["last_processed_time"] = processing_state["last_processed_time"].replace(tzinfo=timezone.utc)
+                    if rec_time > processing_state["last_processed_time"]:
+                        yeast = get_config("yeast_strain") or "Unknown"
+                        p = Point("calibrated_readings")\
+                            .tag("Color", record.values.get("Color"))\
+                            .tag("yeast", yeast)\
+                            .field("sg", val)\
+                            .time(rec_time)
+                        points_to_write.append(p)
+                        processing_state["last_processed_time"] = rec_time
+
+            if len(readings) > 50:
+                # Gather Metadata for Informed Prediction
+                og = get_config("og")
+                attenuation = get_config("yeast_attenuation")
+                
+                pred_fg, pred_date = predict_fg_from_curve(times, readings, og, attenuation)
+                if pred_fg:
+                    p_pred = Point("predictions").field("predicted_fg", pred_fg).time(datetime.now(timezone.utc))
+                    if pred_date:
+                        days_left = (pred_date - datetime.now(timezone.utc)).days
+                        p_pred.field("days_remaining", days_left)
+                        set_config("prediction_end_date", pred_date.strftime("%Y-%m-%d %H:%M"))
+                    points_to_write.append(p_pred)
+
+        if points_to_write:
+            write_api.write(bucket=INFLUX_BUCKET, org=INFLUX_ORG, record=points_to_write)
+            logger.info(f"Wrote {len(points_to_write)} points")
+            
+    except Exception as e:
+        logger.error(f"Sync Loop Error: {e}")
+
+
 def process_data():
     while True:
         time.sleep(60)
@@ -336,3 +431,85 @@ def check_alerts():
                                 
         except Exception as e:
             logger.error(f"Anomaly Check Error: {e}")
+
+
+def check_alerts_once():
+    """Single execution of alert checking for APScheduler."""
+    if get_config("test_mode") == "true": 
+        return
+    try:
+        now = time.time()
+        local_hour = time.localtime(now).tm_hour
+        
+        # Quiet Hours Check
+        start_str = get_config("alert_start_time") or "08:00"
+        end_str = get_config("alert_end_time") or "22:00"
+        try:
+            start_h = int(start_str.split(":")[0])
+            end_h = int(end_str.split(":")[0])
+            
+            is_active_time = False
+            if start_h < end_h:
+                if start_h <= local_hour < end_h: is_active_time = True
+            else:
+                if local_hour >= start_h or local_hour < end_h: is_active_time = True
+                
+            if not is_active_time:
+                return  # Quiet time, skip alerts
+
+        except Exception as e:
+            logger.error(f"Time Check Error: {e}")
+        
+        COOLDOWN = 14400
+        timeout_min = int(get_config("tilt_timeout_min") or 60)
+        q = f'from(bucket: "{INFLUX_BUCKET}") |> range(start: -{timeout_min}m) |> filter(fn: (r) => r["_measurement"] == "sensor_data") |> count()'
+        res = query_api.query(q)
+        if len(res) == 0 and (now - alert_state["last_tilt_alert"] > COOLDOWN):
+            send_telegram(f"⚠️ CRITICAL: No data for {timeout_min} mins.")
+            alert_state["last_tilt_alert"] = now
+        
+        max_temp = float(get_config("temp_max") or 28.0)
+        yeast_max = get_config("yeast_max_temp")
+        
+        q_temp = f'from(bucket: "{INFLUX_BUCKET}") |> range(start: -15m) |> filter(fn: (r) => r["_measurement"] == "sensor_data") |> filter(fn: (r) => r["_field"] == "Temp") |> last()'
+        tables = query_api.query(q_temp)
+        for t in tables:
+            for r in t.records:
+                val = r.get_value()
+                if val > max_temp and (now - alert_state["last_temp_alert"] > COOLDOWN):
+                    send_telegram(f"🔥 WARNING: Temp {val}C (Limit: {max_temp}C)")
+                    alert_state["last_temp_alert"] = now
+                elif yeast_max and val > float(yeast_max) and (now - alert_state["last_temp_alert"] > COOLDOWN):
+                    send_telegram(f"🔥 YEAST WARNING: Temp {val}C exceeds {get_config('yeast_strain')} limit of {yeast_max}C!")
+                    alert_state["last_temp_alert"] = now
+    except Exception as e: 
+        logger.error(f"Alert Error: {e}")
+
+    # Stall Detection
+    try:
+        now = time.time()
+        STALL_COOLDOWN = 43200
+        
+        if (now - alert_state.get("last_stall_alert", 0)) > STALL_COOLDOWN:
+            q_curr = f'from(bucket: "{INFLUX_BUCKET}") |> range(start: -1h) |> filter(fn: (r) => r["_measurement"] == "sensor_data") |> filter(fn: (r) => r["_field"] == "SG") |> last()'
+            res_curr = query_api.query(q_curr)
+            sg_current = None
+            for t in res_curr:
+                for r in t.records: sg_current = r.get_value()
+
+            q_prev = f'from(bucket: "{INFLUX_BUCKET}") |> range(start: -25h, stop: -24h) |> filter(fn: (r) => r["_measurement"] == "sensor_data") |> filter(fn: (r) => r["_field"] == "SG") |> last()'
+            res_prev = query_api.query(q_prev)
+            sg_yesterday = None
+            for t in res_prev:
+                for r in t.records: sg_yesterday = r.get_value()
+
+            if sg_current and sg_yesterday:
+                daily_drop = sg_yesterday - sg_current
+                target_fg = float(get_config("target_fg") or 1.010)
+                
+                if (daily_drop < 0.002) and (sg_current > (target_fg + 0.005)):
+                    send_telegram(f"⚠️ Stall Detected! Gravity dropped only {daily_drop:.3f} points in 24h. Current: {sg_current:.3f}")
+                    alert_state["last_stall_alert"] = now
+
+    except Exception as e:
+        logger.error(f"Stall Check Error: {e}")

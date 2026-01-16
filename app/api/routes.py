@@ -308,3 +308,38 @@ def label():
         )
     except Exception as e:
         return jsonify({"error": f"Label Gen Error: {e}"}), 500
+
+
+@api_bp.route('/api/scheduler')
+def scheduler_status():
+    """Get status of all scheduled jobs."""
+    try:
+        from services.scheduler import get_job_status
+        return jsonify({
+            "status": "running",
+            "jobs": get_job_status()
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@api_bp.route('/api/scheduler/<job_id>/pause', methods=['POST'])
+def pause_job_endpoint(job_id):
+    """Pause a scheduled job."""
+    try:
+        from services.scheduler import pause_job
+        pause_job(job_id)
+        return jsonify({"status": "paused", "job_id": job_id})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@api_bp.route('/api/scheduler/<job_id>/resume', methods=['POST'])
+def resume_job_endpoint(job_id):
+    """Resume a paused scheduled job."""
+    try:
+        from services.scheduler import resume_job
+        resume_job(job_id)
+        return jsonify({"status": "resumed", "job_id": job_id})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
