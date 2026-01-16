@@ -675,14 +675,14 @@
 
     <!-- Hidden Fullscreen Toggle (bottom-right corner, appears on hover) -->
     <button onclick="toggleFullScreen()"
-        class="fixed bottom-20 right-4 opacity-0 hover:opacity-80 bg-slate-800/50 text-white p-3 rounded-full transition-opacity z-50"
+        class="fixed bottom-20 right-4 opacity-30 hover:opacity-100 bg-slate-800 text-white p-3 rounded-full transition-opacity z-50"
         title="Toggle Fullscreen">
         <i data-lucide="maximize" class="w-5 h-5"></i>
     </button>
 
     <!-- Hidden Kiosk Mode Link (bottom-right corner, appears on hover) -->
     <a href="/static/kiosk.html"
-        class="fixed bottom-20 right-16 opacity-0 hover:opacity-80 bg-amber-600/50 text-white p-3 rounded-full transition-opacity z-50"
+        class="fixed bottom-20 right-16 opacity-30 hover:opacity-100 bg-amber-600 text-white p-3 rounded-full transition-opacity z-50"
         title="Kiosk Display Mode">
         <i data-lucide="tv" class="w-5 h-5"></i>
     </a>
@@ -690,6 +690,10 @@
     <!-- Shared Mobile Navigation -->
     <div id="bb-mobile-nav"></div>
     <script src="/static/js/nav.js"></script>
+    <script>
+        // Re-render icons for dynamically added elements
+        setTimeout(() => lucide.createIcons(), 100);
+    </script>
 </body>
 
 </html>
