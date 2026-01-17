@@ -434,3 +434,66 @@ def get_all_water_profiles():
     """Get all available water profiles for the chemistry calculator."""
     return jsonify(water.get_all_profiles())
 
+
+@automation_bp.route('/api/automation/calc/mash_ph', methods=['POST'])
+@api_safe
+def calc_mash_ph():
+    """
+    Predict mash pH from grain bill and water chemistry.
+    
+    Body: {
+        "grains": [
+            {"name": "Pale Malt", "weight_kg": 5.0, "lovibond": 2.5},
+            {"name": "Crystal 60", "weight_kg": 0.5, "lovibond": 60}
+        ],
+        "water_profile": {"bicarbonate": 100, "calcium": 50, "magnesium": 10},
+        "target_ph": 5.4,
+        "mash_volume_l": 20
+    }
+    """
+    from app.services import mash_chemistry
+    data = request.json
+    
+    grains = data.get('grains', [])
+    water_profile = data.get('water_profile', {"bicarbonate": 0, "calcium": 0, "magnesium": 0})
+    target_ph = float(data.get('target_ph', 5.4))
+    mash_volume = float(data.get('mash_volume_l', 20))
+    
+    result = mash_chemistry.predict_mash_ph(grains, water_profile, target_ph, mash_volume)
+    return jsonify(result)
+
+
+@automation_bp.route('/api/automation/calc/hop_freshness', methods=['POST'])
+@api_safe
+def calc_hop_freshness():
+    """
+    Calculate hop freshness and alpha acid degradation.
+    
+    Body: {
+        "hop_name": "Citra",
+        "original_alpha": 12.0,
+        "purchase_date": "2025-06-01",
+        "storage": "freezer"
+    }
+    """
+    from app.services import sourcing
+    data = request.json
+    
+    result = sourcing.calculate_hop_freshness(
+        data.get('hop_name', 'Unknown'),
+        float(data.get('original_alpha', 10.0)),
+        data.get('purchase_date', '2025-01-01'),
+        data.get('storage', 'freezer')
+    )
+    return jsonify(result)
+
+
+@automation_bp.route('/api/automation/inventory/hop_freshness', methods=['GET'])
+@api_safe
+def get_inventory_hop_freshness():
+    """Check freshness of all hops in inventory."""
+    from app.services import sourcing
+    results = sourcing.check_inventory_hop_freshness()
+    return jsonify({"hops": results})
+
+
