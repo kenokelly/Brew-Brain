@@ -61,10 +61,16 @@ services:
     environment:
       - INFLUX_URL=http://influxdb:8086
       - INFLUX_TOKEN=${INFLUX_TOKEN}
-      - INFLUX_OR=homebrew
+      - INFLUX_ORG=homebrew
       - INFLUX_BUCKET=fermentation
       - TZ=Europe/London
       - BREW_BRAIN_DATA=/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/api/status', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 45s
     volumes:
       - ./brain_data:/data
       - ./app/static:/app/static:ro  # Mount static files for hot reload without rebuild

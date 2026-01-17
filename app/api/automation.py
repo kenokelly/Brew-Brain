@@ -335,3 +335,102 @@ def scale_recipe():
 def exp_import_recipe():
     # Placeholder for import
     return jsonify({"status": "success", "message": "Recipe imported to Brewfather (Simulation)"})
+
+
+# ============================================
+# NEW BREWING CALCULATORS API
+# ============================================
+
+@automation_bp.route('/api/automation/calc/water_chemistry', methods=['POST'])
+@api_safe
+def calc_water_chemistry():
+    """
+    Calculate salt additions to transform source water to target profile.
+    
+    Body: {
+        "source_water": {"calcium": 0, "magnesium": 0, ...} or null for RO,
+        "target_profile": "neipa" | "west_coast" | "balanced" | etc,
+        "volume_liters": 23
+    }
+    """
+    from app.services import water_chemistry
+    data = request.json
+    
+    # Default to RO water if not specified
+    source = data.get('source_water') or water_chemistry.get_ro_water_source()
+    target = data.get('target_profile', 'balanced')
+    volume = float(data.get('volume_liters', 23))
+    
+    result = water_chemistry.calculate_salt_additions(source, target, volume)
+    return jsonify(result)
+
+
+@automation_bp.route('/api/automation/calc/carbonation', methods=['POST'])
+@api_safe
+def calc_carbonation():
+    """
+    Calculate PSI for forced carbonation.
+    
+    Body: {
+        "temp_c": 4,
+        "volumes_co2": 2.4
+    }
+    """
+    data = request.json
+    result = calculator.calculate_carbonation_psi(
+        float(data.get('temp_c', 4)),
+        float(data.get('volumes_co2', 2.4))
+    )
+    return jsonify(result)
+
+
+@automation_bp.route('/api/automation/calc/refractometer', methods=['POST'])
+@api_safe
+def calc_refractometer():
+    """
+    Correct refractometer reading for alcohol presence.
+    
+    Body: {
+        "original_brix": 15.0,
+        "final_brix": 8.0,
+        "wort_correction_factor": 1.04 (optional)
+    }
+    """
+    data = request.json
+    result = calculator.correct_refractometer_reading(
+        float(data.get('final_brix', 0)),
+        float(data.get('original_brix', 0)),
+        float(data.get('wort_correction_factor', 1.04))
+    )
+    return jsonify(result)
+
+
+@automation_bp.route('/api/automation/calc/priming', methods=['POST'])
+@api_safe
+def calc_priming():
+    """
+    Calculate priming sugar for bottle conditioning.
+    
+    Body: {
+        "volume_liters": 20,
+        "temp_c": 20,
+        "target_co2": 2.4,
+        "sugar_type": "corn_sugar" (optional)
+    }
+    """
+    data = request.json
+    result = calculator.calculate_priming_sugar(
+        float(data.get('volume_liters', 20)),
+        float(data.get('temp_c', 20)),
+        float(data.get('target_co2', 2.4)),
+        data.get('sugar_type', 'corn_sugar')
+    )
+    return jsonify(result)
+
+
+@automation_bp.route('/api/automation/water/profiles', methods=['GET'])
+@api_safe
+def get_all_water_profiles():
+    """Get all available water profiles for the chemistry calculator."""
+    return jsonify(water.get_all_profiles())
+
