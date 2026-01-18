@@ -2,7 +2,7 @@
 # ============================================
 # Brew Brain Full System Backup Script
 # ============================================
-# Backs up: InfluxDB, Grafana, Node-RED, Brew Brain config
+# Backs up: InfluxDB, Grafana, Node-RED, Brew Brain config, Agent Brain
 # Usage: ./backup.sh [output_dir]
 # 
 # Run from Brew-Brain project root on the Raspberry Pi
@@ -17,12 +17,12 @@ echo "================================"
 echo "Backup Directory: $OUTPUT_DIR"
 echo ""
 
-mkdir -p "$OUTPUT_DIR"/{influxdb,grafana,nodered,config}
+mkdir -p "$OUTPUT_DIR"/{influxdb,grafana,nodered,config,agent_brain}
 
 # ============================================
 # 1. InfluxDB Data
 # ============================================
-echo "📊 [1/5] Backing up InfluxDB..."
+echo "📊 [1/6] Backing up InfluxDB..."
 if docker ps | grep -q influxdb; then
     # Create backup inside container
     docker exec influxdb influx backup /tmp/influx_backup \
@@ -43,7 +43,7 @@ fi
 # ============================================
 # 2. Grafana Data
 # ============================================
-echo "📈 [2/5] Backing up Grafana..."
+echo "📈 [2/6] Backing up Grafana..."
 if [ -d "grafana_data" ]; then
     cp -r grafana_data "$OUTPUT_DIR/grafana/" && \
         echo "  ✅ Grafana data backed up" || \
@@ -60,7 +60,7 @@ fi
 # ============================================
 # 3. Node-RED / TiltPi Flows
 # ============================================
-echo "🔴 [3/5] Backing up Node-RED..."
+echo "🔴 [3/6] Backing up Node-RED..."
 NODERED_DIR="$HOME/.node-red"
 
 if [ -d "$NODERED_DIR" ]; then
@@ -83,7 +83,7 @@ fi
 # ============================================
 # 4. Brew Brain Config
 # ============================================
-echo "🧠 [4/5] Backing up Brew Brain config..."
+echo "🧠 [4/6] Backing up Brew Brain config..."
 
 # Export via API if running
 if curl -s http://localhost:5000/api/status > /dev/null 2>&1; then
@@ -104,9 +104,21 @@ cp docker-compose.yml "$OUTPUT_DIR/config/"
 cp telegraf.conf "$OUTPUT_DIR/config/" 2>/dev/null || true
 
 # ============================================
-# 5. Create Archive
+# 5. Agent Brain
 # ============================================
-echo "📦 [5/5] Creating archive..."
+echo "🤖 [5/6] Backing up Agent Brain..."
+if [ -d "$HOME/.gemini" ]; then
+    cp -r "$HOME/.gemini" "$OUTPUT_DIR/agent_brain/" && \
+        echo "  ✅ Agent Brain backed up" || \
+        echo "  ⚠️  Could not backup Agent Brain"
+else
+    echo "  ⚠️  .gemini directory not found"
+fi
+
+# ============================================
+# 6. Create Archive
+# ============================================
+echo "📦 [6/6] Creating archive..."
 tar -czf "${OUTPUT_DIR}.tar.gz" "$OUTPUT_DIR" && \
     echo "  ✅ Archive created: ${OUTPUT_DIR}.tar.gz"
 

@@ -4,4 +4,4 @@ pycache/
 *.zip
 influxdb_data/
 grafana_data/
-
+brew_brain_backup_*
