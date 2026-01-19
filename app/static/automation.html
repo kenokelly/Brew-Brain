@@ -827,7 +827,7 @@
             try {
                 if (currentSource === 'csv') {
                     const fileInput = document.getElementById('tiltFile');
-                    if (!fileInput.files[0]) { alert("Please select a file"); return; }
+                    if (!fileInput.files[0]) { showToast("Please select a file", "error"); return; }
 
                     const formData = new FormData();
                     formData.append('file', fileInput.files[0]);
@@ -836,7 +836,7 @@
                     res = await fetch('/api/automation/alerts', { method: 'POST', body: formData });
                 } else {
                     const batchId = document.getElementById('bfBatchSelect').value;
-                    if (!batchId) { alert("Select a batch"); return; }
+                    if (!batchId) { showToast("Select a batch", "error"); return; }
 
                     res = await fetch('/api/automation/brewfather/analyze', {
                         method: 'POST',
@@ -986,7 +986,7 @@
                     </div>
                 `;
 
-            } catch (e) { alert("Scaling failed: " + e); }
+            } catch (e) { showToast("Scaling failed: " + e, "error"); }
         }
 
         async function runXmlAnalysis() {
@@ -1152,12 +1152,12 @@
                 const data = await res.json();
 
                 if (data.error) {
-                    alert('Import Error: ' + data.error);
+                    showToast('Import Error: ' + data.error, "error");
                 } else {
-                    alert(data.message);
+                    showToast(data.message, "success");
                 }
             } catch (e) {
-                alert('Connection Error: ' + e.message);
+                showToast('Connection Error: ' + e.message, "error");
             }
         }
 
@@ -1314,8 +1314,8 @@
                 body: JSON.stringify(payload)
             });
             const data = await res.json();
-            if (data.error) alert("Error: " + data.error);
-            else alert(data.message);
+            if (data.error) showToast("Error: " + data.error, "error");
+            else showToast(data.message, "success");
         }
 
         // Init
@@ -1432,7 +1432,7 @@
 
         async function runComparison() {
             const id = document.getElementById('compareRecipeSelect').value;
-            if (!id) return alert("Select a recipe!");
+            if (!id) return showToast("Select a recipe!", "error");
 
             const btn = document.querySelector('button[onclick="runComparison()"]');
             const originalText = btn.innerHTML;
@@ -1486,7 +1486,7 @@
                 });
 
             } catch (e) {
-                alert("Comparison Failed: " + e);
+                showToast("Comparison Failed: " + e, "error");
             } finally {
                 btn.innerText = "Compare Prices";
                 btn.disabled = false;
@@ -1594,9 +1594,9 @@
                     body: JSON.stringify(inventoryData)
                 });
                 const data = await res.json();
-                if (data.status === 'success') alert("Inventory Saved!");
-                else alert("Error saving");
-            } catch (e) { alert(e); }
+                if (data.status === 'success') showToast("Inventory Saved!", "success");
+                else showToast("Error saving", "error");
+            } catch (e) { showToast(e, "error"); }
         }
 
         async function syncInventory() {
@@ -1612,14 +1612,14 @@
                 const data = await res.json();
 
                 if (data.error) {
-                    alert("Sync Error: " + data.error);
+                    showToast("Sync Error: " + data.error, "error");
                 } else {
                     inventoryData = data.inventory;
                     renderInventory();
-                    alert("Successfully synced with Brewfather!");
+                    showToast("Successfully synced with Brewfather!", "success");
                 }
             } catch (e) {
-                alert("Connection Error: " + e.message);
+                showToast("Connection Error: " + e.message, "error");
             } finally {
                 btn.innerHTML = originalText;
                 btn.disabled = false;

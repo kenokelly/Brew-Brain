@@ -556,7 +556,7 @@
             if (d.status === 'poured') {
                 // Determine unit for alert
                 const unit = d.unit || 'oz';
-                alert(`Poured! Remaining: ${parseFloat(d.remaining).toFixed(2)} ${unit}`);
+                showToast(`Poured! Remaining: ${parseFloat(d.remaining).toFixed(2)} ${unit}`, "success");
 
                 // Update Cache & UI
                 tapDataCache[tapId].keg_remaining = d.remaining;

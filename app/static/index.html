@@ -584,7 +584,7 @@
         async function calibrate() {
             const manualVal = parseFloat(document.getElementById('calSgInput').value);
             if (!manualVal || manualVal < 0.900 || manualVal > 1.200) {
-                alert("Please enter a valid hydrometer reading (0.900 - 1.200)");
+                showToast("Please enter a valid hydrometer reading (0.900 - 1.200)", "error");
                 return;
             }
 
@@ -604,14 +604,14 @@
                 });
                 const d = await res.json();
                 if (d.status === 'success') {
-                    alert(`Calibrated! New offset: ${d.new_offset}`);
+                    showToast(`Calibrated! New offset: ${d.new_offset}`, "success");
                     fetchStatus(); // Refresh UI
                     document.getElementById('calSgInput').value = '';
                 } else {
-                    alert('Error: ' + d.message);
+                    showToast('Error: ' + d.message, "error");
                 }
             } catch (e) {
-                alert("Calibration failed. Check connection.");
+                showToast("Calibration failed. Check connection.", "error");
             }
         }
 
@@ -622,14 +622,14 @@
                 og: document.getElementById('ogInput').value,
                 target_fg: document.getElementById('targetFgInput').value
             };
-            if (!payload.batch_name) return alert("Batch Name required");
+            if (!payload.batch_name) return showToast("Batch Name required", "error");
 
             await fetch('/api/settings', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
-            alert("Batch settings saved!");
+            showToast("Batch settings saved!", "success");
             fetchStatus();
         }
 
@@ -704,7 +704,7 @@
                 body: JSON.stringify(payload)
             });
             let typeName = type === 'bf' ? 'Brewfather' : type === 'tg' ? 'Telegram' : 'Active Hours';
-            alert(`${typeName} settings saved!`);
+            showToast(`${typeName} settings saved!`, "success");
         }
 
         async function syncBrewfather(btn) {
@@ -717,13 +717,13 @@
                 if (d.status === 'synced') {
                     // alert(`Synced batch: ${d.data.name}`); // Optional: Remove alert for cleaner UI if desired, or keep it.
                     // Keeping alert for feedback
-                    alert(`Synced batch: ${d.data.name}`);
+                    showToast(`Synced batch: ${d.data.name}`, "success");
                     loadSettings();
                     fetchStatus(); // Refresh main dashboard too
                 } else {
-                    alert('Sync error: ' + d.error);
+                    showToast('Sync error: ' + d.error, "error");
                 }
-            } catch (e) { alert("Sync failed. Check connection."); }
+            } catch (e) { showToast("Sync failed. Check connection.", "error"); }
 
             if (icon) icon.classList.remove('spin');
         }
@@ -748,7 +748,7 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
-            alert("Simulation parameters updated!");
+            showToast("Simulation parameters updated!", "success");
         }
 
         // --- Tap Management ---
