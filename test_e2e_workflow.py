@@ -32,19 +32,20 @@ def test_e2e_workflow():
         # ============================
         logger.info("📡 Step 1: Scout - Searching for recipe...")
         
-        from app.services.scout import scout_recipe
+        from app.services.scout import search_recipes
         
-        scout_result = scout_recipe("hazy ipa", limit=1)
+        scout_result = search_recipes("hazy ipa")
         
-        if scout_result and not scout_result.get("error"):
+        # search_recipes returns a list directly, or a list with one error dict
+        if scout_result and isinstance(scout_result, list) and "error" not in scout_result[0]:
             results["scout"]["status"] = "pass"
-            results["scout"]["recipe_count"] = len(scout_result.get("recipes", []))
-            recipe = scout_result.get("recipes", [{}])[0] if scout_result.get("recipes") else None
-            results["scout"]["sample_recipe"] = recipe.get("name") if recipe else None
+            results["scout"]["recipe_count"] = len(scout_result)
+            recipe = scout_result[0]
+            results["scout"]["sample_recipe"] = recipe.get("title")
             logger.info(f"   ✅ Found {results['scout']['recipe_count']} recipes")
         else:
             results["scout"]["status"] = "fail"
-            results["scout"]["error"] = scout_result.get("error", "No recipes found")
+            results["scout"]["error"] = scout_result[0].get("title", "Unknown error") if scout_result else "No results"
             logger.error(f"   ❌ Scout failed: {results['scout']['error']}")
             
     except Exception as e:
@@ -63,7 +64,8 @@ def test_e2e_workflow():
         # Mock recipe for scaling test
         test_recipe = {
             "name": "E2E Test IPA",
-            "batch_size": 20,
+            "batch_size_l": 20,
+            "total_grain_kg": 5.5, # Added required field
             "fermentables": [
                 {"name": "Pale Malt", "amount": 5.0},
                 {"name": "Munich", "amount": 0.5}
@@ -77,13 +79,14 @@ def test_e2e_workflow():
             ]
         }
         
-        scale_result = scale_recipe_to_equipment(test_recipe, max_grain_kg=9.0)
+        # Note: function uses 'batch_size_l' not 'batch_size'
+        scale_result = scale_recipe_to_equipment(test_recipe)
         
         if scale_result and not scale_result.get("error"):
             results["scale"]["status"] = "pass"
-            results["scale"]["scaled_batch_size"] = scale_result.get("scaled_batch_size")
+            results["scale"]["scaled_batch_size"] = scale_result.get("batch_size_l")
             results["scale"]["grain_kg"] = scale_result.get("total_grain_kg")
-            logger.info(f"   ✅ Scaled to {scale_result.get('scaled_batch_size')}L, {scale_result.get('total_grain_kg')}kg grain")
+            logger.info(f"   ✅ Scaled to {scale_result.get('batch_size_l')}L, {scale_result.get('total_grain_kg')}kg grain")
         else:
             results["scale"]["status"] = "fail"
             results["scale"]["error"] = scale_result.get("error", "Scaling failed")
@@ -134,26 +137,31 @@ def test_e2e_workflow():
         # ============================
         logger.info("📝 Step 4: Log - Generating brew log...")
         
-        from app.services.brew_logger import generate_brew_log
+        from app.services.brew_logger import generate_log_content
         
-        # Test log generation (dry run - don't actually push to GitHub)
-        log_content = generate_brew_log(
+        # Test log generation (dry run - just generate content)
+        batch_data = {
+            "og": 1.065,
+            "fg": 1.012,
+            "volume": 20,
+            "time": 60
+        }
+        
+        log_content = generate_log_content(
             recipe_name="E2E Test IPA",
-            og=1.065,
-            fg=1.012,
-            abv=7.0,
-            notes="E2E Integration Test - DO NOT COMMIT",
-            dry_run=True
+            batch_data=batch_data,
+            water_profile=None,
+            sourcing_data=None
         )
         
-        if log_content and not log_content.get("error"):
+        if log_content:
             results["log"]["status"] = "pass"
-            results["log"]["markdown_length"] = len(log_content.get("markdown", ""))
+            results["log"]["markdown_length"] = len(log_content)
             logger.info(f"   ✅ Generated {results['log']['markdown_length']} char log")
         else:
             results["log"]["status"] = "fail"
-            results["log"]["error"] = log_content.get("error", "Log generation failed")
-            logger.error(f"   ❌ Log failed: {results['log']['error']}")
+            results["log"]["error"] = "Log content empty"
+            logger.error(f"   ❌ Log failed: Empty content")
             
     except Exception as e:
         results["log"]["status"] = "error"
