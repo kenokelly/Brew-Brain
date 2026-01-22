@@ -33,13 +33,35 @@ scheduler = BackgroundScheduler(
 )
 
 
-def init_scheduler():
+def init_scheduler(app):
     """Initialize and start the scheduler with default jobs."""
+    scheduler.app = app # Attach app for context usage elsewhere
     # Import the run-once versions of the tasks
     from services.worker import process_data_once, check_alerts_once
     from services.telegram import telegram_poll_once
-    
+    from services.status import get_status_dict
+    from app.extensions import socketio
+
+    def emit_status_update():
+        """Fetch and broadcast system status via WebSocket."""
+        try:
+            status = get_status_dict()
+            with scheduler.app.app_context():
+                socketio.emit('status_update', status)
+        except Exception as e:
+            logger.error(f"WebSocket Emit Error: {e}")
+
     # Add recurring jobs
+    # Real-time Status Emit (Every 5s)
+    scheduler.add_job(
+        emit_status_update,
+        'interval',
+        seconds=5,
+        id='emit_status',
+        name='Real-time Status',
+        replace_existing=True
+    )
+    
     # Data processing every 60 seconds (matches the sleep in the original loop)
     scheduler.add_job(
         process_data_once,

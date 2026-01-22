@@ -2,31 +2,84 @@
 
 import { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
-import { Activity, Thermometer, Droplets, Server } from 'lucide-react';
+import { Activity, Thermometer, Droplets, Server, Wifi } from 'lucide-react';
+import { useSocket } from '@/lib/socket';
+import { RealTimeChart } from '@/components/charts';
 
 interface SystemStatus {
   cpu_temp?: number;
   memory_percent?: number;
   disk_percent?: number;
-  timestamp?: string;
+  pi_temp?: number;
+  sg?: number;
+  temp?: number;
+  rssi?: number;
+  batch_name?: string;
+  status?: string;
+  last_sync?: string;
+}
+
+interface DataPoint {
+  time: string;
+  temp: number;
+  sg: number;
 }
 
 export default function Dashboard() {
+  const socket = useSocket();
   const [status, setStatus] = useState<SystemStatus | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [history, setHistory] = useState<DataPoint[]>([]);
+  const [connected, setConnected] = useState(false);
 
+  // Initial Poll
   useEffect(() => {
     fetch('/api/status')
       .then((res) => res.json())
       .then((data) => {
         setStatus(data);
-        setLoading(false);
+        updateHistory(data);
       })
-      .catch((err) => {
-        console.error("API Error:", err);
-        setLoading(false);
-      });
+      .catch((err) => console.error("API Error:", err));
   }, []);
+
+  // Socket Listeners
+  useEffect(() => {
+    if (!socket) return;
+
+    socket.on('connect', () => {
+      console.log("WebSocket Connected");
+      setConnected(true);
+    });
+
+    socket.on('disconnect', () => {
+      console.log("WebSocket Disconnected");
+      setConnected(false);
+    });
+
+    socket.on('status_update', (data: SystemStatus) => {
+      setStatus(data);
+      updateHistory(data);
+    });
+
+    return () => {
+      socket.off('connect');
+      socket.off('disconnect');
+      socket.off('status_update');
+    };
+  }, [socket]);
+
+  const updateHistory = (data: SystemStatus) => {
+    const now = new Date().toLocaleTimeString();
+    if (data.temp && data.sg) {
+      setHistory(prev => {
+        const newPoint = { time: now, temp: data.temp!, sg: data.sg! };
+        // Keep last 50 points
+        const newHistory = [...prev, newPoint];
+        if (newHistory.length > 50) newHistory.shift();
+        return newHistory;
+      });
+    }
+  };
 
   return (
     <main className="min-h-screen bg-background text-foreground p-8 font-sans selection:bg-primary/20">
@@ -39,13 +92,13 @@ export default function Dashboard() {
               Brew Brain
             </h1>
             <p className="text-muted-foreground mt-2 text-lg">
-              Autonomous Fermentation Intelligence
+              {status?.batch_name || "Autonomous Fermentation Intelligence"}
             </p>
           </div>
           <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-secondary/50 backdrop-blur-md border border-white/10 shadow-sm">
-            <div className={cn("w-3 h-3 rounded-full animate-pulse", status ? "bg-emerald-500" : "bg-rose-500")} />
+            <div className={cn("w-3 h-3 rounded-full animate-pulse", connected ? "bg-emerald-500" : "bg-rose-500")} />
             <span className="text-sm font-medium">
-              {status ? "System Online" : "Connecting..."}
+              {connected ? "Real-time" : "Connecting..."}
             </span>
           </div>
         </header>
@@ -53,41 +106,52 @@ export default function Dashboard() {
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <StatCard
-            title="CPU Temp"
-            value={status?.cpu_temp ? `${status.cpu_temp.toFixed(1)}°C` : "--"}
+            title="Wort Temp"
+            value={status?.temp ? `${status.temp.toFixed(1)}°F` : "--"}
             icon={<Thermometer className="w-5 h-5 text-rose-500" />}
+            subtext={status?.pi_temp ? `Pi: ${status.pi_temp}°C` : undefined}
           />
           <StatCard
-            title="Memory Usage"
-            value={status?.memory_percent ? `${status.memory_percent.toFixed(1)}%` : "--"}
+            title="Specific Gravity"
+            value={status?.sg ? status.sg.toFixed(3) : "--"}
             icon={<Activity className="w-5 h-5 text-blue-500" />}
           />
           <StatCard
-            title="Disk Usage"
-            value={status?.disk_percent ? `${status.disk_percent.toFixed(1)}%` : "--"}
-            icon={<Server className="w-5 h-5 text-amber-500" />}
+            title="Tilt Signal"
+            value={status?.rssi ? `${status.rssi} dBm` : "--"}
+            icon={<Wifi className="w-5 h-5 text-emerald-500" />}
           />
           <StatCard
-            title="Active Batches"
-            value="1"
-            icon={<Droplets className="w-5 h-5 text-emerald-500" />}
+            title="Last Sync"
+            value={status?.last_sync ? new Date(status.last_sync).toLocaleTimeString() : "--"}
+            icon={<Server className="w-5 h-5 text-amber-500" />}
           />
         </div>
 
-        {/* Glassmorphism Section */}
-        <section className="relative overflow-hidden rounded-3xl bg-secondary/30 backdrop-blur-xl border border-white/10 p-8 shadow-2xl">
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent pointer-events-none" />
-          <h2 className="text-2xl font-semibold mb-4 relative z-10">Active Fermentation</h2>
-          <div className="h-64 flex items-center justify-center text-muted-foreground bg-black/5 rounded-xl border border-black/5">
-            Placeholder for D3/Recharts Visualization
-          </div>
+        {/* Charts Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <ChartCard title="Temperature Trend">
+            <RealTimeChart data={history} dataKey="temp" color="#f43f5e" unit="°F" />
+          </ChartCard>
+          <ChartCard title="Gravity Trend">
+            <RealTimeChart data={history} dataKey="sg" color="#3b82f6" unit="" />
+          </ChartCard>
+        </div>
+
+        {/* Grafana Embed */}
+        <section className="relative overflow-hidden rounded-3xl bg-secondary/30 backdrop-blur-xl border border-white/10 p-1 shadow-2xl h-[600px]">
+          <iframe
+            src={`http://${typeof window !== 'undefined' ? window.location.hostname : 'localhost'}:3000/d-solo/fermentation-dashboard/brew-brain-production?orgId=1&panelId=1&theme=dark`}
+            className="w-full h-full rounded-2xl border-none opacity-90 hover:opacity-100 transition-opacity"
+            title="Grafana Dashboard"
+          />
         </section>
       </div>
     </main>
   );
 }
 
-function StatCard({ title, value, icon }: { title: string, value: string, icon: React.ReactNode }) {
+function StatCard({ title, value, icon, subtext }: { title: string, value: string, icon: React.ReactNode, subtext?: string }) {
   return (
     <div className="group relative overflow-hidden rounded-2xl bg-card p-6 shadow-md border border-border/50 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
       <div className="flex items-center justify-between mb-4">
@@ -97,7 +161,19 @@ function StatCard({ title, value, icon }: { title: string, value: string, icon: 
         </div>
       </div>
       <div className="text-3xl font-bold tracking-tight">{value}</div>
+      {subtext && <div className="text-xs text-muted-foreground mt-1">{subtext}</div>}
       <div className="absolute bottom-0 left-0 h-1 w-full bg-gradient-to-r from-primary/0 via-primary/20 to-primary/0 opacity-0 group-hover:opacity-100 transition-opacity" />
+    </div>
+  );
+}
+
+function ChartCard({ title, children }: { title: string, children: React.ReactNode }) {
+  return (
+    <div className="h-80 rounded-3xl bg-card/50 backdrop-blur-sm border border-border/50 p-6 flex flex-col shadow-sm">
+      <h3 className="text-lg font-semibold mb-4">{title}</h3>
+      <div className="flex-1 w-full min-h-0">
+        {children}
+      </div>
     </div>
   );
 }
