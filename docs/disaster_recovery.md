@@ -149,12 +149,12 @@ docker compose logs -f brew-brain
 ### Step 9: Verify All Services
 
 | Service | URL | Default Login |
-|---------|-----|---------------|
-| Dashboard | http://<pi-ip>:5000 | None |
-| Grafana | http://<pi-ip>:3000 | admin/admin |
-| Node-RED | http://<pi-ip>:1880 | None |
-| TiltPi UI | http://<pi-ip>:1880/ui | None |
-| InfluxDB | http://<pi-ip>:8086 | See .env |
+| :--- | :--- | :--- |
+| Dashboard | `http://<pi-ip>:5000` | None |
+| Grafana | `http://<pi-ip>:3000` | admin/admin |
+| Node-RED | `http://<pi-ip>:1880` | None |
+| TiltPi UI | `http://<pi-ip>:1880/ui` | None |
+| InfluxDB | `http://<pi-ip>:8086` | See .env |
 
 ---
 
@@ -199,7 +199,7 @@ Or use rclone for cloud storage (Google Drive, S3, etc.)
 ## What's Backed Up
 
 | Component | Data | Location |
-|-----------|------|----------|
+| :--- | :--- | :--- |
 | InfluxDB | Sensor readings, config | `influxdb_data/` |
 | Grafana | Dashboards, users | `grafana_data/` |
 | Node-RED | TiltPi flows | `~/.node-red/flows*.json` |

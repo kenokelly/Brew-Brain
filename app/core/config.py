@@ -1,6 +1,7 @@
 import os
 import logging
 import json
+from typing import Optional, Dict, Any
 from logging.handlers import RotatingFileHandler
 from datetime import datetime, timezone
 from influxdb_client import Point
@@ -24,7 +25,7 @@ file_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(mes
 logger.addHandler(file_handler)
 
 # Config Defaults
-DEFAULTS = {
+DEFAULTS: Dict[str, str] = {
     "offset": "0.0", "test_mode": "false", "og": "1.050", "target_fg": "1.010",
     "batch_name": "New Batch", "batch_notes": "", "start_date": datetime.now().strftime("%Y-%m-%d"),
     "bf_user": "", "bf_key": "", "alert_telegram_token": "", "alert_telegram_chat": "",
@@ -34,9 +35,9 @@ DEFAULTS = {
 }
 
 # Config Cache
-_config_cache = DEFAULTS.copy()
+_config_cache: Dict[str, str] = DEFAULTS.copy()
 
-def refresh_config_from_influx():
+def refresh_config_from_influx() -> None:
     """Reads the latest config from InfluxDB into memory."""
     global _config_cache
     try:
@@ -57,13 +58,13 @@ def refresh_config_from_influx():
     except Exception as e:
         logger.error(f"Failed to refresh config from InfluxDB: {e}")
 
-def get_config(key):
+def get_config(key: str) -> Optional[str]:
     return _config_cache.get(key)
 
-def get_all_config():
+def get_all_config() -> Dict[str, str]:
     return _config_cache
 
-def set_config(key, value):
+def set_config(key: str, value: Any) -> None:
     """Writes config to InfluxDB and updates memory cache."""
     global _config_cache
     str_val = str(value)

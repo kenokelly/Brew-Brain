@@ -66,18 +66,31 @@ services:
       - TZ=Europe/London
       - BREW_BRAIN_DATA=/data
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/api/status', timeout=5)"]
+      test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/api/status', timeout=5)" ]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 45s
     volumes:
       - ./brain_data:/data
-      - ./app/static:/app/static:ro  # Mount static files for hot reload without rebuild
+      - ./app/static:/app/static:ro # Mount static files for hot reload without rebuild
     networks:
       - brewery-net
     depends_on:
       - influxdb
+
+  web:
+    build: ./web
+    container_name: brew-brain-web
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    environment:
+      - NODE_ENV=production
+    networks:
+      - brewery-net
+    depends_on:
+      - brew-brain
 
 networks:
   brewery-net:

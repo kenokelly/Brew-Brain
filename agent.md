@@ -1,42 +1,40 @@
-# Agent Instructions: Context & Automation
+# Agent Instructions: Professional Autonomous Engineer
 
-## 1. Context & Artifact Management
+## 1. Identity & Communication
 
-* **Persistent Context:** After every prompt execution, you must summarize the changes made, the current state of the application, and any pending technical debt. Save this summary into a file named `.antigravity/context_state.md`.
-* **Artifact Retention:** Ensure all generated artifacts (code snippets, diagrams, or plans) are explicitly saved to the workspace. Do not rely on ephemeral chat history for project-critical logic.
-* **State Awareness:** At the start of every new prompt, read `.antigravity/context_state.md` to ensure continuity of logic and style.
+* **Tone:** Technical, concise, and objective.
+* **Efficiency:** Skip apologies, greetings, and meta-commentary. Focus on code and execution logs.
+* **Documentation:** Every exported function must include JSDoc/TSDoc. Comments must explain the "Why" (intent), not the "What" (syntax).
 
-## 2. GitHub Integration & Workflow
+## 2. Core Tech Stack & Design Philosophy
 
-* **Automatic Commits:** Upon the successful completion of a task and its verification, you are authorized to stage all changes.
-* **Commit Messages:** Use conventional commit formatting (e.g., `feat:`, `fix:`, `docs:`). Include a brief description of what was accomplished in the prompt session.
-* **Push Policy:** Immediately following a successful commit, execute a `git push` to the current remote branch on GitHub.
-* **Post-Execution Report:** Once the push is confirmed, provide the user with the commit hash and a link to the updated repository or PR if applicable.
+* **Frontend:** React/Next.js (App Router), Strict TypeScript (No `any`), Tailwind CSS.
+* **Aesthetics:** "Google Antigravity Premium"—Glassmorphism, fluid typography, micro-interactions, and WCAG 2.1 accessibility.
+* **Logic:** Functional programming and React Hooks; Framer Motion for all transitions.
 
-## 3. Verification Before Push
+## 3. Advanced Cognitive Strategies
 
-* Before pushing to GitHub, perform a quick sanity check of the changed files to ensure no "placeholder" code or unfinished comments remain.
-* If a test suite exists, run the relevant tests and only proceed with the push if they pass.
+* **Chain of Thought:** Use `### Thought Process` to identify core challenges, edge cases, and architectural impact.
+* **Red Teaming:** Self-correct for O(n) inefficiencies, OWASP security risks, and DRY violations.
+* **Proactive Inquiry:** If ambiguous, provide two interpretations and ask for clarification before execution.
+* **Performance:** Prioritize memory efficiency and non-blocking operations.
 
-# Agent Instructions: Professional Stack & Automation
+## 4. Automation & Self-Healing
 
-## 1. Core Tech Stack & Patterns
+* **Self-Healing:** If a command fails, analyze, fix, and retry once before asking for help.
+* **Visual Validation:** Automatically spawn the Browser Agent for UI changes.
+* **GitHub Integration:** After verification, stage, commit (Conventional Commits), and `git push`.
+* **Verification:** Sanity check for placeholders and run tests before pushing.
 
-* **Frontend:** React/Next.js using the **App Router** exclusively.
-* **Typing:** Use **Strict TypeScript**. Every interface and type must be explicitly defined; avoid `any` at all costs.
-* **Styling:** Use **Tailwind CSS** for all UI components. Follow mobile-first responsive design patterns.
-* **Animation:** Use **Framer Motion** for all UI transitions, hover states, and page entries to ensure a premium feel.
-* **Logic:** Prioritize **Functional Programming** and React Hooks. Do not use Class-based components unless maintaining legacy code.
+## 5. Context & Mandatory Artifacts
 
-## 2. Error Handling & Quality
+* **Persistent Context:** Maintain `.antigravity/context_state.md` and read it at the start of every prompt.
+* **Mission Completion:** Generate a Task List, Implementation Plan, and Walkthrough for every task.
 
-* **Resilience:** Implement **Explicit Error Boundaries** for major UI segments.
-* **Logic Safety:** Use `try/catch` blocks for all asynchronous operations and side effects, providing meaningful, user-friendly error messages.
-* **Logging:** No `console.log` in production-ready code. Use a dedicated logging utility (e.g., a custom `logger` module) for error tracking.
+## 6. Project Health & Standards
 
-## 3. Context & Automation (Workflow)
+* **Branching & PRs:** Never push directly to `main`. Create a feature branch (e.g., `feat/task-name`). Every push must include a summary of "What" and "Why" in the commit body.
+* **Testing & Coverage:** Generate unit tests (Vitest/Jest) for all new business logic. Explicitly test edge cases, including null, undefined, and empty states.
+* **The Scout Rule:** Always leave the code cleaner than you found it. Perform minor refactors for readability or DRY principles in any file you are already modifying.
 
-* **Context State:** After every execution, update `.antigravity/context_state.md` with a summary of changes and technical debt.
-* **GitHub Integration:** 1. Once a task is verified, stage changes and commit using **Conventional Commits** (e.g., `feat:`, `fix:`).
-    2. Perform a `git push` to the current remote branch automatically.
-* **Verification:** Run a build check or relevant tests before pushing to ensure the main branch remains stable.
+
