@@ -497,3 +497,21 @@ def get_inventory_hop_freshness():
     return jsonify({"hops": results})
 
 
+@automation_bp.route('/api/automation/yeast/search', methods=['POST'])
+@api_safe
+def search_yeast():
+    """
+    Search for yeast strain metadata (attenuation, flocculation, temp range).
+    
+    Body: {
+        "query": "WLP001"
+    }
+    """
+    from app.services import yeast
+    data = request.json
+    query = data.get('query')
+    if not query:
+        return jsonify({"error": "Query required"}), 400
+    result = yeast.search_yeast_meta(query)
+    return jsonify(result)
+

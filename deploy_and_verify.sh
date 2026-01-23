@@ -73,7 +73,7 @@ retry() {
 case $BUILD_MODE in
     "restart")
         echo "🔄 Restarting container with new code..."
-        retry ssh $HOST "cd $REMOTE_DIR && docker compose restart brew-brain brew-brain-web"
+        retry ssh $HOST "cd $REMOTE_DIR && docker compose restart brew-brain web"
         ;;
     "full")
         echo "🏗️  Full rebuild (clearing Docker cache)..."

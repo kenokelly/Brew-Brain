@@ -26,7 +26,7 @@ interface TapsResponse {
 }
 
 export default function KioskPage() {
-    const socket = useSocket();
+    const { socket } = useSocket();
     const [status, setStatus] = useState<SystemStatus | null>(null);
     const [taps, setTaps] = useState<TapsResponse | null>(null);
     const [time, setTime] = useState(new Date());

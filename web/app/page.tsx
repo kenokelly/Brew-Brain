@@ -26,10 +26,9 @@ interface DataPoint {
 }
 
 export default function Dashboard() {
-  const socket = useSocket();
+  const { socket, isConnected: connected } = useSocket();
   const [status, setStatus] = useState<SystemStatus | null>(null);
   const [history, setHistory] = useState<DataPoint[]>([]);
-  const [connected, setConnected] = useState(false);
 
   // Initial Poll
   useEffect(() => {
@@ -46,24 +45,12 @@ export default function Dashboard() {
   useEffect(() => {
     if (!socket) return;
 
-    socket.on('connect', () => {
-      console.log("WebSocket Connected");
-      setConnected(true);
-    });
-
-    socket.on('disconnect', () => {
-      console.log("WebSocket Disconnected");
-      setConnected(false);
-    });
-
     socket.on('status_update', (data: SystemStatus) => {
       setStatus(data);
       updateHistory(data);
     });
 
     return () => {
-      socket.off('connect');
-      socket.off('disconnect');
       socket.off('status_update');
     };
   }, [socket]);

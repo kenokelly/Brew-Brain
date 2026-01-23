@@ -3,13 +3,28 @@
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { Scout } from '@/components/automation/Scout';
-import { Search, Droplets, Calculator, FlaskConical, Network, ShoppingCart } from 'lucide-react';
+import { Water } from '@/components/automation/Water';
+import { IBUCalculator } from '@/components/automation/Calculator';
+import { Recipes } from '@/components/automation/Recipes';
+import { Inventory } from '@/components/automation/Inventory';
+import { Pipeline } from '@/components/automation/Pipeline';
+import { Simulation } from '@/components/automation/Simulation';
+import { Sourcing } from '@/components/automation/Sourcing';
+import { Yeast } from '@/components/automation/Yeast';
+import { PriceComparator } from '@/components/automation/PriceComparator';
+import { Search, Droplets, Calculator, FlaskConical, FileText, Package, Network, ShoppingCart, Scale } from 'lucide-react';
 
 const TABS = [
     { id: 'scout', label: 'Ingredient Scout', icon: Search, component: Scout },
-    { id: 'water', label: 'Water Profile', icon: Droplets, component: () => <div className="p-8 text-center text-muted-foreground">Water Profile Coming Soon (Native)</div> },
-    { id: 'calc', label: 'Calculators', icon: Calculator, component: () => <div className="p-8 text-center text-muted-foreground">Calculators Coming Soon (Native)</div> },
-    { id: 'yeast', label: 'Yeast', icon: FlaskConical, component: () => <div className="p-8 text-center text-muted-foreground">Yeast Tools Coming Soon (Native)</div> },
+    { id: 'water', label: 'Water Profile', icon: Droplets, component: Water },
+    { id: 'calc', label: 'Calculators', icon: Calculator, component: IBUCalculator },
+    { id: 'recipes', label: 'Recipe Finder', icon: FileText, component: Recipes },
+    { id: 'inventory', label: 'Inventory', icon: Package, component: Inventory },
+    { id: 'pipeline', label: 'R&D Pipeline', icon: Network, component: Pipeline },
+    { id: 'sim', label: 'Brew Simulator', icon: FlaskConical, component: Simulation },
+    { id: 'sourcing', label: 'Sourcing', icon: ShoppingCart, component: Sourcing },
+    { id: 'yeast', label: 'Yeast', icon: FlaskConical, component: Yeast },
+    { id: 'price', label: 'Price Comparator', icon: Scale, component: PriceComparator },
 ];
 
 export default function AutomationPage() {
