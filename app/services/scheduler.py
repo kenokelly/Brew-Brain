@@ -92,6 +92,29 @@ def init_scheduler(app):
         replace_existing=True
     )
     
+    # Anomaly detection every 5 minutes
+    from app.services.anomaly import run_all_anomaly_checks
+    from app.core.config import get_config
+    
+    def anomaly_check_job():
+        """Run anomaly detection with current batch name."""
+        try:
+            batch_name = get_config("batch_name") or "Current Batch"
+            result = run_all_anomaly_checks(batch_name)
+            if result.get("alerts_sent", 0) > 0:
+                logger.warning(f"Anomaly detection sent {result['alerts_sent']} alerts")
+        except Exception as e:
+            logger.error(f"Anomaly check error: {e}")
+    
+    scheduler.add_job(
+        anomaly_check_job,
+        'interval',
+        seconds=300,  # Every 5 minutes
+        id='anomaly_detection',
+        name='Anomaly Detection',
+        replace_existing=True
+    )
+    
     # Start the scheduler
     scheduler.start()
     logger.info("APScheduler started with %d jobs", len(scheduler.get_jobs()))

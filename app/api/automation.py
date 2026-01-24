@@ -515,3 +515,54 @@ def search_yeast():
     result = yeast.search_yeast_meta(query)
     return jsonify(result)
 
+
+@automation_bp.route('/api/automation/anomaly/check', methods=['POST'])
+@api_safe
+def check_anomalies():
+    """
+    Run anomaly detection checks manually.
+    
+    Body (optional): {
+        "batch_name": "My IPA"
+    }
+    
+    Returns: {
+        "timestamp": "...",
+        "checks": {
+            "stalled": {...},
+            "temp_deviation": {...},
+            "runaway": {...},
+            "signal_loss": {...}
+        },
+        "alerts_sent": 0,
+        "status": "ok"
+    }
+    """
+    from app.services.anomaly import run_all_anomaly_checks
+    from app.core.config import get_config
+    
+    data = request.json or {}
+    batch_name = data.get('batch_name') or get_config("batch_name") or "Current Batch"
+    
+    result = run_all_anomaly_checks(batch_name)
+    return jsonify(result)
+
+
+@automation_bp.route('/api/automation/anomaly/stalled', methods=['GET'])
+@api_safe
+def check_stalled():
+    """Check for stalled fermentation only."""
+    from app.services.anomaly import check_stalled_fermentation
+    from app.core.config import get_config
+    batch_name = get_config("batch_name") or "Current Batch"
+    return jsonify(check_stalled_fermentation(batch_name))
+
+
+@automation_bp.route('/api/automation/anomaly/temp', methods=['GET'])
+@api_safe
+def check_temp():
+    """Check for temperature deviation only."""
+    from app.services.anomaly import check_temperature_deviation
+    from app.core.config import get_config
+    batch_name = get_config("batch_name") or "Current Batch"
+    return jsonify(check_temperature_deviation(batch_name=batch_name))
