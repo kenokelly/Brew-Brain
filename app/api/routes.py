@@ -38,6 +38,27 @@ def taplist(): return send_from_directory('static', 'kiosk.html')
 def status():
     return jsonify(get_status_dict())
 
+@api_bp.route('/api/health')
+def health():
+    """Health check endpoint for Docker/Kubernetes probes."""
+    import time
+    try:
+        # Check InfluxDB connectivity
+        q = f'from(bucket: "{INFLUX_BUCKET}") |> range(start: -1m) |> limit(n: 1)'
+        query_api.query(q)
+        influx_status = "healthy"
+    except Exception as e:
+        influx_status = f"unhealthy: {str(e)}"
+    
+    return jsonify({
+        "status": "healthy" if influx_status == "healthy" else "degraded",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "components": {
+            "api": "healthy",
+            "influxdb": influx_status,
+        }
+    })
+
 @api_bp.route('/api/sync_brewfather', methods=['POST'])
 def sync_brewfather() -> Tuple[Response, int]:
     u, k = get_config("bf_user"), get_config("bf_key")

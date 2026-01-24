@@ -3,10 +3,12 @@
 import { useState } from 'react';
 import { Search, ExternalLink, Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import toast from 'react-hot-toast';
+import type { ScoutResult } from '@/types/api';
 
 export function Scout() {
     const [query, setQuery] = useState('');
-    const [results, setResults] = useState<any[]>([]);
+    const [results, setResults] = useState<ScoutResult[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -23,8 +25,11 @@ export function Scout() {
             const data = await res.json();
             if (data.error) throw new Error(data.error);
             setResults(data);
-        } catch (e: any) {
-            setError(e.message);
+            toast.success(`Found ${data.length} results`);
+        } catch (e: unknown) {
+            const msg = e instanceof Error ? e.message : 'Search failed';
+            setError(msg);
+            toast.error(msg);
         } finally {
             setLoading(false);
         }

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Calculator, Gauge, Beaker, Droplets } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import toast from 'react-hot-toast';
 
 type CalcTab = 'ibu' | 'carbonation' | 'refractometer' | 'priming';
 
@@ -22,6 +23,7 @@ export function IBUCalculator() {
                     <button
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
+                        aria-label={`Switch to ${tab.label}`}
                         className={cn(
                             "flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all",
                             activeTab === tab.id
@@ -54,8 +56,10 @@ function IBUCalc() {
         gravity: 1.050
     });
     const [result, setResult] = useState<number | null>(null);
+    const [loading, setLoading] = useState(false);
 
     const calc = async () => {
+        setLoading(true);
         try {
             const res = await fetch('/api/automation/calc_ibu', {
                 method: 'POST',
@@ -63,9 +67,17 @@ function IBUCalc() {
                 body: JSON.stringify(inputs)
             });
             const data = await res.json();
-            if (data.ibu) setResult(data.ibu);
+            if (data.error) {
+                toast.error(data.error);
+            } else if (data.ibu) {
+                setResult(data.ibu);
+                toast.success(`IBU calculated: ${data.ibu.toFixed(1)}`);
+            }
         } catch (e) {
+            toast.error('Calculation failed');
             console.error(e);
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -120,9 +132,17 @@ function IBUCalc() {
 // Carbonation Calculator
 function CarbonationCalc() {
     const [inputs, setInputs] = useState({ temp_c: 4, volumes_co2: 2.4 });
-    const [result, setResult] = useState<any>(null);
+    const [result, setResult] = useState<{
+        psi?: number;
+        bar?: number;
+        kpa?: number;
+        style_suggestion?: string;
+        error?: string;
+    } | null>(null);
+    const [loading, setLoading] = useState(false);
 
     const calc = async () => {
+        setLoading(true);
         try {
             const res = await fetch('/api/automation/calc/carbonation', {
                 method: 'POST',
@@ -130,9 +150,17 @@ function CarbonationCalc() {
                 body: JSON.stringify(inputs)
             });
             const data = await res.json();
-            setResult(data);
+            if (data.error) {
+                toast.error(data.error);
+            } else {
+                setResult(data);
+                toast.success(`Carbonation: ${data.psi?.toFixed(1)} PSI`);
+            }
         } catch (e) {
+            toast.error('Calculation failed');
             console.error(e);
+        } finally {
+            setLoading(false);
         }
     };
 

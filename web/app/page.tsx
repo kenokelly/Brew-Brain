@@ -5,19 +5,9 @@ import { cn } from '@/lib/utils';
 import { Activity, Thermometer, Droplets, Server, Wifi } from 'lucide-react';
 import { useSocket } from '@/lib/socket';
 import { RealTimeChart } from '@/components/charts';
-
-interface SystemStatus {
-  cpu_temp?: number;
-  memory_percent?: number;
-  disk_percent?: number;
-  pi_temp?: number;
-  sg?: number;
-  temp?: number;
-  rssi?: number;
-  batch_name?: string;
-  status?: string;
-  last_sync?: string;
-}
+import { useStatus } from '@/lib/hooks';
+import { DashboardSkeleton } from '@/components/ui/skeleton';
+import type { SystemStatus } from '@/types/api';
 
 interface DataPoint {
   time: string;
@@ -27,27 +17,25 @@ interface DataPoint {
 
 export default function Dashboard() {
   const { socket, isConnected: connected } = useSocket();
-  const [status, setStatus] = useState<SystemStatus | null>(null);
+  const { data: status, error, isLoading } = useStatus();
   const [history, setHistory] = useState<DataPoint[]>([]);
 
-  // Initial Poll
+  // Update history when status changes (from SWR or socket)
   useEffect(() => {
-    fetch('/api/status')
-      .then((res) => res.json())
-      .then((data) => {
-        setStatus(data);
-        updateHistory(data);
-      })
-      .catch((err) => console.error("API Error:", err));
-  }, []);
+    if (status?.temp && status?.sg) {
+      updateHistory(status);
+    }
+  }, [status?.temp, status?.sg]);
 
-  // Socket Listeners
+  // Socket Listeners for real-time updates
   useEffect(() => {
     if (!socket) return;
 
-    socket.on('status_update', (data: SystemStatus) => {
-      setStatus(data);
-      updateHistory(data);
+    socket.on('status_update', (data: typeof status) => {
+      // SWR will handle the data, but we also update history
+      if (data?.temp && data?.sg) {
+        updateHistory(data);
+      }
     });
 
     return () => {
