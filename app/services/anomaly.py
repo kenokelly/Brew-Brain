@@ -13,7 +13,7 @@ from datetime import datetime, timezone, timedelta
 from typing import Dict, List, Optional, Any
 from app.core.config import get_config
 from app.core.influx import query_api, INFLUX_BUCKET
-from app.services.notifications import send_telegram_message
+from app.services.notifications import send_telegram_message, broadcast_alert, troubleshoot_tiltpi
 
 logger = logging.getLogger(__name__)
 
@@ -76,6 +76,7 @@ def check_stalled_fermentation(batch_name: str = "Current Batch") -> Dict[str, A
                 f"• Consider yeast nutrient"
             )
             send_telegram_message(alert_msg)
+            broadcast_alert("stalled", f"Stalled fermentation: {batch_name}", "critical", {"sg": last_sg})
             return {
                 "status": "stalled",
                 "alert_sent": True,
@@ -147,6 +148,7 @@ def check_temperature_deviation(
                 f"*Action:* Check glycol chiller / heating wrap"
             )
             send_telegram_message(alert_msg)
+            broadcast_alert("temp_deviation", f"Temp {direction}: {avg_temp:.1f}°F", "warning", {"temp": avg_temp})
             return {
                 "status": "deviation",
                 "alert_sent": True,
@@ -219,6 +221,7 @@ def check_runaway_fermentation(batch_name: str = "Current Batch") -> Dict[str, A
                 f"• Lower temp if needed"
             )
             send_telegram_message(alert_msg)
+            broadcast_alert("runaway", f"Runaway fermentation: {batch_name}", "critical", {"sg_drop": sg_drop})
             return {
                 "status": "runaway",
                 "alert_sent": True,
@@ -285,11 +288,17 @@ def check_signal_loss(batch_name: str = "Current Batch") -> Dict[str, Any]:
                 f"• Bluetooth connectivity"
             )
             send_telegram_message(alert_msg)
+            broadcast_alert("signal_loss", f"Tilt offline: {int(minutes_since)} min", "error")
+            
+            # Auto-troubleshoot TiltPi
+            troubleshoot_result = troubleshoot_tiltpi()
+            
             return {
                 "status": "signal_loss",
                 "alert_sent": True,
                 "minutes_since": round(minutes_since, 1),
-                "last_reading": last_reading_time.isoformat()
+                "last_reading": last_reading_time.isoformat(),
+                "troubleshoot": troubleshoot_result
             }
         
         return {
