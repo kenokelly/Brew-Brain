@@ -6,9 +6,11 @@ Real-time detection of fermentation issues:
 - Temperature deviation (outside yeast tolerance)
 - Runaway fermentation (dropping too fast)
 - Tilt signal loss (offline too long)
+- Statistical anomaly detection (Z-score based)
 """
 
 import logging
+import numpy as np
 from datetime import datetime, timezone, timedelta
 from typing import Dict, List, Optional, Any
 from app.core.config import get_config
@@ -22,6 +24,113 @@ STALL_THRESHOLD_POINTS_PER_DAY = 1.0  # SG change < 0.001/day
 RUNAWAY_THRESHOLD_POINTS_12H = 20.0   # SG change > 0.020 in 12h
 TEMP_DEVIATION_F = 2.0                 # ±2°F from target for 30m
 SIGNAL_LOSS_MINUTES = 60               # No reading for > 60 min
+Z_SCORE_THRESHOLD = 2.5                # Flag readings > 2.5 std deviations
+
+
+def calculate_anomaly_score() -> Dict[str, Any]:
+    """
+    Calculate Z-score based anomaly score for current readings.
+    Uses rolling 48h window for statistical baseline.
+    
+    Returns:
+        Dict with anomaly_score (0.0-1.0+), temp_zscore, sg_rate_zscore, and status
+    """
+    try:
+        # Query last 48h of temperature readings (hourly aggregates)
+        temp_query = f'''
+        from(bucket: "{INFLUX_BUCKET}")
+            |> range(start: -48h)
+            |> filter(fn: (r) => r["_measurement"] == "sensor_data")
+            |> filter(fn: (r) => r["_field"] == "Temp")
+            |> aggregateWindow(every: 1h, fn: mean, createEmpty: false)
+        '''
+        tables = query_api.query(temp_query)
+        temp_readings = [record.get_value() for table in tables for record in table.records if record.get_value() is not None]
+        
+        # Query last 48h of SG readings (hourly aggregates)
+        sg_query = f'''
+        from(bucket: "{INFLUX_BUCKET}")
+            |> range(start: -48h)
+            |> filter(fn: (r) => r["_measurement"] == "sensor_data")
+            |> filter(fn: (r) => r["_field"] == "SG")
+            |> aggregateWindow(every: 1h, fn: mean, createEmpty: false)
+        '''
+        tables = query_api.query(sg_query)
+        sg_readings = [record.get_value() for table in tables for record in table.records if record.get_value() is not None]
+        
+        result = {
+            "status": "normal",
+            "anomaly_score": 0.0,
+            "temp_zscore": None,
+            "sg_rate_zscore": None,
+            "data_points": {"temp": len(temp_readings), "sg": len(sg_readings)}
+        }
+        
+        # Need at least 12 hours of data for meaningful statistics
+        if len(temp_readings) < 12 or len(sg_readings) < 12:
+            result["status"] = "insufficient_data"
+            return result
+        
+        # Calculate temperature Z-score
+        temp_array = np.array(temp_readings)
+        temp_mean = np.mean(temp_array[:-1])  # Exclude latest for baseline
+        temp_std = np.std(temp_array[:-1])
+        latest_temp = temp_array[-1]
+        
+        # Use a minimum std of 0.1 to avoid division by zero and capture anomalies in very stable data
+        temp_zscore = abs((latest_temp - temp_mean) / max(temp_std, 0.1))
+        result["temp_zscore"] = round(float(temp_zscore), 2)
+        
+        # Calculate SG rate Z-score (rate of change is more meaningful than absolute SG)
+        sg_array = np.array(sg_readings)
+        sg_rates = np.diff(sg_array) * -1000  # Convert to positive points/hour when fermenting
+        
+        if len(sg_rates) > 6:
+            rate_mean = np.mean(sg_rates[:-1])
+            rate_std = np.std(sg_rates[:-1])
+            latest_rate = sg_rates[-1]
+            
+            # Use a minimum std of 0.01 for rate change
+            sg_rate_zscore = abs((latest_rate - rate_mean) / max(rate_std, 0.01))
+            result["sg_rate_zscore"] = round(float(sg_rate_zscore), 2)
+        else:
+            sg_rate_zscore = 0.0
+            result["sg_rate_zscore"] = 0.0
+        
+        # Combined anomaly score (max of individual Z-scores, normalized to 0-1+ scale)
+        max_zscore = max(temp_zscore, sg_rate_zscore)
+        result["anomaly_score"] = round(float(max_zscore / Z_SCORE_THRESHOLD), 2)
+        
+        # Determine status based on Z-scores
+        if max_zscore > Z_SCORE_THRESHOLD:
+            result["status"] = "anomaly"
+            
+            # Send alert for significant anomalies
+            batch_name = get_config("batch_name") or "Current Batch"
+            which_anomaly = "Temperature" if temp_zscore >= sg_rate_zscore else "SG Rate"
+            alert_msg = (
+                f"📊 *STATISTICAL ANOMALY: {batch_name}*\n\n"
+                f"Anomaly Type: {which_anomaly}\n"
+                f"Z-Score: {max_zscore:.2f} (threshold: {Z_SCORE_THRESHOLD})\n"
+                f"Temp Z: {temp_zscore:.2f} | SG Rate Z: {sg_rate_zscore:.2f}\n\n"
+                f"*Action:* Review current readings"
+            )
+            send_telegram_message(alert_msg)
+            broadcast_alert("statistical_anomaly", f"Statistical anomaly detected: {which_anomaly}", "warning", {
+                "anomaly_score": result["anomaly_score"],
+                "temp_zscore": result["temp_zscore"],
+                "sg_rate_zscore": result["sg_rate_zscore"]
+            })
+            result["alert_sent"] = True
+            
+        elif max_zscore > Z_SCORE_THRESHOLD * 0.8:  # 80% of threshold
+            result["status"] = "elevated"
+        
+        return result
+        
+    except Exception as e:
+        logger.error(f"Anomaly score calculation error: {e}")
+        return {"status": "error", "error": str(e), "anomaly_score": 0.0}
 
 
 def check_stalled_fermentation(batch_name: str = "Current Batch") -> Dict[str, Any]:
@@ -320,14 +429,22 @@ def run_all_anomaly_checks(batch_name: str = "Current Batch") -> Dict[str, Any]:
     results = {
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "batch": batch_name,
-        "checks": {}
+        "checks": {},
+        "anomaly_score": 0.0,
+        "anomaly_status": "ok"
     }
     
-    # Run each check
+    # Run rule-based checks
     results["checks"]["stalled"] = check_stalled_fermentation(batch_name)
     results["checks"]["temp_deviation"] = check_temperature_deviation(batch_name=batch_name)
     results["checks"]["runaway"] = check_runaway_fermentation(batch_name)
     results["checks"]["signal_loss"] = check_signal_loss(batch_name)
+    
+    # Run statistical anomaly detection
+    results["checks"]["statistical"] = calculate_anomaly_score()
+    
+    # Extract anomaly score for easy access
+    results["anomaly_score"] = results["checks"]["statistical"].get("anomaly_score", 0.0)
     
     # Summary
     alerts_sent = sum(
@@ -335,6 +452,19 @@ def run_all_anomaly_checks(batch_name: str = "Current Batch") -> Dict[str, Any]:
         if check.get("alert_sent", False)
     )
     results["alerts_sent"] = alerts_sent
-    results["status"] = "alerts" if alerts_sent > 0 else "ok"
+    
+    # Determine overall anomaly status
+    if alerts_sent > 0:
+        results["anomaly_status"] = "critical"
+        results["status"] = "alerts"
+    elif results["anomaly_score"] >= 1.0:
+        results["anomaly_status"] = "warning"
+        results["status"] = "elevated"
+    elif results["anomaly_score"] >= 0.8:
+        results["anomaly_status"] = "elevated"
+        results["status"] = "ok"
+    else:
+        results["anomaly_status"] = "ok"
+        results["status"] = "ok"
     
     return results
