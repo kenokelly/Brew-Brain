@@ -566,3 +566,92 @@ def check_temp():
     from app.core.config import get_config
     batch_name = get_config("batch_name") or "Current Batch"
     return jsonify(check_temperature_deviation(batch_name=batch_name))
+
+
+# ============ ML Prediction Endpoints ============
+
+@automation_bp.route('/api/ml/train', methods=['POST'])
+@api_safe
+def train_ml_models():
+    """
+    Train ML prediction models using historical batch data.
+    
+    Returns: {
+        "status": "success",
+        "batches_used": 15,
+        "fg_model": {"mae": 0.003},
+        "time_model": {"mae": 1.2}
+    }
+    """
+    from app.ml.prediction import train_models
+    result = train_models()
+    return jsonify(result)
+
+
+@automation_bp.route('/api/ml/predict/fg', methods=['POST'])
+@api_safe
+def predict_fg():
+    """
+    Predict Final Gravity for a batch.
+    
+    Body: {
+        "og": 1.055,
+        "attenuation": 78.0,
+        "avg_temp": 20.0  (optional)
+    }
+    """
+    from app.ml.prediction import predict_fg as ml_predict_fg
+    data = request.json or {}
+    
+    og = data.get('og')
+    attenuation = data.get('attenuation')
+    
+    if not og or not attenuation:
+        return jsonify({"error": "og and attenuation required"}), 400
+    
+    result = ml_predict_fg(
+        float(og),
+        float(attenuation),
+        float(data.get('avg_temp', 20.0))
+    )
+    return jsonify(result)
+
+
+@automation_bp.route('/api/ml/predict/time', methods=['POST'])
+@api_safe
+def predict_time():
+    """
+    Predict days remaining until FG is reached.
+    
+    Body: {
+        "og": 1.055,
+        "current_sg": 1.025,
+        "attenuation": 78.0,
+        "days_elapsed": 3  (optional)
+    }
+    """
+    from app.ml.prediction import predict_time_to_fg
+    data = request.json or {}
+    
+    og = data.get('og')
+    current_sg = data.get('current_sg')
+    attenuation = data.get('attenuation')
+    
+    if not og or not current_sg or not attenuation:
+        return jsonify({"error": "og, current_sg, and attenuation required"}), 400
+    
+    result = predict_time_to_fg(
+        float(og),
+        float(current_sg),
+        float(attenuation),
+        float(data.get('days_elapsed', 0))
+    )
+    return jsonify(result)
+
+
+@automation_bp.route('/api/ml/info', methods=['GET'])
+@api_safe
+def ml_model_info():
+    """Get information about trained ML models."""
+    from app.ml.prediction import get_model_info
+    return jsonify(get_model_info())

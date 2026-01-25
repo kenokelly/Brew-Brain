@@ -9,18 +9,21 @@ Uses historical batch data from Brewfather + InfluxDB.
 """
 
 import os
-import json
 import logging
-from datetime import datetime
-from typing import Dict, Optional, List, Any
+import pandas as pd
+import numpy as np
+import glob
 import joblib
+from datetime import datetime
+from typing import Dict, List, Optional, Any
+from app.ml.features import calculate_sg_velocity, calculate_temp_variance, calculate_time_in_phase
 
 logger = logging.getLogger(__name__)
 
 MODEL_DIR = "data/models"
 FG_MODEL_PATH = os.path.join(MODEL_DIR, "fg_predictor.joblib")
 TIME_MODEL_PATH = os.path.join(MODEL_DIR, "time_predictor.joblib")
-HISTORY_FILE = "data/brew_history.json"
+EXPORT_DIR = "data/exports"
 
 
 def ensure_model_dir():
@@ -28,84 +31,113 @@ def ensure_model_dir():
     os.makedirs(MODEL_DIR, exist_ok=True)
 
 
-def load_training_data() -> List[Dict]:
-    """Load historical batch data for training."""
-    if not os.path.exists(HISTORY_FILE):
-        return []
-    try:
-        with open(HISTORY_FILE, 'r') as f:
-            return json.load(f)
-    except Exception as e:
-        logger.error(f"Failed to load history: {e}")
-        return []
-
-
-def prepare_features(batches: List[Dict]) -> tuple:
-    """
-    Extract features and targets from batch history.
+def load_training_data() -> pd.DataFrame:
+    """Load latest aggregated historical batch data."""
+    pattern = os.path.join(EXPORT_DIR, "training_data_*.parquet")
+    files = glob.glob(pattern)
+    if not files:
+        # Fallback to individual batch files
+        files = glob.glob(os.path.join(EXPORT_DIR, "*.parquet"))
+        if not files:
+            return pd.DataFrame()
     
-    Features: OG, yeast_attenuation_pct, avg_temp
-    Targets: FG, days_to_fg
+    # Sort by modification time to get the latest
+    files.sort(key=os.path.getmtime, reverse=True)
+    try:
+        df = pd.read_parquet(files[0])
+        logger.info(f"Loaded training data from {files[0]} ({len(df)} records)")
+        return df
+    except Exception as e:
+        logger.error(f"Failed to load Parquet data: {e}")
+        return pd.DataFrame()
+
+
+def prepare_features(df: pd.DataFrame) -> tuple:
     """
+    Extract features and targets from batch history DataFrame.
+    Calculates features (velocity, variance) from raw time-series data.
+    """
+    if df.empty:
+        return np.array([]), np.array([]), np.array([])
+
     X = []  # Features
     y_fg = []  # FG targets
     y_time = []  # Time targets
     
-    for batch in batches:
+    # Group by batch_id to process each fermentation separately
+    for batch_id, group in df.groupby('batch_id'):
         try:
-            og = batch.get('og')
-            fg = batch.get('fg')
-            att = batch.get('attenuation')
+            # Sort by timestamp
+            group = group.sort_values('timestamp')
             
-            if og and fg and att:
-                # Feature vector
-                features = [
-                    float(og),
-                    float(att),
-                    float(batch.get('avg_temp', 20.0)),
-                ]
-                X.append(features)
-                y_fg.append(float(fg))
-                
-                # Time target (days_to_fg if available, else estimate from style)
-                days = batch.get('days_to_fg', 7.0)  # Default 7 days
-                y_time.append(float(days))
-                
-        except (ValueError, TypeError) as e:
-            logger.debug(f"Skipping batch: {e}")
+            # Extract basic metadata from first row
+            row = group.iloc[0]
+            og = row.get('og')
+            fg = row.get('fg')
+            
+            if og is None or fg is None or pd.isna(og) or pd.isna(fg):
+                continue
+
+            # Calculate engineering features from raw data
+            temp_readings = group['temp'].dropna().tolist()
+            sg_readings = group['sg'].dropna().tolist()
+            timestamps = group['timestamp'].tolist()
+            
+            if len(sg_readings) < 10 or len(temp_readings) < 10:
+                continue
+
+            # Features: OG, sg_velocity, temp_variance, avg_temp
+            velocity = calculate_sg_velocity(sg_readings, timestamps)
+            variance = calculate_temp_variance(temp_readings)
+            avg_temp = np.mean(temp_readings)
+            
+            # Calculate days to FG (time from pitch to when SG reaches FG +/- 0.001)
+            pitch_time = timestamps[0]
+            fg_time = group[group['sg'] <= fg + 0.001]['timestamp'].min()
+            
+            if pd.isna(fg_time):
+                days_to_fg = calculate_time_in_phase(pitch_time, timestamps[-1])
+            else:
+                days_to_fg = calculate_time_in_phase(pitch_time, fg_time)
+
+            features = [
+                float(og),
+                float(velocity),
+                float(variance),
+                float(avg_temp),
+            ]
+            
+            X.append(features)
+            y_fg.append(float(fg))
+            y_time.append(float(days_to_fg))
+            
+        except Exception as e:
+            logger.debug(f"Skipping batch {batch_id}: {e}")
             continue
     
-    return X, y_fg, y_time
+    return np.array(X), np.array(y_fg), np.array(y_time)
 
 
 def train_models() -> Dict[str, Any]:
     """
-    Train FG and time-to-FG prediction models.
+    Train FG and time-to-FG prediction models using Gradient Boosting.
     
     Returns dict with training metrics.
     """
-    try:
-        from sklearn.ensemble import GradientBoostingRegressor
-        from sklearn.model_selection import cross_val_score
-        import numpy as np
-    except ImportError:
-        return {"error": "sklearn not installed. Run: pip install scikit-learn"}
+    from sklearn.ensemble import GradientBoostingRegressor
+    from sklearn.model_selection import cross_val_score
     
     ensure_model_dir()
     
     # Load data
-    batches = load_training_data()
-    if len(batches) < 5:
-        return {"error": f"Need at least 5 batches, got {len(batches)}"}
+    df = load_training_data()
+    if df.empty:
+        return {"error": "No training data found in data/exports/*.parquet"}
     
-    X, y_fg, y_time = prepare_features(batches)
+    X, y_fg, y_time = prepare_features(df)
     
     if len(X) < 5:
-        return {"error": f"Only {len(X)} valid batches after filtering"}
-    
-    X = np.array(X)
-    y_fg = np.array(y_fg)
-    y_time = np.array(y_time)
+        return {"error": f"Need at least 5 valid batches, got {len(X)}"}
     
     # Train FG model
     fg_model = GradientBoostingRegressor(
@@ -152,42 +184,45 @@ def train_models() -> Dict[str, Any]:
     }
 
 
-def predict_fg(og: float, attenuation: float, avg_temp: float = 20.0) -> Dict[str, Any]:
+def predict_fg(og: float, velocity: float = 0.0, variance: float = 0.0, avg_temp: float = 20.0) -> Dict[str, Any]:
     """
     Predict Final Gravity for a batch.
     
     Args:
         og: Original Gravity (e.g., 1.055)
-        attenuation: Expected yeast attenuation % (e.g., 78.0)
+        velocity: Current SG velocity (points/day)
+        variance: Temperature variance
         avg_temp: Average fermentation temp in °C
         
     Returns:
         Dict with predicted_fg, predicted_abv, confidence
     """
-    import numpy as np
+    import joblib
+    import os
     
     # Check if model exists
     if not os.path.exists(FG_MODEL_PATH):
-        # Fallback to simple calculation
+        # Fallback to simple calculation (assuming 75% attenuation)
+        attenuation = 75.0
         predicted_fg = og - ((attenuation / 100.0) * (og - 1.0))
         return {
-            "predicted_fg": round(predicted_fg, 3),
-            "predicted_abv": round((og - predicted_fg) * 131.25, 1),
+            "predicted_fg": round(float(predicted_fg), 3),
+            "predicted_abv": round(float((og - predicted_fg) * 131.25), 1),
             "method": "formula",
             "confidence": "low"
         }
     
     try:
         model = joblib.load(FG_MODEL_PATH)
-        features = np.array([[og, attenuation, avg_temp]])
+        features = np.array([[og, velocity, variance, avg_temp]])
         predicted_fg = model.predict(features)[0]
         
         # Sanity bounds
         predicted_fg = max(0.990, min(predicted_fg, og - 0.005))
         
         return {
-            "predicted_fg": round(predicted_fg, 3),
-            "predicted_abv": round((og - predicted_fg) * 131.25, 1),
+            "predicted_fg": round(float(predicted_fg), 3),
+            "predicted_abv": round(float((og - predicted_fg) * 131.25), 1),
             "method": "ml_model",
             "confidence": "high"
         }
@@ -196,60 +231,49 @@ def predict_fg(og: float, attenuation: float, avg_temp: float = 20.0) -> Dict[st
         return {"error": str(e)}
 
 
-def predict_time_to_fg(og: float, current_sg: float, attenuation: float, days_elapsed: float = 0) -> Dict[str, Any]:
+def predict_time_to_fg(og: float, velocity: float = 0.0, variance: float = 0.0, avg_temp: float = 20.0, days_elapsed: float = 0) -> Dict[str, Any]:
     """
     Predict days remaining until Final Gravity is reached.
     
     Args:
         og: Original Gravity
-        current_sg: Current Specific Gravity
-        attenuation: Expected yeast attenuation %
+        velocity: Current SG velocity (points/day)
+        variance: Temperature variance
+        avg_temp: Average fermentation temp
         days_elapsed: Days since pitch
         
     Returns:
         Dict with days_remaining, estimated_completion
     """
-    import numpy as np
+    import joblib
+    import os
     
     if not os.path.exists(TIME_MODEL_PATH):
-        # Fallback: estimate based on current progress
-        if og <= 1.0 or current_sg <= 1.0:
-            return {"error": "Invalid gravity values"}
-            
-        predicted_fg = og - ((attenuation / 100.0) * (og - 1.0))
-        total_drop = og - predicted_fg
-        current_drop = og - current_sg
-        
-        if total_drop <= 0:
-            return {"days_remaining": 0, "method": "formula"}
-            
-        progress = current_drop / total_drop
-        
-        # Assume 7 days total for typical fermentation
-        if progress >= 0.95:
-            days_remaining = 1
-        elif days_elapsed > 0 and progress > 0:
-            # Extrapolate from current speed
-            days_remaining = max(1, int((1 - progress) / (progress / days_elapsed)))
+        # Fallback: estimate based on velocity
+        if velocity > 0:
+            # Assuming typical target is 75% attenuation
+            predicted_fg = og - (0.75 * (og - 1.0))
+            points_to_go = (og - 1.0) * 1000 * 0.75 - (og - 1.0) * 1000 * (1 - (og - 1.0) / (og - 1.0)) # Needs better logic
+            # Simpler: assume 7 days total if no velocity
+            days_remaining = max(1, 7 - days_elapsed)
         else:
             days_remaining = 7
             
         return {
-            "days_remaining": days_remaining,
-            "progress_pct": round(progress * 100, 1),
+            "days_remaining": round(float(days_remaining), 1),
             "method": "formula",
             "confidence": "low"
         }
     
     try:
         model = joblib.load(TIME_MODEL_PATH)
-        features = np.array([[og, attenuation, 20.0]])  # Use default temp
+        features = np.array([[og, velocity, variance, avg_temp]])
         total_days = model.predict(features)[0]
-        days_remaining = max(0, total_days - days_elapsed)
+        days_remaining = max(0.5, total_days - days_elapsed)
         
         return {
-            "days_remaining": round(days_remaining, 1),
-            "total_estimated_days": round(total_days, 1),
+            "days_remaining": round(float(days_remaining), 1),
+            "total_estimated_days": round(float(total_days), 1),
             "method": "ml_model",
             "confidence": "high"
         }
@@ -260,10 +284,17 @@ def predict_time_to_fg(og: float, current_sg: float, attenuation: float, days_el
 
 def get_model_info() -> Dict[str, Any]:
     """Get information about trained models."""
+    import os
+    from datetime import datetime
+    import joblib
+    
+    training_df = load_training_data()
+    
     info = {
         "fg_model": {"exists": os.path.exists(FG_MODEL_PATH)},
         "time_model": {"exists": os.path.exists(TIME_MODEL_PATH)},
-        "training_data_count": len(load_training_data())
+        "training_records": len(training_df) if not training_df.empty else 0,
+        "unique_batches": training_df['batch_id'].nunique() if not training_df.empty else 0
     }
     
     if info["fg_model"]["exists"]:

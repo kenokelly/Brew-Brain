@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
-import { Activity, Thermometer, Droplets, Server, Wifi } from 'lucide-react';
+import { Activity, Thermometer, Droplets, Server, Wifi, Brain } from 'lucide-react';
 import { useSocket } from '@/lib/socket';
 import { RealTimeChart } from '@/components/charts';
 import { useStatus } from '@/lib/hooks';
 import { DashboardSkeleton } from '@/components/ui/skeleton';
+import { AnomalyWidget } from '@/components/AnomalyWidget';
+import { PredictionCard } from '@/components/PredictionCard';
 import type { SystemStatus } from '@/types/api';
 
 interface DataPoint {
@@ -102,6 +104,12 @@ export default function Dashboard() {
             icon={<Server className="w-5 h-5 text-amber-500" />}
           />
         </div>
+
+        {/* AI Insights Section */}
+        <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <PredictionCard />
+          <AnomalyWidget />
+        </section>
 
         {/* Charts Section */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

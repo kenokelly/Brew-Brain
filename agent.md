@@ -37,4 +37,10 @@
 * **Testing & Coverage:** Generate unit tests (Vitest/Jest) for all new business logic. Explicitly test edge cases, including null, undefined, and empty states.
 * **The Scout Rule:** Always leave the code cleaner than you found it. Perform minor refactors for readability or DRY principles in any file you are already modifying.
 
+## 7. Environment Configuration
 
+* **Raspberry Pi (Brew-Brain Host):**
+  * IP Address: `192.168.155.226`
+  * SSH User: `kokelly`
+  * SSH Command: `ssh kokelly@192.168.155.226`
+  * Web UI: `http://192.168.155.226:5000`

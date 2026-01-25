@@ -3,7 +3,8 @@ import requests
 import json
 import base64
 from typing import Any, Dict, Tuple, Optional, Union
-from datetime import datetime, timezone
+import numpy as np
+from datetime import datetime, timezone, timedelta
 from flask import Blueprint, jsonify, request, send_from_directory, send_file, Response
 from app.core.config import get_config, set_config, get_all_config, DATA_DIR, BACKUP_DIR, logger
 from app.core.influx import query_api, write_api, INFLUX_BUCKET, INFLUX_ORG
@@ -649,4 +650,83 @@ def batch_features(batch_id: str) -> Tuple[Response, int]:
         
     except Exception as e:
         return handle_error(e, "Feature Extraction Error")
+@api_bp.route('/api/ml/train', methods=['POST'])
+def train_ml_models() -> Tuple[Response, int]:
+    """Trigger ML model training."""
+    try:
+        from app.ml.prediction import train_models
+        result = train_models()
+        if "error" in result:
+            return api_response(status="error", error=result["error"], code=400)
+        return api_response(data=result)
+    except Exception as e:
+        return handle_error(e, "Model Training Error")
 
+
+@api_bp.route('/api/ml/models', methods=['GET'])
+def get_ml_models_info() -> Tuple[Response, int]:
+    """Get status and metrics of trained models."""
+    try:
+        from app.ml.prediction import get_model_info
+        return api_response(data=get_model_info())
+    except Exception as e:
+        return handle_error(e, "Model Info Error")
+
+
+@api_bp.route('/api/ml/predict', methods=['GET'])
+def predict_active_batch() -> Tuple[Response, int]:
+    """Get ML predictions for the active batch using real-time features."""
+    try:
+        from app.ml.prediction import predict_fg, predict_time_to_fg
+        from app.ml.features import query_batch_data, calculate_sg_velocity, calculate_temp_variance, calculate_time_in_phase
+        from app.core.config import get_all_config
+        from datetime import datetime, timezone
+        
+        # Get active batch metadata from config
+        config = get_all_config()
+        
+        og = float(config.get("og", 1.050))
+        pitch_date_str = config.get("start_date")
+        if not pitch_date_str:
+            return api_response(status="error", error="Active batch missing start date", code=400)
+            
+        # Parse start_date (YYYY-MM-DD or ISO)
+        try:
+            if len(pitch_date_str) == 10: # YYYY-MM-DD
+                pitch_time = datetime.strptime(pitch_date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+            else:
+                pitch_time = datetime.fromisoformat(pitch_date_str).replace(tzinfo=timezone.utc)
+        except Exception:
+            pitch_time = datetime.now(timezone.utc) - timedelta(days=7) # Fallback to 7 days ago if invalid
+        now = datetime.now(timezone.utc)
+        
+        # Query sensor data for the active batch duration
+        data = query_batch_data(pitch_time, now)
+        
+        # Calculate current features
+        velocity = calculate_sg_velocity(data["sg_readings"], data["sg_times"])
+        variance = calculate_temp_variance(data["temp_readings"])
+        avg_temp = np.mean(data["temp_readings"]) if data["temp_readings"] else 20.0
+        days_elapsed = calculate_time_in_phase(pitch_time, now)
+        
+        # Get predictions
+        prediction_fg = predict_fg(og, velocity, variance, avg_temp)
+        prediction_time = predict_time_to_fg(og, velocity, variance, avg_temp, days_elapsed)
+        
+        return api_response(data={
+            "batch_metadata": {
+                "og": og,
+                "days_elapsed": days_elapsed,
+                "data_points": data["data_points"]
+            },
+            "features": {
+                "velocity": velocity,
+                "temp_variance": variance,
+                "avg_temp": round(float(avg_temp), 1)
+            },
+            "prediction_fg": prediction_fg,
+            "prediction_time": prediction_time
+        })
+        
+    except Exception as e:
+        return handle_error(e, "Prediction Error")

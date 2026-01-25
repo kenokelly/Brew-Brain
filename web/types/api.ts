@@ -18,6 +18,9 @@ export interface SystemStatus {
     batch_name?: string;
     status?: string;
     last_sync?: string;
+    // Anomaly detection fields
+    anomaly_score?: number;
+    anomaly_status?: 'ok' | 'elevated' | 'warning' | 'critical';
 }
 
 export interface DataPoint {
@@ -259,6 +262,43 @@ export interface AlertResult {
 }
 
 // ============================================
+// ANOMALY DETECTION
+// ============================================
+
+export interface AnomalyAlert {
+    type: string;
+    message: string;
+    severity: 'info' | 'warning' | 'error' | 'critical';
+    timestamp: string;
+    data?: Record<string, unknown>;
+}
+
+export interface AnomalyCheck {
+    status: string;
+    alert_sent?: boolean;
+    error?: string;
+    [key: string]: unknown;
+}
+
+export interface AnomalyStatus {
+    batch: string;
+    anomaly_score: number;
+    anomaly_status: 'ok' | 'elevated' | 'warning' | 'critical';
+    alerts_sent: number;
+    checks: {
+        stalled?: AnomalyCheck;
+        temp_deviation?: AnomalyCheck;
+        runaway?: AnomalyCheck;
+        signal_loss?: AnomalyCheck;
+        statistical?: AnomalyCheck & {
+            temp_zscore?: number;
+            sg_rate_zscore?: number;
+        };
+    };
+    timestamp: string;
+}
+
+// ============================================
 // AUTOMATION - SIMULATION
 // ============================================
 
@@ -303,4 +343,47 @@ export type ApiResponse<T> = T | ApiError;
 
 export function isApiError<T>(response: ApiResponse<T>): response is ApiError {
     return (response as ApiError).error !== undefined;
+}
+// ============================================
+// ML PREDICTIONS
+// ============================================
+
+export interface MLPrediction {
+    batch_metadata: {
+        og: number;
+        days_elapsed: number;
+        data_points: number;
+    };
+    features: {
+        velocity: number;
+        temp_variance: number;
+        avg_temp: number;
+    };
+    prediction_fg: {
+        predicted_fg: number;
+        predicted_abv: number;
+        method: string;
+        confidence: string;
+    };
+    prediction_time: {
+        days_remaining: number;
+        total_estimated_days?: number;
+        method: string;
+        confidence: string;
+    };
+}
+
+export interface MLModelsInfo {
+    fg_model: {
+        exists: boolean;
+        size_kb?: number;
+        modified?: string;
+    };
+    time_model: {
+        exists: boolean;
+        size_kb?: number;
+        modified?: string;
+    };
+    training_records: number;
+    unique_batches: number;
 }
