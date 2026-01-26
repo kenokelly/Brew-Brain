@@ -41,10 +41,10 @@ def get_status_dict():
                 offset = float(get_config("offset") or 0.0)
                 recent_sg = raw_sg + offset
                 
-            if tilt_state.get("display_temp") and tilt_state.get("temp_unit"):
-                # Use User-Requested API values directly
+            if tilt_state.get("display_temp"):
+                # Use User-Requested API value directly without conversion
                 recent_temp = float(tilt_state["display_temp"])
-                recent_unit = tilt_state["temp_unit"]
+                recent_unit = tilt_state.get("temp_unit") or "C" # Default to C, never convert
             elif tilt_state.get("temp"):
                 # Fallback to raw Temp
                 raw_temp = tilt_state["temp"]

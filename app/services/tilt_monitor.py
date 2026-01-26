@@ -50,7 +50,7 @@ def poll_tilt_api():
                 
                 # User Requested: Trust displayTemp and tempUnits from API
                 TILT_STATE["display_temp"] = first_device.get("displayTemp") or first_device.get("Temp")
-                TILT_STATE["temp_unit"] = first_device.get("tempUnits") or first_device.get("tempUnit") or "F" # Default to F if missing as per Tilt standard
+                TILT_STATE["temp_unit"] = first_device.get("tempUnits") or first_device.get("tempUnit")
                 
                 TILT_STATE["color"] = first_device.get("Color")
                 
