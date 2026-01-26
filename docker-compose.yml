@@ -73,7 +73,7 @@ services:
       start_period: 5s
     volumes:
       - ./brain_data:/data
-      - ./app/static:/app/static:ro # Mount static files for hot reload without rebuild
+      - ./app:/app
       - playwright-cache:/ms-playwright
     networks:
       - brewery-net

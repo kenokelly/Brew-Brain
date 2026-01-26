@@ -43,14 +43,16 @@ def poll_tilt_api():
             if resp.status_code == 200:
                 data = resp.json()
                 
-                # The new API returns a dict of devices
-                if not data or not isinstance(data, dict):
+                # API returns a list of devices
+                if isinstance(data, list) and len(data) > 0:
+                    first_device = data[0]
+                elif isinstance(data, dict) and data:
+                     # Handle dict case just in case
+                     first_device_id = list(data.keys())[0]
+                     first_device = data[first_device_id]
+                else:
                     # logger.debug(f"TiltPi API at {url} returned empty or invalid data.")
                     continue
-                
-                # Get the first available device
-                first_device_id = list(data.keys())[0]
-                first_device = data[first_device_id]
                 
                 # Extract essential metrics
                 if first_device.get("RSSI"):
@@ -64,7 +66,7 @@ def poll_tilt_api():
                      
                 # User Requested: Trust displayTemp and tempUnits from API
                 TILT_STATE["display_temp"] = first_device.get("displayTemp") or first_device.get("Temp")
-                TILT_STATE["temp_unit"] = first_device.get("tempUnits") or first_device.get("tempUnit")
+                TILT_STATE["temp_unit"] = first_device.get("tempUnits") or first_device.get("tempUnit") or first_device.get("tempunits")
                 
                 TILT_STATE["color"] = first_device.get("Color")
                 
