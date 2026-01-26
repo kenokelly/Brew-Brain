@@ -107,7 +107,7 @@ def init_scheduler(app):
             logger.error(f"Anomaly check error: {e}")
     
     # Real-time TiltPi Polling (Every 15s)
-    from app.services.tilt_monitor import poll_tilt_api
+    from services.tilt_monitor import poll_tilt_api
     scheduler.add_job(
         poll_tilt_api,
         'interval',

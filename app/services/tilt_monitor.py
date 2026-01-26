@@ -30,6 +30,7 @@ def poll_tilt_api():
     url = "http://192.168.155.226:1880/macid/all"
     
     try:
+        # logger.info(f"Polling TiltAPI at {url}")
         resp = requests.get(url, timeout=5)
         if resp.status_code == 200:
             data = resp.json()
@@ -52,6 +53,9 @@ def poll_tilt_api():
                 TILT_STATE["temp_unit"] = first_device.get("tempUnits") or first_device.get("tempUnit") or "F" # Default to F if missing as per Tilt standard
                 
                 TILT_STATE["color"] = first_device.get("Color")
+                
+                # Debug Log
+                # logger.info(f"Tilt Poll Success: Temp={TILT_STATE.get('temp')}, Display={TILT_STATE.get('display_temp')}, Unit={TILT_STATE.get('temp_unit')}")
                 
                 TILT_STATE["last_seen"] = datetime.now(timezone.utc)
                 TILT_STATE["last_check_status"] = "healthy"
