@@ -147,7 +147,7 @@ def process_data_once():
                 for t in t_res:
                     for r in t.records:
                         val = r.get_value()
-                        current_temp = (val - 32) * 5/9 # F to C
+                        current_temp = (val - 32) * 5/9 if val > 40 else val
             except Exception as e:
                 logger.debug(f"Temp query issue: {e}")
 
@@ -260,7 +260,7 @@ def process_data():
                     for t in t_res:
                         for r in t.records:
                             val = r.get_value()
-                            current_temp = (val - 32) * 5/9 # F to C
+                            current_temp = (val - 32) * 5/9 if val > 40 else val
                 except Exception as e:
                     logger.debug(f"Temp query issue: {e}")
 
@@ -440,7 +440,7 @@ def check_alerts():
             for t in tables:
                 for r in t.records:
                     raw_val = r.get_value()
-                    val = (raw_val - 32) * 5/9 # Convert F to C for consistent threshold check
+                    val = (raw_val - 32) * 5/9 if raw_val > 40 else raw_val
                     
                     # Global Max Check
                     if val > max_temp and (now - alert_state["last_temp_alert"] > COOLDOWN):
@@ -569,7 +569,9 @@ def check_alerts_once():
         for t in tables:
             for r in t.records:
                 raw_val = r.get_value()
-                val = (raw_val - 32) * 5/9 # Convert F to C
+                # Auto-detect scale: If > 40 assumption is F, else C
+                val = (raw_val - 32) * 5/9 if raw_val > 40 else raw_val
+                
                 if val > max_temp and (now - alert_state["last_temp_alert"] > COOLDOWN):
                     send_telegram(f"🔥 WARNING: Temp {val:.1f}°C (Limit: {max_temp}°C)")
                     alert_state["last_temp_alert"] = now
