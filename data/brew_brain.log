@@ -1,0 +1,4 @@
+2026-01-25 22:28:42,786 - ERROR - Failed to save config 'batch_name' to InfluxDB: HTTPConnection(host='influxdb', port=8086): Failed to resolve 'influxdb' ([Errno 8] nodename nor servname provided, or not known)
+2026-01-25 22:28:42,789 - ERROR - Failed to save config 'og' to InfluxDB: HTTPConnection(host='influxdb', port=8086): Failed to resolve 'influxdb' ([Errno 8] nodename nor servname provided, or not known)
+2026-01-25 22:28:42,794 - ERROR - Failed to save config 'target_fg' to InfluxDB: HTTPConnection(host='influxdb', port=8086): Failed to resolve 'influxdb' ([Errno 8] nodename nor servname provided, or not known)
+2026-01-25 22:28:42,798 - ERROR - Failed to save config 'style' to InfluxDB: HTTPConnection(host='influxdb', port=8086): Failed to resolve 'influxdb' ([Errno 8] nodename nor servname provided, or not known)

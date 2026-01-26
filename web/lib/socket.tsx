@@ -35,8 +35,8 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
             reconnectionDelayMax: 10000, // Cap at 10 seconds
             randomizationFactor: 0.5, // Add randomness to prevent thundering herd
             // Connection settings
-            timeout: 20000, // 20 second timeout for initial connection
-            transports: ['websocket', 'polling'], // Prefer WebSocket, fallback to polling
+            timeout: 20000,
+            transports: ['polling'], // Force polling for maximum stability through proxy
             autoConnect: true,
         });
 

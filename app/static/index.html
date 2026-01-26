@@ -907,6 +907,14 @@
         }
 
         // --- Init ---
+        document.addEventListener('DOMContentLoaded', () => {
+            const params = new URLSearchParams(window.location.search);
+            const tab = params.get('tab');
+            if (tab === 'settings') {
+                switchTab('settings');
+            }
+        });
+
         setInterval(fetchStatus, 3000); // Polling every 3s
         fetchStatus(); // Initial Load
         loadSettings(); // Load form defaults

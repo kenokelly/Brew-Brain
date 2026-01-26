@@ -6,9 +6,12 @@ import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { LayoutDashboard, Beer, Bot, CircleHelp, Monitor, Menu, X } from 'lucide-react';
 import { useSocket } from '@/lib/socket';
+import { useStatus } from '@/lib/hooks';
 
 const NAV_ITEMS = [
     { href: '/', icon: LayoutDashboard, label: 'Dashboard' },
+    { href: '/settings', icon: Menu, label: 'Settings' },
+    { href: 'http://192.168.155.226:1880/ui/', icon: LayoutDashboard, label: 'TiltPi' },
     { href: '/taplist', icon: Beer, label: 'Tap List' },
     { href: '/automation', icon: Bot, label: 'Automation' },
     { href: '/kiosk', icon: Monitor, label: 'Kiosk Mode' },
@@ -19,6 +22,23 @@ export function NavBar() {
     const pathname = usePathname();
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const { isConnected } = useSocket();
+    const { data: status, error } = useStatus();
+
+    // Determine connection state:
+    // 1. Real-time (Socket Connected)
+    // 2. Live (Polling) (Socket fails, but API works)
+    // 3. Offline (Both fail)
+
+    let statusFormatted = "Offline";
+    let statusColor = "bg-rose-500";
+
+    if (isConnected) {
+        statusFormatted = "Connected";
+        statusColor = "bg-emerald-500";
+    } else if (status && !error) {
+        statusFormatted = "Via API";
+        statusColor = "bg-amber-500";
+    }
 
     return (
         <>
@@ -55,8 +75,8 @@ export function NavBar() {
 
                 <div className="p-4 border-t border-border/50">
                     <div className="flex items-center justify-center lg:justify-start gap-3 text-xs text-muted-foreground">
-                        <div className={cn("w-2 h-2 rounded-full", isConnected ? "bg-emerald-500" : "bg-rose-500")} />
-                        <span className="hidden lg:block">{isConnected ? "Connected" : "Connecting..."}</span>
+                        <div className={cn("w-2 h-2 rounded-full animate-pulse", statusColor)} />
+                        <span className="hidden lg:block">{statusFormatted}</span>
                     </div>
                 </div>
             </aside>

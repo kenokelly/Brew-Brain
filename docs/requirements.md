@@ -16,7 +16,7 @@ Transform Brew Brain from a monitoring dashboard into an **Intelligent Fermentat
 | Historical data storage in InfluxDB | P0 | ✅ Done |
 | API access to fermentation readings | P0 | ✅ Done |
 | Brewfather batch metadata sync | P1 | ✅ Done |
-| Data export for ML training (CSV/Parquet) | P1 | ⏳ TODO |
+| Data export for ML training (CSV/Parquet) | P1 | ✅ Done |
 
 ### 2. AI/ML Features
 
@@ -142,25 +142,25 @@ Learn from external brewing knowledge:
 
 ## Implementation Roadmap
 
-### Phase 1: Anomaly Detection (2 weeks)
+### Phase 1: Anomaly Detection (2 weeks) ✅ DONE
 
-- [ ] Add temperature deviation alerts (rule-based)
-- [ ] Add stalled fermentation detection (SG slope < 0.001/day)
-- [ ] Add Tilt signal loss alerts
-- [ ] Create anomaly dashboard widget
+- [x] Add temperature deviation alerts (rule-based)
+- [x] Add stalled fermentation detection (SG slope < 0.001/day)
+- [x] Add Tilt signal loss alerts
+- [x] Create anomaly dashboard widget
 
-### Phase 2: Data Export & Training (1 week)
+### Phase 2: Data Export & Training (1 week) ✅ DONE
 
-- [ ] Export historical batches to Parquet
-- [ ] Create training data pipeline
-- [ ] Label historical anomalies
+- [x] Export historical batches to Parquet
+- [x] Create training data pipeline
+- [x] Label historical anomalies
 
-### Phase 3: ML Prediction (3 weeks)
+### Phase 3: ML Prediction (3 weeks) ✅ DONE
 
-- [ ] Train FG prediction model (XGBoost)
-- [ ] Train time-to-FG model
-- [ ] Add prediction endpoint to API
-- [ ] Display predictions in UI
+- [x] Train FG prediction model (Gradient Boosting)
+- [x] Train time-to-FG model
+- [x] Add prediction endpoint to API
+- [x] Display predictions in UI
 
 ### Phase 4: Style Intelligence (2 weeks)
 

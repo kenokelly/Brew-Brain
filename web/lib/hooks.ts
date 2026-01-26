@@ -73,3 +73,11 @@ export function useBrewfatherRecipes() {
         revalidateOnFocus: false,
     });
 }
+/**
+ * Fetch all application settings
+ */
+export function useSettings() {
+    return useSWR<Record<string, string>>('/api/settings', fetcher, {
+        revalidateOnFocus: false,
+    });
+}

@@ -1,43 +1,50 @@
-FROM python:3.11-bookworm
+FROM python:3.11-slim-bookworm
 
 WORKDIR /app
 
 # ============================================
-# LAYER 1: System Dependencies (rarely changes)
+# LAYER 1: System Dependencies (Optimized for slim)
 # ============================================
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     libatlas-base-dev \
     libopenblas-dev \
     gfortran \
     libgpiod2 \
     wget \
     build-essential \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # ============================================
-# LAYER 2: Python Dependencies (only rebuild when requirements.txt changes)
+# LAYER 2: Core Scientific Stack (Rarely changes)
 # ============================================
-COPY requirements.txt .
-RUN pip install --upgrade pip setuptools wheel && \
-    pip install --no-cache-dir -r requirements.txt
+COPY requirements-core.txt .
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --upgrade pip setuptools wheel && \
+    pip install -r requirements-core.txt
 
 # ============================================
-# LAYER 3: Playwright Browser (only rebuild when Playwright version changes)
+# LAYER 3: Application Dependencies
 # ============================================
-RUN playwright install --with-deps chromium
+COPY requirements-app.txt .
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install -r requirements-app.txt
 
 # ============================================
-# LAYER 4: Static Assets (rarely changes)
+# LAYER 4: Playwright (Externalized to volume)
 # ============================================
-RUN mkdir -p static/js && \
-    wget -O static/js/tailwindcss.js https://cdn.tailwindcss.com && \
-    wget -O static/js/lucide.js https://unpkg.com/lucide@latest
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+# The browser should be installed to a persistent volume to skip download in future builds
+RUN if [ ! -d "$PLAYWRIGHT_BROWSERS_PATH/chromium-1091" ]; then \
+    playwright install chromium; \
+    fi
 
 # ============================================
-# LAYER 5: Application Code (changes frequently - LAST for best caching)
+# LAYER 4: Application Code
 # ============================================
 COPY . /app
 ENV PYTHONPATH=/
+ENV PYTHONUNBUFFERED=1
 
 RUN mkdir -p /data
 

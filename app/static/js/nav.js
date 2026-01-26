@@ -10,6 +10,8 @@
 
 const NAV_PAGES = [
     { href: '/', icon: 'layout-dashboard', label: 'Dashboard', match: ['/', 'index.html'] },
+    { href: '/?tab=settings', icon: 'settings', label: 'Settings', match: ['settings'] },
+    { href: 'http://192.168.155.226:1880/ui/', icon: 'external-link', label: 'TiltPi', match: ['tiltpi'] },
     { href: '/static/taplist.html', icon: 'beer', label: 'Tap List', match: ['taplist'] },
     { href: '/static/automation.html', icon: 'bot', label: 'Automation & Tools', match: ['automation'] },
     { href: '/static/help.html', icon: 'circle-help', label: 'Help & Documentation', match: ['help'] }

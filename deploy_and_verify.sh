@@ -1,157 +1,118 @@
 #!/bin/bash
-set -e  # Exit immediately if a command exits with a non-zero status
+set -e
 
 # Configuration
 HOST="kokelly@192.168.155.226"
 REMOTE_DIR="brew-brain"
 LOCAL_DIR="$(pwd)"
 
-# Error Handler
-error_handler() {
-    echo ""
-    echo "❌ DEPLOYMENT FAILED"
-    echo "Check the logs above for specific error details."
-    echo "Common fixes:"
-    echo "  - Network issues (try running again)"
-    echo "  - Docker space (try --full to prune)"
-}
-trap 'error_handler' ERR
-
 # Parse Arguments
-BUILD_MODE="incremental"  # Default: use Docker cache
+FULL_REBUILD=false
+RESTART_ONLY=false
 if [[ "$1" == "--full" ]]; then
-    BUILD_MODE="full"
-    echo "🔄 Full Rebuild Mode: Clearing cache and rebuilding everything..."
+    FULL_REBUILD=true
 elif [[ "$1" == "--restart-only" ]] || [[ "$1" == "-r" ]]; then
-    BUILD_MODE="restart"
-    echo "⚡ Restart Mode: Syncing code and restarting container only..."
-elif [[ "$1" == "--patch" ]]; then
-    BUILD_MODE="incremental"
-    echo "🩹 Patch Mode (now default): Using Docker cache..."
+    RESTART_ONLY=true
 fi
 
-echo "🚀 Starting Deployment to $HOST..."
+echo "🚀 Starting Optimized Deployment to $HOST..."
 
 # 1. Clean Local Cache
 echo "🧹 Cleaning local __pycache__..."
 find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
 
-# 2. Sync Files
-echo "📡 Syncing files to remote..."
-ssh $HOST "mkdir -p $REMOTE_DIR"
-scp -r $LOCAL_DIR/app $HOST:$REMOTE_DIR/
-echo "📦 Uploading web directory (excluding node_modules)..."
-tar --exclude='node_modules' --exclude='.next' -czf - -C $LOCAL_DIR web | ssh $HOST "cd $REMOTE_DIR && tar -xzf -"
-scp $LOCAL_DIR/docker-compose.yml $HOST:$REMOTE_DIR/
-scp -r $LOCAL_DIR/grafana $HOST:$REMOTE_DIR/
-scp $LOCAL_DIR/telegraf.conf $HOST:$REMOTE_DIR/
-
-# 3. Remote Build & Restart (based on mode)
-# Helper: Retry Logic
-retry() {
-    local -i max_attempts=3
-    local -i attempt=1
-    local -i delay=5
-    
-    while (( attempt <= max_attempts )); do
-        echo "🔄 Attempt $attempt/$max_attempts: $*"
-        if "$@"; then
-            return 0
-        else
-            echo "⚠️  Command failed (Attempt $attempt). Retrying in ${delay}s..."
-            sleep $delay
-            ((attempt++))
-            ((delay*=2)) # Exponential backoff
+# 2. Host-Side Frontend Build (Background)
+if [ "$RESTART_ONLY" = false ]; then
+    echo "🏗️ Starting local Frontend build in background..."
+    (
+        cd web
+        # Fast-Path: Only npm ci if package-lock changed
+        if [ ! -d "node_modules" ] || [ package-lock.json -nt node_modules ]; then
+            echo "📦 Package lock changed, installing..."
+            npm ci > /dev/null 2>&1
         fi
-    done
+        npm run build > /dev/null 2>&1
+    ) &
+    FE_BUILD_PID=$!
+fi
 
-    echo "❌ Command failed after $max_attempts attempts."
-    return 1
+# 3. Parallel Sync & Remote Prep
+echo "📡 Starting Parallel Synchronization..."
+
+# Function for parallel rsync
+p_sync() {
+    rsync -avz --delete "$@" > /dev/null 2>&1
 }
 
-# 3. Remote Build & Restart (based on mode)
-case $BUILD_MODE in
-    "restart")
-        echo "🔄 Restarting container with new code..."
-        retry ssh $HOST "cd $REMOTE_DIR && docker compose restart brew-brain web"
-        ;;
-    "full")
-        echo "🏗️  Full rebuild (clearing Docker cache)..."
-        # Split tedious commands for better retries
-        retry ssh $HOST "cd $REMOTE_DIR && docker compose down"
-        retry ssh $HOST "cd $REMOTE_DIR && docker system prune -af"
-        retry ssh $HOST "cd $REMOTE_DIR && docker compose build --no-cache"
-        retry ssh $HOST "cd $REMOTE_DIR && docker compose up -d"
-        ;;
-    *)
-        echo "🏗️  Incremental build (using Docker layer cache)..."
-        retry ssh $HOST "cd $REMOTE_DIR && docker compose down"
-        retry ssh $HOST "cd $REMOTE_DIR && docker compose build"
-        retry ssh $HOST "cd $REMOTE_DIR && docker compose up -d"
-        ;;
-esac
+# Sync Backend & Configs in parallel
+p_sync ./app/requirements-core.txt ./app/requirements-app.txt $HOST:$REMOTE_DIR/app/ &
+p_sync --exclude '__pycache__' --exclude '.venv' ./app $HOST:$REMOTE_DIR/ &
+p_sync ./docker-compose.yml ./telegraf.conf ./grafana $HOST:$REMOTE_DIR/ &
 
-echo "✅ Build & Startup Command Successful"
+# If not restart-only, start remote Backend build
+if [ "$RESTART_ONLY" = false ]; then
+    echo "🏗️ Starting remote Backend build (Async)..."
+    # SRE Opt: Use --pull to ensure we have latest slim image without full rebuild
+    ssh $HOST "cd $REMOTE_DIR && docker compose build --pull brew-brain" > /dev/null 2>&1 &
+    BE_BUILD_PID=$!
+fi
 
-# 4. Verification
+# Wait for local Frontend build
+if [ ! -z "$FE_BUILD_PID" ]; then
+    echo "⏳ Waiting for local Frontend build..."
+    wait $FE_BUILD_PID
+    echo "✅ Frontend build done."
+    
+    # Sync Web Artifacts (Grouped to avoid race conditions)
+    echo "📦 Syncing web artifacts..."
+    ssh $HOST "mkdir -p $REMOTE_DIR/web/.next"
+    
+    # Sync standalone content (contains server.js, node_modules)
+    p_sync ./web/.next/standalone/ $HOST:$REMOTE_DIR/web/
+    
+    # Sync static and public (parallel is fine here as they go to subdirs)
+    p_sync ./web/.next/static/ $HOST:$REMOTE_DIR/web/.next/static/ &
+    p_sync ./web/public/ $HOST:$REMOTE_DIR/web/public/ &
+    
+    # Sync configs (Last, no delete to prevent wiping standalone)
+    rsync -avz ./web/Dockerfile ./web/package.json $HOST:$REMOTE_DIR/web/
+    
+    wait # Wait for static/public
+    echo "🏗️ Building remote Web container (Async)..."
+    ssh $HOST "cd $REMOTE_DIR && docker compose build web" &
+    WEB_BUILD_PID=$!
+fi
+
+# Final synchronization for all builds
+echo "⏳ Waiting for all remote builds to finalize..."
+[ ! -z "$BE_BUILD_PID" ] && wait $BE_BUILD_PID && echo "✅ Backend container ready."
+[ ! -z "$WEB_BUILD_PID" ] && wait $WEB_BUILD_PID && echo "✅ Web container ready."
+
+# 4. Final Up & Verification
+echo "🚀 Finalizing Deployment..."
+ssh $HOST "cd $REMOTE_DIR && docker compose up -d"
+
+# 5. Verification (Fast check)
 echo "🔍 Verifying Deployment..."
+ssh $HOST "sleep 10" # Reliable stabilization
 
-# Shorter wait for restart mode
-if [[ "$BUILD_MODE" == "restart" ]]; then
-    echo "   Waiting for service to stabilize (10s)..."
-    ssh $HOST "sleep 10"
+echo "   [1/2] Checking API..."
+if ssh $HOST "curl -s http://localhost:5000/api/health | grep -q 'healthy'"; then
+    echo "✅ API Online"
 else
-    echo "   Waiting for service to stabilize (30s)..."
-    ssh $HOST "sleep 30"
-fi
-
-# CHECK 1: Container Status (Must be RUNNING, not restarting)
-echo "   [1/3] Checking Containers..."
-CONTAINERS=$(ssh $HOST "docker ps --filter 'status=running' --format '{{.Names}}'")
-
-if echo "$CONTAINERS" | grep -q "brew-brain" && echo "$CONTAINERS" | grep -q "influxdb" && echo "$CONTAINERS" | grep -q "brew-brain-web"; then
-    echo "✅ Containers Running (brew-brain, brew-brain-web, influxdb)"
-else
-    echo "❌ CRITICAL: Containers missing or not running!"
-    echo "Current running containers:"
-    echo "$CONTAINERS"
-    echo "All containers:"
-    ssh $HOST "docker ps -a"
-    echo "--- LOGS (Tail 50) ---"
-    ssh $HOST "docker logs brew-brain 2>&1 | tail -n 50"
+    echo "❌ API Offline"
     exit 1
 fi
 
-# CHECK 2: API Connectivity
-echo "   [2/3] Checking API Connectivity..."
-HTTP_CODE=$(ssh $HOST "curl -s -o /dev/null -w '%{http_code}' http://localhost:5000/api/status")
-
-if [ "$HTTP_CODE" == "200" ]; then
-    echo "✅ API reachable (HTTP 200)"
-else
-    echo "❌ API Failure (HTTP $HTTP_CODE)"
-    echo "--- LOGS (Tail 50) ---"
-    ssh $HOST "docker logs brew-brain 2>&1 | tail -n 50"
-    exit 1
-fi
-
-# CHECK 3: Frontend Connectivity
-echo "   [3/3] Checking Frontend..."
+echo "   [2/2] Checking Frontend..."
 WEB_CODE=$(ssh $HOST "curl -s -o /dev/null -w '%{http_code}' http://localhost:3001")
-
 if [ "$WEB_CODE" == "200" ]; then
-    echo "✅ Frontend reachable (HTTP 200)"
+    echo "✅ Frontend Online"
 else
-    echo "❌ Frontend Failure (HTTP $WEB_CODE)"
-    echo "--- LOGS (Tail 50) ---"
-    ssh $HOST "docker logs brew-brain-web 2>&1 | tail -n 50"
+    echo "❌ Frontend Offline (HTTP $WEB_CODE)"
     exit 1
 fi
 
-echo "🎉 DEPLOYMENT FULLY VERIFIED!"
-echo ""
-echo "📋 Deploy Modes:"
-echo "   (default)       - Incremental build with Docker cache"
-echo "   --restart-only  - Code sync + container restart (~30s)"
-echo "   --full          - Full rebuild, no cache (~15min)"
+echo "🎉 OPTIMIZED DEPLOYMENT COMPLETE!"
+echo "   Build strategy: Standalone Host-Build + Rsync Delta"
 exit 0

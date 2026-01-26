@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 # Thresholds
 STALL_THRESHOLD_POINTS_PER_DAY = 1.0  # SG change < 0.001/day
 RUNAWAY_THRESHOLD_POINTS_12H = 20.0   # SG change > 0.020 in 12h
-TEMP_DEVIATION_F = 2.0                 # ±2°F from target for 30m
+TEMP_DEVIATION_C = 1.0                 # ±1.0°C from target for 30m
 SIGNAL_LOSS_MINUTES = 60               # No reading for > 60 min
 Z_SCORE_THRESHOLD = 2.5                # Flag readings > 2.5 std deviations
 
@@ -237,7 +237,8 @@ def check_temperature_deviation(
         avg_temp = None
         for table in tables:
             for record in table.records:
-                avg_temp = record.get_value()
+                raw_val = record.get_value()
+                avg_temp = (raw_val - 32) * 5/9 if raw_val > 40 else raw_val # Defensive conversion
         
         if avg_temp is None:
             return {"status": "no_data"}
@@ -251,13 +252,13 @@ def check_temperature_deviation(
             
             alert_msg = (
                 f"{emoji} *TEMP DEVIATION: {batch_name}*\n\n"
-                f"Current Temp: {avg_temp:.1f}°F\n"
-                f"Target: {target_temp_f:.1f}°F (±{TEMP_DEVIATION_F}°F)\n"
-                f"Deviation: {abs(deviation):.1f}°F {direction}\n\n"
+                f"Current Temp: {avg_temp:.1f}°C\n"
+                f"Target: {target_temp_f:.1f}°C (±{TEMP_DEVIATION_C}°C)\n"
+                f"Deviation: {abs(deviation):.1f}°C {direction}\n\n"
                 f"*Action:* Check glycol chiller / heating wrap"
             )
             send_telegram_message(alert_msg)
-            broadcast_alert("temp_deviation", f"Temp {direction}: {avg_temp:.1f}°F", "warning", {"temp": avg_temp})
+            broadcast_alert("temp_deviation", f"Temp {direction}: {avg_temp:.1f}°C", "warning", {"temp": avg_temp})
             return {
                 "status": "deviation",
                 "alert_sent": True,

@@ -35,6 +35,7 @@ def handle_telegram_command(chat_id, command, text):
             f"🌡 *Temp:* {temp:.1f}°C\n"
             f"⚖️ *Gravity:* {sg:.3f} (Target: {fg:.3f})\n"
             f"📊 *ABV:* {abv:.1f}%\n"
+            f"📡 *Tilt:* {s.get('rssi') or '--'} dBm (Seen: {s.get('last_sync') or 'Never'})\n"
             f"💾 *CPU:* {s.get('pi_temp')}°C"
         )
         send_telegram(msg, chat_id)

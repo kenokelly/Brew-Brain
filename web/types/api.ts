@@ -14,8 +14,13 @@ export interface SystemStatus {
     pi_temp?: number;
     sg?: number;
     temp?: number;
+    temp_unit?: string;
     rssi?: number;
     batch_name?: string;
+    batch_notes?: string;
+    start_date?: string;
+    og?: number;
+    target_fg?: number;
     status?: string;
     last_sync?: string;
     // Anomaly detection fields
@@ -386,4 +391,27 @@ export interface MLModelsInfo {
     };
     training_records: number;
     unique_batches: number;
+}
+
+export interface PeerComparison {
+    primary_style: string;
+    included_styles: string[];
+    avg_og: number;
+    avg_fg: number;
+    avg_abv: number;
+    avg_ibu: number;
+    total_samples: number;
+    recommendations: string[];
+}
+
+export interface BrewDayCheckItem {
+    name: string;
+    status: 'ready' | 'warning' | 'error';
+    message: string;
+}
+
+export interface BrewDayCheckResponse {
+    score: number;
+    checks: BrewDayCheckItem[];
+    timestamp: string;
 }

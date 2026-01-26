@@ -41,7 +41,6 @@ services:
       - "3000:3000"
     environment:
       - GF_SECURITY_ALLOW_EMBEDDING=true
-      - GF_SECURITY_COOKIE_SAMESITE=none
       - GF_AUTH_ANONYMOUS_ENABLED=true
       - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
     volumes:
@@ -65,15 +64,17 @@ services:
       - INFLUX_BUCKET=fermentation
       - TZ=Europe/London
       - BREW_BRAIN_DATA=/data
+      - PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
     healthcheck:
       test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/api/status', timeout=5)" ]
-      interval: 30s
-      timeout: 10s
+      interval: 5s
+      timeout: 5s
       retries: 3
-      start_period: 45s
+      start_period: 5s
     volumes:
       - ./brain_data:/data
       - ./app/static:/app/static:ro # Mount static files for hot reload without rebuild
+      - playwright-cache:/ms-playwright
     networks:
       - brewery-net
     depends_on:
@@ -92,6 +93,10 @@ services:
       - brewery-net
     depends_on:
       - brew-brain
+
+volumes:
+  playwright-cache:
+    driver: local
 
 networks:
   brewery-net:

@@ -9,6 +9,7 @@ from app.core.config import get_config, set_config
 from app.core.influx import write_api, query_api, INFLUX_BUCKET, INFLUX_ORG
 from services.telegram import send_telegram
 from services.ai import analyze_yeast_history
+from app.services.tilt_monitor import get_tilt_state
 
 logger = logging.getLogger("BrewBrain")
 
@@ -150,29 +151,47 @@ def process_data_once():
             except Exception as e:
                 logger.debug(f"Temp query issue: {e}")
 
-            # 2. Process SG for calibration/prediction
-            query = f'from(bucket: "{INFLUX_BUCKET}") |> range(start: -21d) |> filter(fn: (r) => r["_measurement"] == "sensor_data") |> filter(fn: (r) => r["_field"] == "SG")'
+            # 2. Process Readings for calibration/prediction
+            # Query both SG and Temp in one go for efficiency
+            query = f'from(bucket: "{INFLUX_BUCKET}") |> range(start: -21d) |> filter(fn: (r) => r["_measurement"] == "sensor_data") |> filter(fn: (r) => r["_field"] == "SG" or r["_field"] == "Temp")'
             tables = query_api.query(query)
-            readings = []
-            times = []
             
+            # Map by timestamp to align SG and Temp
+            readings_map = {}
             for table in tables:
                 for record in table.records:
-                    rec_time = record.get_time()
-                    val = record.get_value() + offset
-                    times.append(rec_time)
-                    readings.append(val)
-                    if rec_time.tzinfo is None: rec_time = rec_time.replace(tzinfo=timezone.utc)
-                    if processing_state["last_processed_time"].tzinfo is None: processing_state["last_processed_time"] = processing_state["last_processed_time"].replace(tzinfo=timezone.utc)
-                    if rec_time > processing_state["last_processed_time"]:
-                        yeast = get_config("yeast_strain") or "Unknown"
-                        p = Point("calibrated_readings")\
-                            .tag("Color", record.values.get("Color"))\
-                            .tag("yeast", yeast)\
-                            .field("sg", val)\
-                            .time(rec_time)
-                        points_to_write.append(p)
-                        processing_state["last_processed_time"] = rec_time
+                    ts = record.get_time()
+                    if ts not in readings_map: readings_map[ts] = {"time": ts, "tags": record.values}
+                    
+                    if record.get_field() == "SG":
+                        readings_map[ts]["sg"] = record.get_value() + offset
+                    elif record.get_field() == "Temp":
+                        raw_val = record.get_value()
+                        readings_map[ts]["temp"] = (raw_val - 32) * 5/9 if raw_val > 40 else raw_val
+            
+            # Sort and filter for processing
+            sorted_times = sorted(readings_map.keys())
+            readings = [readings_map[t].get("sg") for t in sorted_times if "sg" in readings_map[t]]
+            times = [t for t in sorted_times if "sg" in readings_map[t]]
+            
+            for t in sorted_times:
+                data = readings_map[t]
+                rec_time = data["time"]
+                
+                if rec_time.tzinfo is None: rec_time = rec_time.replace(tzinfo=timezone.utc)
+                if processing_state["last_processed_time"].tzinfo is None: processing_state["last_processed_time"] = processing_state["last_processed_time"].replace(tzinfo=timezone.utc)
+                
+                if rec_time > processing_state["last_processed_time"]:
+                    yeast = get_config("yeast_strain") or "Unknown"
+                    p = Point("calibrated_readings")\
+                        .tag("Color", data["tags"].get("Color"))\
+                        .tag("yeast", yeast)
+                    
+                    if "sg" in data: p.field("sg", data["sg"])
+                    if "temp" in data: p.field("temp", data["temp"])
+                    
+                    points_to_write.append(p)
+                    processing_state["last_processed_time"] = rec_time
 
             if len(readings) > 50:
                 # Gather Metadata for Informed Prediction
@@ -245,29 +264,44 @@ def process_data():
                 except Exception as e:
                     logger.debug(f"Temp query issue: {e}")
 
-                # 2. Process SG for calibration/prediction
-                query = f'from(bucket: "{INFLUX_BUCKET}") |> range(start: -21d) |> filter(fn: (r) => r["_measurement"] == "sensor_data") |> filter(fn: (r) => r["_field"] == "SG")'
+                # 2. Process Readings for calibration/prediction
+                query = f'from(bucket: "{INFLUX_BUCKET}") |> range(start: -21d) |> filter(fn: (r) => r["_measurement"] == "sensor_data") |> filter(fn: (r) => r["_field"] == "SG" or r["_field"] == "Temp")'
                 tables = query_api.query(query)
-                readings = []
-                times = []
                 
+                readings_map = {}
                 for table in tables:
                     for record in table.records:
-                        rec_time = record.get_time()
-                        val = record.get_value() + offset
-                        times.append(rec_time)
-                        readings.append(val)
-                        if rec_time.tzinfo is None: rec_time = rec_time.replace(tzinfo=timezone.utc)
-                        if processing_state["last_processed_time"].tzinfo is None: processing_state["last_processed_time"] = processing_state["last_processed_time"].replace(tzinfo=timezone.utc)
-                        if rec_time > processing_state["last_processed_time"]:
-                            yeast = get_config("yeast_strain") or "Unknown"
-                            p = Point("calibrated_readings")\
-                                .tag("Color", record.values.get("Color"))\
-                                .tag("yeast", yeast)\
-                                .field("sg", val)\
-                                .time(rec_time)
-                            points_to_write.append(p)
-                            processing_state["last_processed_time"] = rec_time
+                        ts = record.get_time()
+                        if ts not in readings_map: readings_map[ts] = {"time": ts, "tags": record.values}
+                        
+                        if record.get_field() == "SG":
+                            readings_map[ts]["sg"] = record.get_value() + offset
+                        elif record.get_field() == "Temp":
+                            raw_val = record.get_value()
+                            readings_map[ts]["temp"] = (raw_val - 32) * 5/9 if raw_val > 40 else raw_val
+
+                sorted_times = sorted(readings_map.keys())
+                readings = [readings_map[t].get("sg") for t in sorted_times if "sg" in readings_map[t]]
+                times = [t for t in sorted_times if "sg" in readings_map[t]]
+                
+                for t in sorted_times:
+                    data = readings_map[t]
+                    rec_time = data["time"]
+                    
+                    if rec_time.tzinfo is None: rec_time = rec_time.replace(tzinfo=timezone.utc)
+                    if processing_state["last_processed_time"].tzinfo is None: processing_state["last_processed_time"] = processing_state["last_processed_time"].replace(tzinfo=timezone.utc)
+                    
+                    if rec_time > processing_state["last_processed_time"]:
+                        yeast = get_config("yeast_strain") or "Unknown"
+                        p = Point("calibrated_readings")\
+                            .tag("Color", data["tags"].get("Color"))\
+                            .tag("yeast", yeast)
+                        
+                        if "sg" in data: p.field("sg", data["sg"])
+                        if "temp" in data: p.field("temp", data["temp"])
+                        
+                        points_to_write.append(p)
+                        processing_state["last_processed_time"] = rec_time
 
 
             if not test_mode and len(readings) > 50:
@@ -291,6 +325,71 @@ def process_data():
         except Exception as e:
             logger.error(f"Sync Loop Error: {e}")
             time.sleep(60)
+            time.sleep(60)
+
+def perform_signal_loss_check(now, timeout_min, cooldown=14400):
+    """
+    Consolidated logic for signal loss detection with high-frequency direct monitoring.
+    Fixes the '1000 minutes ago' bug by ensuring we only report recent context.
+    """
+    try:
+        tilt_state = get_tilt_state()
+        last_seen = tilt_state.get("last_seen")
+        rssi = tilt_state.get("rssi")
+        
+        # 1. State Normalization
+        has_data = False
+        last_reading_str = "No Signal Data"
+        
+        # If we have it in memory and it's fresh, we are golden
+        if last_seen:
+            last_ts = last_seen.timestamp()
+            elapsed_min = (now - last_ts) / 60
+            if elapsed_min < timeout_min:
+                has_data = True
+            last_reading_str = f"{last_seen.strftime('%H:%M:%S')} UTC ({int(elapsed_min)}m ago)"
+
+        # 2. InfluxDB Fallback (Only if memory is empty)
+        if not has_data:
+            # Check last 24h for any proof of life
+            q_last = f'from(bucket: "{INFLUX_BUCKET}") |> range(start: -24h) |> filter(fn: (r) => r["_measurement"] == "sensor_data") |> last()'
+            res = query_api.query(q_last)
+            
+            influx_last_ts = 0
+            if res:
+                for t in res:
+                    for r in t.records:
+                        ts = r.get_time().timestamp()
+                        if ts > influx_last_ts:
+                            influx_last_ts = ts
+            
+            if influx_last_ts > 0:
+                elapsed_min_influx = (now - influx_last_ts) / 60
+                if elapsed_min_influx < timeout_min:
+                    has_data = True
+                
+                # Update string only if memory was empty or this is newer
+                # (Prevents the 1000 minute bug if Influx returns old data while memory is newer or vice-versa)
+                if not last_seen or influx_last_ts > last_seen.timestamp():
+                    dt = datetime.fromtimestamp(influx_last_ts, tz=timezone.utc)
+                    last_reading_str = f"{dt.strftime('%H:%M:%S')} UTC ({int(elapsed_min_influx)}m ago)"
+        
+        # 3. Alert Trigger
+        if not has_data:
+            if (now - alert_state["last_tilt_alert"] > cooldown):
+                signal_info = f"\n*Signal Strength:* {rssi} dBm" if rssi else ""
+                msg = (
+                    f"⚠️ *SIGNAL LOSS ALERT*\n\n"
+                    f"No Tilt signal detected for over {timeout_min} minutes.\n"
+                    f"*Last Seen:* {last_reading_str}\n{signal_info}\n\n"
+                    f"Check TiltPi power and orientation."
+                )
+                send_telegram(msg)
+                alert_state["last_tilt_alert"] = now
+                logger.warning(f"Signal Loss Alert: {last_reading_str}")
+            
+    except Exception as e:
+        logger.error(f"Signal Loss Check Error: {e}")
 
 def check_alerts():
     while True:
@@ -329,13 +428,9 @@ def check_alerts():
                 logger.error(f"Time Check Error: {e}")
                 # Fail open (allow alerts) if config is bad
             
-            COOLDOWN = 14400
+            COOLDOWN = 14400 # 4 hours
             timeout_min = int(get_config("tilt_timeout_min") or 60)
-            q = f'from(bucket: "{INFLUX_BUCKET}") |> range(start: -{timeout_min}m) |> filter(fn: (r) => r["_measurement"] == "sensor_data") |> count()'
-            res = query_api.query(q)
-            if len(res) == 0 and (now - alert_state["last_tilt_alert"] > COOLDOWN):
-                send_telegram(f"⚠️ CRITICAL: No data for {timeout_min} mins.")
-                alert_state["last_tilt_alert"] = now
+            perform_signal_loss_check(now, timeout_min, COOLDOWN)
             
             max_temp = float(get_config("temp_max") or 28.0)
             yeast_max = get_config("yeast_max_temp")
@@ -344,14 +439,16 @@ def check_alerts():
             tables = query_api.query(q_temp)
             for t in tables:
                 for r in t.records:
-                    val = r.get_value()
+                    raw_val = r.get_value()
+                    val = (raw_val - 32) * 5/9 # Convert F to C for consistent threshold check
+                    
                     # Global Max Check
                     if val > max_temp and (now - alert_state["last_temp_alert"] > COOLDOWN):
-                        send_telegram(f"🔥 WARNING: Temp {val}C (Limit: {max_temp}C)")
+                        send_telegram(f"🔥 WARNING: Temp {val:.1f}°C (Limit: {max_temp}°C)")
                         alert_state["last_temp_alert"] = now
                     # Yeast Specific Check
                     elif yeast_max and val > float(yeast_max) and (now - alert_state["last_temp_alert"] > COOLDOWN):
-                        send_telegram(f"🔥 YEAST WARNING: Temp {val}C exceeds {get_config('yeast_strain')} limit of {yeast_max}C!")
+                        send_telegram(f"🔥 YEAST WARNING: Temp {val:.1f}°C exceeds {get_config('yeast_strain')} limit of {yeast_max}°C!")
                         alert_state["last_temp_alert"] = now
         except Exception as e: logger.error(f"Alert Error: {e}")
 
@@ -462,11 +559,7 @@ def check_alerts_once():
         
         COOLDOWN = 14400
         timeout_min = int(get_config("tilt_timeout_min") or 60)
-        q = f'from(bucket: "{INFLUX_BUCKET}") |> range(start: -{timeout_min}m) |> filter(fn: (r) => r["_measurement"] == "sensor_data") |> count()'
-        res = query_api.query(q)
-        if len(res) == 0 and (now - alert_state["last_tilt_alert"] > COOLDOWN):
-            send_telegram(f"⚠️ CRITICAL: No data for {timeout_min} mins.")
-            alert_state["last_tilt_alert"] = now
+        perform_signal_loss_check(now, timeout_min, COOLDOWN)
         
         max_temp = float(get_config("temp_max") or 28.0)
         yeast_max = get_config("yeast_max_temp")
@@ -475,12 +568,13 @@ def check_alerts_once():
         tables = query_api.query(q_temp)
         for t in tables:
             for r in t.records:
-                val = r.get_value()
+                raw_val = r.get_value()
+                val = (raw_val - 32) * 5/9 # Convert F to C
                 if val > max_temp and (now - alert_state["last_temp_alert"] > COOLDOWN):
-                    send_telegram(f"🔥 WARNING: Temp {val}C (Limit: {max_temp}C)")
+                    send_telegram(f"🔥 WARNING: Temp {val:.1f}°C (Limit: {max_temp}°C)")
                     alert_state["last_temp_alert"] = now
                 elif yeast_max and val > float(yeast_max) and (now - alert_state["last_temp_alert"] > COOLDOWN):
-                    send_telegram(f"🔥 YEAST WARNING: Temp {val}C exceeds {get_config('yeast_strain')} limit of {yeast_max}C!")
+                    send_telegram(f"🔥 YEAST WARNING: Temp {val:.1f}°C exceeds {get_config('yeast_strain')} limit of {yeast_max}°C!")
                     alert_state["last_temp_alert"] = now
     except Exception as e: 
         logger.error(f"Alert Error: {e}")
