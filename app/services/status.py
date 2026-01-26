@@ -65,7 +65,11 @@ def get_status_dict():
 
 
     return {
-        "status": "Online", "pi_temp": get_pi_temp(), "sg": recent_sg, "temp": recent_temp, "temp_unit": locals().get("recent_unit", "C"), "rssi": recent_rssi,
+        "status": "Online", "pi_temp": get_pi_temp(), 
+        "sg": recent_sg if recent_sg > 0 else None, 
+        "temp": recent_temp if recent_temp > 0 else None, 
+        "temp_unit": locals().get("recent_unit", "C"), 
+        "rssi": recent_rssi,
         "last_sync": last_sync.isoformat() if last_sync else None,
         "test_mode": test_mode, "offset": float(get_config("offset") or 0),
         "og": float(get_config("og") or 1.050), "target_fg": float(get_config("target_fg") or 1.010),
