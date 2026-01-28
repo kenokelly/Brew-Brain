@@ -660,7 +660,21 @@ def check_price_watch():
         
     return {"status": "no_alerts"}
 
-def compare_recipe_prices(recipe_details, recipe_tag=None):
+def compare_recipe_prices(recipe_details, recipe_tag=None, debug_mode=False):
+    """
+    Compares prices for a recipe's ingredients.
+    """
+    if debug_mode:
+        logger.info("DEBUG MODE: Returning mock comparison results.")
+        return {
+            "breakdown": [
+                {"name": "Debug Hop", "tmm_cost": 10.0, "geb_cost": 12.0, "best_vendor": "TMM"}
+            ],
+            "total_tmm": 10.0,
+            "total_geb": 12.0,
+            "winner": "The Malt Miller",
+            "debug": True
+        }
     """
     Takes full recipe object (from BF) OR a tag to fetch it, and compares basket cost.
     Uses Google Organic Search + Snippet Parsing for broader coverage than Google Shopping.

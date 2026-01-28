@@ -27,6 +27,17 @@ if __name__ == '__main__':
     # Initialize Config from InfluxDB
     refresh_config_from_influx()
     
+    # DEBUG: Add File Handler to Logger to allow retrieval via API
+    try:
+        file_handler = logging.FileHandler('/data/app_debug.log')
+        file_handler.setLevel(logging.DEBUG)
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        file_handler.setFormatter(formatter)
+        logging.getLogger().addHandler(file_handler)
+        logger.info("Debug File Handler Initialized at /data/app_debug.log")
+    except Exception as e:
+        print(f"Failed to init debug log: {e}")
+
     # Initialize APScheduler (replaces manual threading)
     from services.scheduler import init_scheduler
     init_scheduler(app)

@@ -850,11 +850,15 @@ def compare_prices_by_tag(tag):
             
         # Decode tag (handle spaces/special chars)
         from urllib.parse import unquote
+        import flask
         decoded_tag = unquote(tag)
+        
+        # Check for debug flag
+        debug_mode = flask.request.args.get('debug', '').lower() == 'true'
         
         # Run Comparison (logic inside sourcing.py now handles tag lookup)
         # We pass empty dict for recipe_details as we are relying on tag lookup
-        result = compare_recipe_prices({}, recipe_tag=decoded_tag)
+        result = compare_recipe_prices({}, recipe_tag=decoded_tag, debug_mode=debug_mode)
         
         if "error" in result:
              return api_response(status="error", error=result["error"], code=400)
@@ -863,3 +867,22 @@ def compare_prices_by_tag(tag):
         
     except Exception as e:
         return handle_error(e, "Price Comparison Error")
+
+@api_bp.route('/api/debug/logs')
+def get_debug_logs():
+    """
+    Retrieves the last 100 lines of the debug log.
+    """
+    try:
+        log_path = '/data/app_debug.log'
+        if not os.path.exists(log_path):
+            return api_response(status="error", error="Log file not found", code=404)
+            
+        with open(log_path, 'r') as f:
+            # Efficiently read last lines (simple approach for now)
+            lines = f.readlines()
+            last_lines = lines[-100:]
+            
+        return api_response(data={"logs": last_lines})
+    except Exception as e:
+        return handle_error(e, "Log Retrieval Error")
