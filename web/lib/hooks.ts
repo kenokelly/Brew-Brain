@@ -15,7 +15,7 @@ import type {
 } from '@/types/api';
 
 // Default fetcher with error handling
-const fetcher = async <T>(url: string): Promise<T> => {
+export const fetcher = async <T>(url: string): Promise<T> => {
     const res = await fetch(url);
 
     // Check Content-Type

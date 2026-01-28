@@ -69,18 +69,41 @@ export default function Dashboard() {
 
   const handleSyncBrewfather = async () => {
     const toastId = toast.loading("Syncing with Brewfather...");
-    try {
-      const res = await fetch('/api/sync_brewfather', { method: 'POST' });
-      const d = await res.json();
-      if (res.ok && d.status === 'synced') {
-        toast.success(`Synced batch: ${d.data.name}`, { id: toastId });
-        mutateStatus();
-      } else {
-        toast.error(`Sync error: ${d.error || 'Unknown'}`, { id: toastId });
+    import { fetcher } from '@/lib/hooks';
+
+    // ...
+
+    const handleSyncBrewfather = async () => {
+      const toastId = toast.loading("Syncing with Brewfather...");
+      try {
+        // Use safe fetcher with explicit POST method wrapper if needed, 
+        // but fetcher is GET by default. 
+        // hooks.ts fetcher is: const fetcher = async <T>(url: string): Promise<T>
+        // It uses `fetch(url)`. It doesn't support options yet.
+        // I should update fetcher to support options OR manually use the safety logic.
+        // For simplicity, I will implement the safety check here manually to avoid breaking fetcher signature everywhere.
+
+        const res = await fetch('/api/sync_brewfather', { method: 'POST' });
+
+        // Safety Check
+        const contentType = res.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+          const text = await res.text();
+          throw new Error(`API returned non-JSON (${res.status}): ${text.substring(0, 100)}`);
+        }
+
+        const d = await res.json();
+
+        if (res.ok && d.status === 'synced') {
+          toast.success(`Synced batch: ${d.data.name}`, { id: toastId });
+          mutateStatus();
+        } else {
+          toast.error(`Sync error: ${d.error || 'Unknown'}`, { id: toastId });
+        }
+      } catch (e: any) {
+        toast.error(`Error: ${e.message}`, { id: toastId });
       }
-    } catch (e) {
-      toast.error("Connection failed", { id: toastId });
-    }
+    };
   };
 
   const openTiltPi = () => {
