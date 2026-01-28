@@ -9,8 +9,12 @@ from flask import Blueprint, jsonify, request, send_from_directory, send_file, R
 from app.core.config import get_config, set_config, get_all_config, DATA_DIR, BACKUP_DIR, logger
 from app.core.influx import query_api, write_api, INFLUX_BUCKET, INFLUX_ORG
 from influxdb_client import Point
-from services.status import get_status_dict
-from services.label_maker import generate_label
+from app.core.config import get_config, set_config, get_all_config, DATA_DIR, BACKUP_DIR, logger
+from app.core.influx import query_api, write_api, INFLUX_BUCKET, INFLUX_ORG
+from influxdb_client import Point
+# DELAYING IMPORT of services to prevent startup crashes if dependencies fail
+# from services.status import get_status_dict
+# from services.label_maker import generate_label
 
 api_bp = Blueprint('api', __name__)
 
@@ -37,7 +41,16 @@ def taplist(): return send_from_directory('static', 'kiosk.html')
 
 @api_bp.route('/api/status')
 def status():
-    return jsonify(get_status_dict())
+    try:
+        from services.status import get_status_dict
+        return jsonify(get_status_dict())
+    except Exception as e:
+        logger.error(f"Status Endpoint Failed: {e}")
+        # Return partial/empty status to prevent frontend crash
+        return jsonify({
+            "status": "Error", "sg": 0, "temp": 0, 
+            "error": str(e)
+        })
 
 @api_bp.route('/api/health')
 def health():
@@ -372,14 +385,21 @@ def label() -> Tuple[Response, int]:
             "fg": f"{current_sg:.3f}",
             "date": date
         }
-        
-        img_buffer = generate_label(data)
-        
-        return Response(
-            img_buffer,
-            mimetype="image/png",
-            headers={"Content-disposition": f"attachment; filename={name}_label.png"}
-        )
+        if 'abv' not in data and 'og' in data and 'fg' in data:
+            data['abv'] = round((float(data['og']) - float(data['fg'])) * 131.25, 1)
+
+        try:
+            from services.label_maker import generate_label
+            img_buffer = generate_label(data)
+            
+            return send_file(
+                img_buffer,
+                mimetype='image/png',
+                as_attachment=True,
+                download_name=f"label_{data.get('name', 'beer')}.png"
+            )
+        except ImportError as e:
+            return api_response(status="error", error=f"Label Maker Missing: {e}", code=500)
     except Exception as e:
         logger.error(f"Label Gen Error: {e}")
         return jsonify({"error": f"Label Gen Error: {e}"}), 500
