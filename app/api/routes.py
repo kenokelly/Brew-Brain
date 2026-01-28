@@ -837,3 +837,26 @@ def brew_day_check() -> Tuple[Response, int]:
         
     except Exception as e:
         return handle_error(e, "Brew Day Check Error")
+@api_bp.route('/api/sourcing/compare-by-tag/<tag>')
+def compare_prices_by_tag(tag):
+    """
+    Compares prices for a recipe found by tag.
+    """
+    try:
+        from app.services.sourcing import compare_recipe_prices
+        
+        # Decode tag (handle spaces/special chars)
+        from urllib.parse import unquote
+        decoded_tag = unquote(tag)
+        
+        # Run Comparison (logic inside sourcing.py now handles tag lookup)
+        # We pass empty dict for recipe_details as we are relying on tag lookup
+        result = compare_recipe_prices({}, recipe_tag=decoded_tag)
+        
+        if "error" in result:
+             return api_response(status="error", error=result["error"], code=400)
+             
+        return api_response(data=result)
+        
+    except Exception as e:
+        return handle_error(e, "Price Comparison Error")

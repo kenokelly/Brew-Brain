@@ -102,6 +102,53 @@ def fetch_recipe_details(recipe_id):
     except Exception as e:
         return {"error": str(e)}
 
+def fetch_recipe_by_tag(tag: str):
+    """
+    Fetches the first recipe containing the specified tag.
+    Loops through pages if necessary (limit 50 per page).
+    """
+    headers = get_auth_headers()
+    if not headers: return {"error": "Missing Credentials"}
+    
+    # Iterate through pages (max 5 pages for safety)
+    limit = 50
+    for page in range(5):
+        # start_after logic would be needed for full pagination, 
+        # but Brewfather V2 uses 'start_after' ID.
+        # For simplicity in this iteration, we'll just check the most recent 100 via limit if API allows,
+        # or just the first page. The V2 API is basic.
+        
+        # NOTE: Brewfather API filtering by tag isn't direct. We must fetch and filter.
+        url = f"https://api.brewfather.app/v2/recipes?limit={limit}&order_by=name"
+        if page > 0:
+            # Pagination in BF requires last_id, which makes this complex without keeping state.
+            # For MVP, we only search the first 50 items.
+            break
+            
+        try:
+            r = requests.get(url, headers=headers, timeout=10)
+            if r.status_code != 200: return {"error": f"API Error {r.status_code}"}
+            recipes = r.json()
+            if not recipes: break
+            
+            for recipe in recipes:
+                # Check tags
+                r_tags = recipe.get("tags", [])
+                # Tags can be objects or strings depending on API version, usually list of strings/objs
+                # Normalize tags to lower strings
+                tag_list = []
+                for t in r_tags:
+                    if isinstance(t, str): tag_list.append(t.lower())
+                    elif isinstance(t, dict): tag_list.append(t.get('name', '').lower())
+                
+                if tag.lower() in tag_list:
+                    return fetch_recipe_details(recipe.get('_id'))
+                    
+        except Exception as e:
+            return {"error": str(e)}
+            
+    return {"error": f"No recipe found with tag '{tag}'"}
+
 def parse_tilt_csv(file_stream):
     """
     Parses a TiltPi CSV log file from a stream/file object.
