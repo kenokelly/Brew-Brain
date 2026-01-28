@@ -319,6 +319,26 @@ function RecipeCard({
                     >
                         <Brain className="w-3 h-3 inline mr-1" /> AI Audit
                     </button>
+                    {recipe.source_url && (
+                        <button
+                            onClick={async () => {
+                                try {
+                                    const res = await fetch('/api/automation/brewfather/import', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ url: recipe.source_url, name: recipe.name })
+                                    });
+                                    const data = await res.json();
+                                    alert(data.message || data.error || 'Imported!');
+                                } catch (e: any) {
+                                    alert('Import failed: ' + e.message);
+                                }
+                            }}
+                            className="px-3 py-1.5 text-xs font-bold rounded-lg bg-emerald-500 text-white hover:bg-emerald-600"
+                        >
+                            <Upload className="w-3 h-3 inline mr-1" /> Import
+                        </button>
+                    )}
                 </div>
             </div>
 

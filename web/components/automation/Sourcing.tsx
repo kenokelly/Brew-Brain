@@ -91,6 +91,37 @@ export function Sourcing() {
                     Select a recipe in "Recipes" tab to enable.
                 </div>
             </div>
+
+            {/* Create Brew Log */}
+            <div className="bg-card/50 p-6 rounded-2xl border border-emerald-500/20">
+                <h4 className="text-lg font-bold mb-2 flex items-center gap-2">
+                    <ExternalLink className="w-5 h-5 text-emerald-400" /> GitHub Brew Log
+                </h4>
+                <p className="text-sm text-muted-foreground mb-4">Create a new brew log entry in your GitHub repository.</p>
+                <button
+                    onClick={async () => {
+                        if (!confirm('Create GitHub Brew Log?')) return;
+                        try {
+                            const res = await fetch('/api/automation/logger/create', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    name: 'Brew Log (Auto)',
+                                    batch: { og: 1.050, fg: 1.010, volume: 23, time: 60 },
+                                    water: { name: 'Default', calcium: 80, chloride: 100, sulfate: 50 }
+                                })
+                            });
+                            const data = await res.json();
+                            alert(data.message || data.error || 'Log created');
+                        } catch (e: any) {
+                            alert('Error: ' + e.message);
+                        }
+                    }}
+                    className="px-6 py-3 bg-emerald-500 text-white font-bold rounded-xl hover:bg-emerald-600 transition-colors"
+                >
+                    Create Brew Log
+                </button>
+            </div>
         </div>
     );
 }
