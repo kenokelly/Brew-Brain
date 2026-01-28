@@ -775,8 +775,8 @@ def compare_recipe_prices(recipe_details, recipe_tag=None):
             logger.error(f"Search Error: {e}")
         return None
 
-    # Limit to top 5 items for speed/cost (Prototype)
-    for item in items_to_check[:6]: 
+    # Limit to top 3 items for speed/cost (Optimized to prevent timeouts)
+    for item in items_to_check[:3]: 
         row = {
             "name": item['name'],
             "type": item['type'],
@@ -792,14 +792,13 @@ def compare_recipe_prices(recipe_details, recipe_tag=None):
         }
         
         # Check inventory stock (Logic omitted for brevity, keeping existing)
-        # ... (Inventory logic remains same) ...
+        # For prototype, we assume we need to buy everything that is not in stock
+        # Ideally check local inventory here.
         
-        # Search Names Setup
-        original_name = item['name']
-        normalized_name = normalize_ingredient_name(original_name)
-        names_to_try = [original_name]
-        if normalized_name and normalized_name.lower() != original_name.lower():
-            names_to_try.append(normalized_name)
+        names_to_try = [item['name']]
+        normalized_name = normalize_ingredient_name(item['name'])
+        if normalized_name:
+             names_to_try.append(normalized_name)
         
         # --- SEARCH MALT MILLER ---
         res_tmm = None
@@ -818,8 +817,6 @@ def compare_recipe_prices(recipe_details, recipe_tag=None):
                 row['tmm_cost'] = round(item_cost, 2)
                 total_tmm += item_cost
             else:
-                # Fallback: Assume price is for 1 unit if weight unknown (dangerous but better than 0)
-                # Or just add the raw price if it seems close? No, safer to alert user.
                 row['tmm_cost'] = "?" 
 
         # --- SEARCH GET ER BREWED ---
@@ -839,21 +836,6 @@ def compare_recipe_prices(recipe_details, recipe_tag=None):
                 total_geb += item_cost
             else:
                 row['geb_cost'] = "?"
-
-        used_name_geb = None
-        for try_name in names_to_try:
-            res_geb = search_price(f"{try_name} site:geterbrewed.com", "Get Er Brewed")
-            if res_geb:
-                used_name_geb = try_name if try_name != original_name else None
-                break
-                
-        if res_geb:
-            row['geb_price'] = res_geb['price']
-            row['geb_weight'] = res_geb.get('weight', 'N/A')
-            total_geb += res_geb['price']
-            # Only set searched_as if TMM didn't already set it
-            if used_name_geb and not row.get('searched_as'):
-                row['searched_as'] = used_name_geb
         
         # Determine Winner
         try:

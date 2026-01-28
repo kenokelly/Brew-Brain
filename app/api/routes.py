@@ -843,8 +843,11 @@ def compare_prices_by_tag(tag):
     Compares prices for a recipe found by tag.
     """
     try:
-        from app.services.sourcing import compare_recipe_prices
-        
+        try:
+            from app.services.sourcing import compare_recipe_prices
+        except ImportError as e:
+            return api_response(status="error", error=f"Dependency Error: {str(e)}", code=500)
+            
         # Decode tag (handle spaces/special chars)
         from urllib.parse import unquote
         decoded_tag = unquote(tag)
