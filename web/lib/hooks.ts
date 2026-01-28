@@ -22,7 +22,8 @@ const fetcher = async <T>(url: string): Promise<T> => {
     const contentType = res.headers.get("content-type");
     if (!contentType || !contentType.includes("application/json")) {
         const text = await res.text();
-        // Throw with a preview of the text (e.g. "Internal Server Error")
+        console.error(`[API Error] ${url} returned ${res.status} (Non-JSON):`, text.substring(0, 200));
+        // Throw with a preview of the text
         throw new Error(`API returned non-JSON (${res.status}): ${text.substring(0, 100)}`);
     }
 

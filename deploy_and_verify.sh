@@ -29,9 +29,10 @@ if [ "$RESTART_ONLY" = false ]; then
         # Fast-Path: Only npm ci if package-lock changed
         if [ ! -d "node_modules" ] || [ package-lock.json -nt node_modules ]; then
             echo "📦 Package lock changed, installing..."
-            npm ci > /dev/null 2>&1
+            npm ci
         fi
-        npm run build > /dev/null 2>&1
+        echo "   Running next build..."
+        npm run build
     ) &
     FE_BUILD_PID=$!
 fi
