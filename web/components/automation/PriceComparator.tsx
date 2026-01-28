@@ -6,15 +6,18 @@ import { cn } from '@/lib/utils';
 
 interface ComparisonItem {
     name: string;
-    tmm_price: number | null;
-    geb_price: number | null;
-    best: 'TMM' | 'GEB' | 'TIE';
+    amount?: string;
+    tmm_price: number | string | null;
+    geb_price: number | string | null;
+    tmm_cost?: number | string;
+    geb_cost?: number | string;
+    best_vendor?: 'TMM' | 'GEB' | 'Tie' | 'None';
 }
 
 interface ComparisonResult {
-    items: ComparisonItem[];
-    total_tmm: number;
-    total_geb: number;
+    breakdown?: ComparisonItem[];
+    total_tmm: number | string;
+    total_geb: number | string;
     winner: string;
     error?: string;
 }
@@ -64,20 +67,22 @@ export function PriceComparator() {
             const data = await res.json();
 
             if (data.error) {
-                setResult({ items: [], total_tmm: 0, total_geb: 0, winner: '', error: data.error });
+                setResult({ breakdown: [], total_tmm: 0, total_geb: 0, winner: '', error: data.error });
             } else {
                 setResult(data);
             }
         } catch (e: any) {
-            setResult({ items: [], total_tmm: 0, total_geb: 0, winner: '', error: e.message });
+            setResult({ breakdown: [], total_tmm: 0, total_geb: 0, winner: '', error: e.message });
         } finally {
             setLoading(false);
         }
     };
 
-    const formatPrice = (price: number | null) => {
-        if (price === null || price === undefined) return 'N/A';
-        return `£${price.toFixed(2)}`;
+    const formatPrice = (price: number | string | null | undefined) => {
+        if (price === null || price === undefined || price === 'N/A' || price === '?') return 'N/A';
+        const num = typeof price === 'string' ? parseFloat(price) : price;
+        if (isNaN(num)) return 'N/A';
+        return `£${num.toFixed(2)}`;
     };
 
     return (
@@ -169,7 +174,7 @@ export function PriceComparator() {
                     </div>
 
                     {/* Savings Banner */}
-                    {result.winner && result.total_tmm > 0 && result.total_geb > 0 && (
+                    {result.winner && typeof result.total_tmm === 'number' && typeof result.total_geb === 'number' && result.total_tmm > 0 && result.total_geb > 0 && (
                         <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 text-center">
                             <span className="text-muted-foreground">You save </span>
                             <span className="text-emerald-400 font-bold text-lg">
@@ -191,29 +196,30 @@ export function PriceComparator() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-white/5">
-                                {result.items.map((item, i) => (
+                                {(result.breakdown || []).map((item: ComparisonItem, i: number) => (
                                     <tr key={i} className="hover:bg-white/5 transition-colors">
-                                        <td className="p-4 font-medium">{item.name}</td>
+                                        <td className="p-4 font-medium">{item.name} {item.amount && <span className="text-xs text-muted-foreground">({item.amount})</span>}</td>
                                         <td className={cn(
                                             "p-4 text-right font-mono",
-                                            item.best === 'TMM' && "text-emerald-400"
+                                            item.best_vendor === 'TMM' && "text-emerald-400"
                                         )}>
                                             {formatPrice(item.tmm_price)}
                                         </td>
                                         <td className={cn(
                                             "p-4 text-right font-mono",
-                                            item.best === 'GEB' && "text-emerald-400"
+                                            item.best_vendor === 'GEB' && "text-emerald-400"
                                         )}>
                                             {formatPrice(item.geb_price)}
                                         </td>
                                         <td className="p-4 text-center">
                                             <span className={cn(
                                                 "px-2 py-1 rounded text-xs font-bold",
-                                                item.best === 'TMM' && "bg-blue-500/20 text-blue-400",
-                                                item.best === 'GEB' && "bg-purple-500/20 text-purple-400",
-                                                item.best === 'TIE' && "bg-gray-500/20 text-gray-400"
+                                                item.best_vendor === 'TMM' && "bg-blue-500/20 text-blue-400",
+                                                item.best_vendor === 'GEB' && "bg-purple-500/20 text-purple-400",
+                                                item.best_vendor === 'Tie' && "bg-gray-500/20 text-gray-400",
+                                                item.best_vendor === 'None' && "bg-gray-500/20 text-gray-400"
                                             )}>
-                                                {item.best}
+                                                {item.best_vendor || 'N/A'}
                                             </span>
                                         </td>
                                     </tr>
