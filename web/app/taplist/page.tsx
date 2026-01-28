@@ -3,7 +3,14 @@
 import { useEffect, useState } from 'react';
 import { getSrmColor } from '@/lib/beer';
 import { cn } from '@/lib/utils';
-import { Beer, Droplets, Edit, RefreshCw, Info } from 'lucide-react';
+import { Beer, Droplets, RefreshCw, X, ChevronRight, Activity, Thermometer, ArrowUpRight } from 'lucide-react';
+import { fetcher } from '@/lib/hooks';
+import toast from 'react-hot-toast';
+// Assuming we have these or need to make simple modal
+import { PintGlass } from '@/components/PintGlass';
+
+// Since we might not have a UI library, I'll build a custom Modal in-file for simplicity and speed, 
+// ensuring strict parity without dependency hell.
 
 interface TapData {
     active: boolean;

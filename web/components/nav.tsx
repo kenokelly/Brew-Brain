@@ -116,13 +116,34 @@ export function NavBar() {
                     ))}
                 </div>
             )}
+            {/* Mobile Bottom Navigation (New) */}
+            <nav className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-card/90 backdrop-blur-lg border-t border-border/50 z-50 pb-safe">
+                <div className="flex justify-around items-center h-full">
+                    <Link href="/" className={cn("flex flex-col items-center justify-center w-full h-full gap-1", pathname === '/' ? "text-primary" : "text-muted-foreground")}>
+                        <LayoutDashboard className="w-5 h-5" />
+                        <span className="text-[10px] font-medium">Dashboard</span>
+                    </Link>
+                    <Link href="/taplist" className={cn("flex flex-col items-center justify-center w-full h-full gap-1", pathname === '/taplist' ? "text-primary" : "text-muted-foreground")}>
+                        <Beer className="w-5 h-5" />
+                        <span className="text-[10px] font-medium">Taps</span>
+                    </Link>
+                    <Link href="/settings" className={cn("flex flex-col items-center justify-center w-full h-full gap-1", pathname === '/settings' ? "text-primary" : "text-muted-foreground")}>
+                        <Menu className="w-5 h-5" />
+                        <span className="text-[10px] font-medium">Settings</span>
+                    </Link>
+                    <Link href="/kiosk" className={cn("flex flex-col items-center justify-center w-full h-full gap-1", pathname === '/kiosk' ? "text-primary" : "text-muted-foreground")}>
+                        <Monitor className="w-5 h-5" />
+                        <span className="text-[10px] font-medium">Kiosk</span>
+                    </Link>
+                </div>
+            </nav>
         </>
     );
 }
 
 export function PageContainer({ children }: { children: React.ReactNode }) {
     return (
-        <div className="md:pl-20 lg:pl-64 min-h-screen pt-16 md:pt-0">
+        <div className="md:pl-20 lg:pl-64 min-h-screen pt-16 md:pt-0 pb-20 md:pb-0">
             {children}
         </div>
     );

@@ -2,9 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { getSrmColor } from '@/lib/beer';
-import { cn } from '@/lib/utils';
-import { Droplets, Wifi, Thermometer, Activity } from 'lucide-react';
+import { Settings, Thermometer, Activity, Maximize, Droplets } from 'lucide-react';
 import { useSocket } from '@/lib/socket';
+import { PintGlass } from '@/components/PintGlass';
+import { fetcher } from '@/lib/hooks';
+import toast from 'react-hot-toast';
+import Link from 'next/link';
 
 interface SystemStatus {
     temp?: number;
@@ -22,6 +25,11 @@ interface TapsResponse {
         keg_remaining?: number;
         keg_total?: number;
         volume_unit?: string;
+        tap_mode?: string;
+        start_date?: string;
+        date?: string; // fallback
+        og?: number;
+        fg?: number;
     };
 }
 
