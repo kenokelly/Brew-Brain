@@ -736,8 +736,71 @@ def compare_recipe_prices(recipe_details, recipe_tag=None, debug_mode=False):
     total_geb = 0.0
     
     api_key = get_config("serp_api_key")
-    if not api_key:
-        return {"error": "Missing SerpApi Key"}
+    use_serp = bool(api_key)  # SerpAPI is now OPTIONAL
+    
+    logger.info(f"[PRICE-CMP] Mode: {'SerpAPI' if use_serp else 'Direct Scraping'}")
+    
+    def search_vendor_direct(ingredient_name, vendor):
+        """
+        Searches vendor site directly via their site search.
+        Returns {"price": float|None, "link": str, "title": str}
+        """
+        from urllib.parse import quote_plus
+        
+        try:
+            query = quote_plus(ingredient_name)
+            
+            if vendor == "tmm":
+                # The Malt Miller uses WooCommerce - search via ?s= parameter
+                search_url = f"https://www.themaltmiller.co.uk/?s={query}&post_type=product"
+                source_name = "The Malt Miller"
+            else:
+                # Get Er Brewed uses custom search
+                search_url = f"https://www.geterbrewed.com/?s={query}&post_type=product"
+                source_name = "Get Er Brewed"
+            
+            logger.debug(f"[DIRECT] Searching {source_name}: {search_url}")
+            html = get_page_content(search_url)
+            
+            if not html:
+                logger.warning(f"[DIRECT] No response from {source_name}")
+                return None
+            
+            soup = BeautifulSoup(html, 'html.parser')
+            
+            # Find first product result - WooCommerce structure
+            product = soup.select_one('.product, .products .product, li.product')
+            if not product:
+                logger.debug(f"[DIRECT] No product found for '{ingredient_name}' on {source_name}")
+                return None
+            
+            # Extract price from WooCommerce
+            price_tag = product.select_one('.price .amount, .price ins .amount, .woocommerce-Price-amount')
+            price = None
+            if price_tag:
+                price = extract_price(price_tag.get_text())
+            
+            # Extract product link
+            link_tag = product.select_one('a[href*="/product/"], a.woocommerce-LoopProduct-link')
+            link = link_tag.get('href') if link_tag else search_url
+            
+            # Extract title
+            title_tag = product.select_one('.woocommerce-loop-product__title, h2, .product-title')
+            title = title_tag.get_text().strip() if title_tag else ingredient_name
+            
+            # Try to extract weight for cost per gram calculation
+            weight_g = extract_weight_in_grams(title)
+            
+            return {
+                "price": price,
+                "link": link,
+                "title": title,
+                "weight_g": weight_g
+            }
+            
+        except Exception as e:
+            logger.warning(f"[DIRECT] Error searching {vendor}: {e}")
+            return None
     
     def search_price(query, source_name):
         try:
@@ -824,15 +887,22 @@ def compare_recipe_prices(recipe_details, recipe_tag=None, debug_mode=False):
         if normalized_name:
              names_to_try.append(normalized_name)
         
-        # --- SEARCH MALT MILLER ---
+        # --- SEARCH MALT MILLER (Direct first, SerpAPI fallback) ---
         res_tmm = None
         for try_name in names_to_try:
-            res_tmm = search_price(f"{try_name} site:themaltmiller.co.uk", "The Malt Miller")
-            if res_tmm: break
+            # Try direct scraping first (free, no quota)
+            res_tmm = search_vendor_direct(try_name, "tmm")
+            if res_tmm and res_tmm.get('price'):
+                logger.debug(f"[TMM] Direct hit for '{try_name}': £{res_tmm['price']}")
+                break
+            # Fallback to SerpAPI if available and direct failed
+            if use_serp and not res_tmm:
+                res_tmm = search_price(f"{try_name} site:themaltmiller.co.uk", "The Malt Miller")
+                if res_tmm: break
         
         if res_tmm:
             row['tmm_price'] = res_tmm['price']
-            row['tmm_link'] = res_tmm['link']
+            row['tmm_link'] = res_tmm.get('link', '#')
             
             # Calculate Cost for Recipe Amount
             if res_tmm.get('weight_g') and res_tmm['weight_g'] > 0:
@@ -843,15 +913,22 @@ def compare_recipe_prices(recipe_details, recipe_tag=None, debug_mode=False):
             else:
                 row['tmm_cost'] = "?" 
 
-        # --- SEARCH GET ER BREWED ---
+        # --- SEARCH GET ER BREWED (Direct first, SerpAPI fallback) ---
         res_geb = None
         for try_name in names_to_try:
-            res_geb = search_price(f"{try_name} site:geterbrewed.com", "Get Er Brewed")
-            if res_geb: break
+            # Try direct scraping first (free, no quota)
+            res_geb = search_vendor_direct(try_name, "geb")
+            if res_geb and res_geb.get('price'):
+                logger.debug(f"[GEB] Direct hit for '{try_name}': £{res_geb['price']}")
+                break
+            # Fallback to SerpAPI if available and direct failed
+            if use_serp and not res_geb:
+                res_geb = search_price(f"{try_name} site:geterbrewed.com", "Get Er Brewed")
+                if res_geb: break
             
         if res_geb:
             row['geb_price'] = res_geb['price']
-            row['geb_link'] = res_geb['link']
+            row['geb_link'] = res_geb.get('link', '#')
             
             if res_geb.get('weight_g') and res_geb['weight_g'] > 0:
                 cost_per_g = res_geb['price'] / res_geb['weight_g']
