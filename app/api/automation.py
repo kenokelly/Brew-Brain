@@ -121,18 +121,78 @@ def get_bf_recipes():
 
 @automation_bp.route('/api/automation/sourcing/compare', methods=['POST'])
 def compare_prices():
-    data = request.json
-    recipe_id = data.get('recipe_id')
-    
-    from app.services import alerts, sourcing
-    
-    # 1. Get Recipe
-    recipe = alerts.fetch_recipe_details(recipe_id)
-    if 'error' in recipe: return jsonify(recipe), 400
-    
-    # 2. Compare
-    res = sourcing.compare_recipe_prices(recipe)
-    return jsonify(res)
+    """Compare recipe ingredient prices between TMM and GEB.
+    Always returns JSON, even on errors to prevent frontend JSON parse failures.
+    """
+    try:
+        data = request.json or {}
+        recipe_id = data.get('recipe_id')
+        
+        if not recipe_id:
+            return jsonify({
+                "error": "Missing recipe_id",
+                "breakdown": [],
+                "total_tmm": 0,
+                "total_geb": 0,
+                "winner": ""
+            }), 400
+        
+        from app.services import alerts, sourcing
+        
+        # 1. Get Recipe
+        recipe = alerts.fetch_recipe_details(recipe_id)
+        if not recipe:
+            return jsonify({
+                "error": "Recipe not found",
+                "breakdown": [],
+                "total_tmm": 0,
+                "total_geb": 0,
+                "winner": ""
+            }), 404
+            
+        if isinstance(recipe, dict) and 'error' in recipe:
+            return jsonify({
+                "error": recipe.get('error', 'Failed to fetch recipe'),
+                "breakdown": [],
+                "total_tmm": 0,
+                "total_geb": 0,
+                "winner": ""
+            }), 400
+        
+        # 2. Compare prices with error handling
+        try:
+            result = sourcing.compare_recipe_prices(recipe)
+        except Exception as scrape_error:
+            logger.exception("Price scraping failed")
+            return jsonify({
+                "error": f"Price scraping failed: {str(scrape_error)}",
+                "breakdown": [],
+                "total_tmm": 0,
+                "total_geb": 0,
+                "winner": ""
+            }), 500
+            
+        # Ensure result has expected structure
+        if not isinstance(result, dict):
+            return jsonify({
+                "error": "Invalid response from price comparison",
+                "breakdown": [],
+                "total_tmm": 0,
+                "total_geb": 0,
+                "winner": ""
+            }), 500
+            
+        return jsonify(result)
+        
+    except Exception as e:
+        logger.exception("Unexpected error in compare_prices")
+        return jsonify({
+            "error": f"Internal server error: {str(e)}",
+            "breakdown": [],
+            "total_tmm": 0,
+            "total_geb": 0,
+            "winner": ""
+        }), 500
 
 @automation_bp.route('/api/automation/pizza', methods=['GET'])
 def get_pizza():
