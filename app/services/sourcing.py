@@ -301,14 +301,24 @@ def get_page_content(url, retries=2, use_browser=False):
                 r.raise_for_status()
                 return r.text
             except requests.exceptions.RequestException as e:
+                error_str = str(e)
+                status_code = getattr(e.response, 'status_code', None) if hasattr(e, 'response') else None
+                
+                # Rate limited - wait longer before retry
+                if status_code == 429 or "429" in error_str:
+                    wait_time = 10 * (attempt + 1)  # 10s, 20s, 30s
+                    logger.warning(f"Rate limited (429) on {url}, waiting {wait_time}s before retry")
+                    _time.sleep(wait_time)
+                    continue
+                
                 if attempt < retries:
                     wait_time = 2 ** attempt
                     logger.warning(f"Retry {attempt + 1}/{retries} for {url} after {wait_time}s: {e}")
                     _time.sleep(wait_time)
                 else:
-                    # If requests fails with 403, try Playwright
-                    if "403" in str(e):
-                        logger.info(f"403 detected, falling back to Playwright for {url}")
+                    # If requests fails with 403 or 429, try Playwright
+                    if status_code in (403, 429) or "403" in error_str or "429" in error_str:
+                        logger.info(f"Access denied ({status_code}), falling back to Playwright for {url}")
                         return get_page_content_browser(url)
                     logger.error(f"Failed to fetch {url} after {retries + 1} attempts: {e}")
                     return None

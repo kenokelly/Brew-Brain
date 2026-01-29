@@ -122,8 +122,10 @@ def get_bf_recipes():
 @automation_bp.route('/api/automation/sourcing/compare', methods=['POST'])
 def compare_prices():
     """Compare recipe ingredient prices between TMM and GEB.
-    Always returns JSON, even on errors to prevent frontend JSON parse failures.
+    DIAGNOSTIC MODE: Returns full stack trace for debugging.
     """
+    import traceback
+    
     try:
         data = request.json or {}
         recipe_id = data.get('recipe_id')
@@ -139,11 +141,13 @@ def compare_prices():
         
         from app.services import alerts, sourcing
         
-        # 1. Get Recipe
+        # 1. Get Recipe with detailed error
+        logger.info(f"[DIAG] Fetching recipe: {recipe_id}")
         recipe = alerts.fetch_recipe_details(recipe_id)
+        
         if not recipe:
             return jsonify({
-                "error": "Recipe not found",
+                "error": "Recipe not found (null response from Brewfather)",
                 "breakdown": [],
                 "total_tmm": 0,
                 "total_geb": 0,
@@ -152,20 +156,24 @@ def compare_prices():
             
         if isinstance(recipe, dict) and 'error' in recipe:
             return jsonify({
-                "error": recipe.get('error', 'Failed to fetch recipe'),
+                "error": f"Recipe fetch error: {recipe.get('error', 'Unknown')}",
                 "breakdown": [],
                 "total_tmm": 0,
                 "total_geb": 0,
                 "winner": ""
             }), 400
         
-        # 2. Compare prices with error handling
+        # 2. Compare prices with FULL stack trace on error
+        logger.info(f"[DIAG] Starting price comparison for: {recipe.get('name', 'Unknown')}")
         try:
             result = sourcing.compare_recipe_prices(recipe)
+            logger.info(f"[DIAG] Price comparison complete. Result keys: {list(result.keys()) if isinstance(result, dict) else 'NOT A DICT'}")
         except Exception as scrape_error:
-            logger.exception("Price scraping failed")
+            tb = traceback.format_exc()
+            logger.error(f"[DIAG] Price scraping CRASHED:\n{tb}")
             return jsonify({
                 "error": f"Price scraping failed: {str(scrape_error)}",
+                "stack_trace": tb,
                 "breakdown": [],
                 "total_tmm": 0,
                 "total_geb": 0,
@@ -175,7 +183,7 @@ def compare_prices():
         # Ensure result has expected structure
         if not isinstance(result, dict):
             return jsonify({
-                "error": "Invalid response from price comparison",
+                "error": f"Invalid response type from price comparison: {type(result).__name__}",
                 "breakdown": [],
                 "total_tmm": 0,
                 "total_geb": 0,
@@ -185,9 +193,11 @@ def compare_prices():
         return jsonify(result)
         
     except Exception as e:
-        logger.exception("Unexpected error in compare_prices")
+        tb = traceback.format_exc()
+        logger.error(f"[DIAG] Unexpected error in compare_prices:\n{tb}")
         return jsonify({
             "error": f"Internal server error: {str(e)}",
+            "stack_trace": tb,
             "breakdown": [],
             "total_tmm": 0,
             "total_geb": 0,

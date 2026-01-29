@@ -24,7 +24,8 @@ interface ComparisonResult {
     total_geb: number | string;
     winner: string;
     error?: string;
-    debug_info?: string; // For showing raw error details in dev mode
+    stack_trace?: string;
+    debug_info?: string;
 }
 
 interface Recipe {
@@ -309,14 +310,24 @@ export function PriceComparator() {
                 </div>
             </div>
 
-            {/* Error Display with Debug Info */}
+            {/* Error Display with Stack Trace */}
             {result?.error && (
                 <div className="p-4 bg-red-500/10 text-red-400 rounded-xl border border-red-500/20">
                     <div className="flex items-start gap-3">
                         <AlertTriangle className="w-5 h-5 mt-0.5 flex-shrink-0" />
                         <div className="flex-1">
                             <div className="font-medium">{result.error}</div>
-                            {result.debug_info && (
+                            {result.stack_trace && (
+                                <details className="mt-2" open>
+                                    <summary className="text-xs cursor-pointer opacity-80 hover:opacity-100 font-bold text-yellow-400">
+                                        📍 STACK TRACE (Line numbers)
+                                    </summary>
+                                    <pre className="mt-2 text-xs bg-black/50 p-3 rounded overflow-x-auto whitespace-pre-wrap font-mono border border-red-500/30">
+                                        {result.stack_trace}
+                                    </pre>
+                                </details>
+                            )}
+                            {result.debug_info && !result.stack_trace && (
                                 <details className="mt-2">
                                     <summary className="text-xs cursor-pointer opacity-60 hover:opacity-100">
                                         Show debug info
