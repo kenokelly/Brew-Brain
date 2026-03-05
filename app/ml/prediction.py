@@ -10,10 +10,11 @@ Uses historical batch data from Brewfather + InfluxDB.
 
 import os
 import logging
-import pandas as pd
 import numpy as np
 import glob
 import joblib
+import pyarrow.parquet as pq
+from collections import defaultdict
 from datetime import datetime
 from typing import Dict, List, Optional, Any
 from app.ml.features import calculate_sg_velocity, calculate_temp_variance, calculate_time_in_phase
@@ -31,33 +32,40 @@ def ensure_model_dir():
     os.makedirs(MODEL_DIR, exist_ok=True)
 
 
-def load_training_data() -> pd.DataFrame:
-    """Load latest aggregated historical batch data."""
+def load_training_data() -> List[Dict[str, Any]]:
+    """Load latest aggregated historical batch data as list of dicts."""
     pattern = os.path.join(EXPORT_DIR, "training_data_*.parquet")
     files = glob.glob(pattern)
     if not files:
         # Fallback to individual batch files
         files = glob.glob(os.path.join(EXPORT_DIR, "*.parquet"))
         if not files:
-            return pd.DataFrame()
+            return []
     
     # Sort by modification time to get the latest
     files.sort(key=os.path.getmtime, reverse=True)
     try:
-        df = pd.read_parquet(files[0])
-        logger.info(f"Loaded training data from {files[0]} ({len(df)} records)")
-        return df
+        table = pq.read_table(files[0])
+        records = table.to_pydict()
+        # Convert column-oriented dict to list of row dicts
+        n = table.num_rows
+        rows = []
+        columns = records.keys()
+        for i in range(n):
+            rows.append({col: records[col][i] for col in columns})
+        logger.info(f"Loaded training data from {files[0]} ({n} records)")
+        return rows
     except Exception as e:
         logger.error(f"Failed to load Parquet data: {e}")
-        return pd.DataFrame()
+        return []
 
 
-def prepare_features(df: pd.DataFrame) -> tuple:
+def prepare_features(data: List[Dict[str, Any]]) -> tuple:
     """
-    Extract features and targets from batch history DataFrame.
+    Extract features and targets from batch history (list of dicts).
     Calculates features (velocity, variance) from raw time-series data.
     """
-    if df.empty:
+    if not data:
         return np.array([]), np.array([]), np.array([])
 
     X = []  # Features
@@ -65,23 +73,33 @@ def prepare_features(df: pd.DataFrame) -> tuple:
     y_time = []  # Time targets
     
     # Group by batch_id to process each fermentation separately
-    for batch_id, group in df.groupby('batch_id'):
+    batches = defaultdict(list)
+    for row in data:
+        batches[row.get('batch_id')].append(row)
+    
+    for batch_id, rows in batches.items():
         try:
             # Sort by timestamp
-            group = group.sort_values('timestamp')
+            rows.sort(key=lambda r: r.get('timestamp', ''))
             
             # Extract basic metadata from first row
-            row = group.iloc[0]
-            og = row.get('og')
-            fg = row.get('fg')
+            first = rows[0]
+            og = first.get('og')
+            fg = first.get('fg')
             
-            if og is None or fg is None or pd.isna(og) or pd.isna(fg):
+            if og is None or fg is None:
+                continue
+            # Check for NaN (works for both int/float)
+            try:
+                if og != og or fg != fg:  # NaN != NaN
+                    continue
+            except TypeError:
                 continue
 
             # Calculate engineering features from raw data
-            temp_readings = group['temp'].dropna().tolist()
-            sg_readings = group['sg'].dropna().tolist()
-            timestamps = group['timestamp'].tolist()
+            temp_readings = [r['temp'] for r in rows if r.get('temp') is not None]
+            sg_readings = [r['sg'] for r in rows if r.get('sg') is not None]
+            timestamps = [r['timestamp'] for r in rows]
             
             if len(sg_readings) < 10 or len(temp_readings) < 10:
                 continue
@@ -89,13 +107,17 @@ def prepare_features(df: pd.DataFrame) -> tuple:
             # Features: OG, sg_velocity, temp_variance, avg_temp
             velocity = calculate_sg_velocity(sg_readings, timestamps)
             variance = calculate_temp_variance(temp_readings)
-            avg_temp = np.mean(temp_readings)
+            avg_temp = float(np.mean(temp_readings))
             
             # Calculate days to FG (time from pitch to when SG reaches FG +/- 0.001)
             pitch_time = timestamps[0]
-            fg_time = group[group['sg'] <= fg + 0.001]['timestamp'].min()
+            fg_time = None
+            for r in rows:
+                if r.get('sg') is not None and r['sg'] <= fg + 0.001:
+                    fg_time = r['timestamp']
+                    break
             
-            if pd.isna(fg_time):
+            if fg_time is None:
                 days_to_fg = calculate_time_in_phase(pitch_time, timestamps[-1])
             else:
                 days_to_fg = calculate_time_in_phase(pitch_time, fg_time)
@@ -130,11 +152,11 @@ def train_models() -> Dict[str, Any]:
     ensure_model_dir()
     
     # Load data
-    df = load_training_data()
-    if df.empty:
+    data = load_training_data()
+    if not data:
         return {"error": "No training data found in data/exports/*.parquet"}
     
-    X, y_fg, y_time = prepare_features(df)
+    X, y_fg, y_time = prepare_features(data)
     
     if len(X) < 5:
         return {"error": f"Need at least 5 valid batches, got {len(X)}"}
@@ -288,13 +310,20 @@ def get_model_info() -> Dict[str, Any]:
     from datetime import datetime
     import joblib
     
-    training_df = load_training_data()
+    training_data = load_training_data()
+    
+    # Count unique batch IDs
+    batch_ids_set = set()
+    for row in training_data:
+        bid = row.get('batch_id')
+        if bid is not None:
+            batch_ids_set.add(bid)
     
     info = {
         "fg_model": {"exists": os.path.exists(FG_MODEL_PATH)},
         "time_model": {"exists": os.path.exists(TIME_MODEL_PATH)},
-        "training_records": len(training_df) if not training_df.empty else 0,
-        "unique_batches": training_df['batch_id'].nunique() if not training_df.empty else 0
+        "training_records": len(training_data),
+        "unique_batches": len(batch_ids_set)
     }
     
     if info["fg_model"]["exists"]:

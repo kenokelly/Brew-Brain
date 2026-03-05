@@ -61,23 +61,22 @@ Transform Brew Brain from a monitoring dashboard into an **Intelligent Fermentat
 
 ## Open Work
 
-### Phase 5 — Pi Stability (Priority: HIGH) 🔴
+### Phase 5 — Pi Stability (Priority: HIGH) 🟡
 
 > Directly impacts reliability. Do this first.
 
-- [ ] **5.1 Replace Playwright with Requests + BeautifulSoup**
-  - Files: `app/services/sourcing.py`, `app/ml/scraper.py`
-  - Why: Playwright launches headless Chromium (~500 MB RAM) causing OOM on the Pi
-  - If JS rendering is strictly needed, use a separate lightweight service
+- [x] **5.1 Replace Playwright with Requests + BeautifulSoup** ✅
+  - Files: `app/services/sourcing.py`
+  - Playwright fully removed; `get_page_content` uses `requests` + `BeautifulSoup`
 
-- [ ] **5.2 Move Scraping to Background Jobs**
+- [x] **5.2 Move Scraping to Background Jobs** ✅
   - Files: `app/services/sourcing.py`, `app/api/routes.py`
-  - Why: Synchronous scraping blocks Flask and freezes the dashboard
-  - Use APScheduler; API returns a job ID, results pushed via SocketIO
+  - `compare_recipe_prices_async` runs in background thread; API returns job ID
 
-- [ ] **5.3 Replace Pandas with Lightweight Alternatives**
-  - Why: Pandas + NumPy consume significant RAM for small homebrew datasets
-  - Use stdlib `statistics`, dicts, and list comprehensions instead
+- [/] **5.3 Replace Pandas with Lightweight Alternatives**
+  - `alerts.py`: ✅ `parse_tilt_csv` uses stdlib `csv` (no Pandas)
+  - `batch_exporter.py`: ❌ still imports Pandas
+  - `ml/prediction.py`: ❌ still imports Pandas
 
 ---
 

@@ -9,7 +9,8 @@ import os
 import logging
 import base64
 import requests
-import pandas as pd
+import pyarrow as pa
+import pyarrow.parquet as pq
 from datetime import datetime, timezone
 from typing import Dict, List, Optional, Any
 from app.core.config import get_config
@@ -103,44 +104,49 @@ def export_batch_to_parquet(
         
         tables = query_api.query(query)
         
-        # Convert to pandas DataFrame
-        records = []
+        # Collect records as column-oriented lists for pyarrow
+        timestamps = []
+        temps = []
+        sgs = []
         for table in tables:
             for record in table.records:
-                records.append({
-                    "timestamp": record.get_time(),
-                    "temp": record.values.get("Temp"),
-                    "sg": record.values.get("SG"),
-                    "batch_id": batch_id,
-                    "batch_name": batch_name,
-                    "yeast": yeast,
-                    "style": style,
-                    "og": og,
-                    "fg": fg
-                })
+                timestamps.append(record.get_time())
+                temps.append(record.values.get("Temp"))
+                sgs.append(record.values.get("SG"))
         
-        if not records:
+        if not timestamps:
             return {
                 "status": "error",
                 "error": "No sensor data found for this batch"
             }
         
-        df = pd.DataFrame(records)
+        n = len(timestamps)
+        arrow_table = pa.table({
+            "timestamp": timestamps,
+            "temp": temps,
+            "sg": sgs,
+            "batch_id": [batch_id] * n,
+            "batch_name": [batch_name] * n,
+            "yeast": [yeast] * n,
+            "style": [style] * n,
+            "og": [og] * n,
+            "fg": [fg] * n,
+        })
         
         # Export to Parquet
         filename = f"{batch_id}_{batch_name.replace(' ', '_')}.parquet"
         filepath = os.path.join(EXPORT_DIR, filename)
         
-        df.to_parquet(filepath, engine='pyarrow', compression='snappy')
+        pq.write_table(arrow_table, filepath, compression='snappy')
         
-        logger.info(f"Exported batch {batch_name} to {filepath} ({len(records)} records)")
+        logger.info(f"Exported batch {batch_name} to {filepath} ({n} records)")
         
         return {
             "status": "success",
             "filepath": filepath,
-            "records": len(records),
+            "records": n,
             "size_kb": round(os.path.getsize(filepath) / 1024, 2),
-            "columns": list(df.columns)
+            "columns": arrow_table.column_names
         }
         
     except Exception as e:
@@ -184,26 +190,30 @@ def aggregate_training_data(batch_ids: Optional[List[str]] = None) -> Dict[str, 
                 if any(bid in f for bid in batch_ids)
             ]
         
-        # Read and combine all Parquet files
-        dfs = [pd.read_parquet(f) for f in parquet_files]
-        combined_df = pd.concat(dfs, ignore_index=True)
+        # Read and combine all Parquet files using pyarrow
+        arrow_tables = [pq.read_table(f) for f in parquet_files]
+        combined_table = pa.concat_tables(arrow_tables)
         
         # Export combined dataset
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         filename = f"training_data_{timestamp}.parquet"
         filepath = os.path.join(EXPORT_DIR, filename)
         
-        combined_df.to_parquet(filepath, engine='pyarrow', compression='snappy')
+        pq.write_table(combined_table, filepath, compression='snappy')
         
         logger.info(f"Aggregated {len(parquet_files)} batches into {filepath}")
+        
+        # Count unique batch IDs
+        batch_ids = combined_table.column('batch_id').to_pylist()
+        unique_count = len(set(batch_ids))
         
         return {
             "status": "success",
             "filepath": filepath,
             "batches_included": len(parquet_files),
-            "total_records": len(combined_df),
+            "total_records": combined_table.num_rows,
             "size_kb": round(os.path.getsize(filepath) / 1024, 2),
-            "unique_batches": combined_df['batch_id'].nunique()
+            "unique_batches": unique_count
         }
         
     except Exception as e:

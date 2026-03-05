@@ -2,7 +2,6 @@ import unittest
 from unittest.mock import MagicMock, patch, mock_open
 from datetime import datetime, timezone, timedelta
 import numpy as np
-import pandas as pd
 
 
 class TestDataPipeline(unittest.TestCase):
@@ -136,9 +135,9 @@ class TestDataPipeline(unittest.TestCase):
         self.assertEqual(batches[0]["name"], "Test IPA")
 
     @patch('app.services.batch_exporter.os.makedirs')
-    @patch('app.services.batch_exporter.pd.DataFrame.to_parquet')
+    @patch('app.services.batch_exporter.pq.write_table')
     @patch('app.services.batch_exporter.os.path.getsize')
-    def test_export_batch_to_parquet(self, mock_getsize, mock_to_parquet, mock_makedirs):
+    def test_export_batch_to_parquet(self, mock_getsize, mock_write_table, mock_makedirs):
         from app.services.batch_exporter import export_batch_to_parquet
         
         # Mock InfluxDB query
@@ -179,7 +178,7 @@ class TestDataPipeline(unittest.TestCase):
             self.assertEqual(result["status"], "success")
             self.assertGreater(result["records"], 0)
             self.assertIn("filepath", result)
-            mock_to_parquet.assert_called_once()
+            mock_write_table.assert_called_once()
 
 
 if __name__ == '__main__':
