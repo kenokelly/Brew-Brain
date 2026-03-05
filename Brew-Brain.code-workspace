@@ -2,6 +2,10 @@
 	"folders": [
 		{
 			"path": "."
+		},
+		{
+			"name": ".vscode-ssh-mounts",
+			"path": "../.vscode-ssh-mounts"
 		}
 	],
 	"settings": {
