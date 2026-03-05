@@ -1,7 +1,11 @@
 .env
 brain_data/
-pycache/
+__pycache__/
+*.pyc
 *.zip
+.DS_Store
+.venv/
+.pytest_cache/
 influxdb_data/
 grafana_data/
 brew_brain_backup_*
