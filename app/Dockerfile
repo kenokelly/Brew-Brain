@@ -30,14 +30,7 @@ COPY requirements-app.txt .
 RUN --mount=type=cache,target=/root/.cache/pip \
     pip install -r requirements-app.txt
 
-# ============================================
-# LAYER 4: Playwright (Externalized to volume)
-# ============================================
-ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
-# The browser should be installed to a persistent volume to skip download in future builds
-RUN if [ ! -d "$PLAYWRIGHT_BROWSERS_PATH/chromium-1091" ]; then \
-    playwright install chromium; \
-    fi
+
 
 # ============================================
 # LAYER 4: Application Code

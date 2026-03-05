@@ -59,7 +59,7 @@ def check_alerts():
     f = request.files['file']
     target = float(request.form.get('target', 20.0))
     
-    res = alerts.check_temp_stability(f, target, is_dataframe=False)
+    res = alerts.check_temp_stability(f, target)
     return jsonify(res)
 
 @automation_bp.route('/api/automation/brewfather/batches', methods=['GET'])
@@ -80,15 +80,15 @@ def analyze_bf_batch():
     readings = alerts.fetch_batch_readings(batch_id)
     if not readings: return jsonify({"error": "No readings found or API error"}), 404
     
-    # Convert to DataFrame
-    import pandas as pd
-    df = pd.DataFrame(readings)
+    # Ensure 'temp' values are numeric
+    for r in readings:
+        if 'temp' in r:
+            try:
+                r['temp'] = float(r['temp'])
+            except (ValueError, TypeError):
+                pass
     
-    # Ensure 'temp' column exists and is numeric
-    if 'temp' in df.columns:
-        df['temp'] = pd.to_numeric(df['temp'], errors='coerce')
-        
-    res = alerts.check_temp_stability(df, target, is_dataframe=True)
+    res = alerts.check_temp_stability(readings, target, is_list=True)
     return jsonify(res)
 
 @automation_bp.route('/api/automation/sourcing/list', methods=['POST'])
@@ -113,6 +113,36 @@ def sourcing_watch():
     # Trigger the check manually for now (can be cron'd)
     res = sourcing.check_price_watch()
     return jsonify(res)
+
+@automation_bp.route('/api/automation/sourcing/compare-async', methods=['POST'])
+def compare_prices_async():
+    """Start a background price comparison job. Returns a job_id (HTTP 202)."""
+    data = request.json or {}
+    recipe_id = data.get('recipe_id')
+    recipe_tag = data.get('recipe_tag')
+
+    from app.services import sourcing, alerts as bf_alerts
+
+    recipe_details = None
+    if recipe_id:
+        recipe_details = bf_alerts.fetch_recipe_details(recipe_id)
+        if not recipe_details or (isinstance(recipe_details, dict) and 'error' in recipe_details):
+            return jsonify({"error": "Recipe not found"}), 404
+
+    job_id = sourcing.compare_recipe_prices_async(
+        recipe_details=recipe_details,
+        recipe_tag=recipe_tag
+    )
+    return jsonify({"job_id": job_id, "status": "accepted"}), 202
+
+@automation_bp.route('/api/automation/sourcing/job/<job_id>', methods=['GET'])
+def get_sourcing_job(job_id):
+    """Poll for the result of an async price comparison job."""
+    from app.services import sourcing
+    result = sourcing.get_job_status(job_id)
+    if result is None:
+        return jsonify({"error": "Job not found"}), 404
+    return jsonify(result)
 
 @automation_bp.route('/api/automation/brewfather/recipes', methods=['GET'])
 def get_bf_recipes():

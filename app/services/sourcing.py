@@ -256,11 +256,11 @@ def extract_price(text):
 _last_request_time = {}
 _MIN_REQUEST_INTERVAL = 2.0  # Minimum 2 seconds between requests to same domain
 
-def get_page_content(url, retries=2, use_browser=False):
+def get_page_content(url, retries=2):
     """
-    Fetches page HTML. Tries requests first, falls back to Playwright if blocked.
-    Set use_browser=True to force Playwright (slower but bypasses anti-bot).
+    Fetches page HTML using requests + retries with exponential backoff.
     Includes rate limiting to be respectful to vendor sites.
+    Returns None if all attempts fail.
     """
     import time as _time
     from urllib.parse import urlparse
@@ -276,85 +276,50 @@ def get_page_content(url, retries=2, use_browser=False):
             _time.sleep(wait_time)
     _last_request_time[domain] = _time.time()
     
-    # Try requests first (fast path)
-    if not use_browser:
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-            'Accept-Language': 'en-GB,en;q=0.9,en-US;q=0.8',
-            'Accept-Encoding': 'gzip, deflate',
-            'Connection': 'keep-alive',
-            'Upgrade-Insecure-Requests': '1',
-            'Sec-Fetch-Dest': 'document',
-            'Sec-Fetch-Mode': 'navigate',
-            'Sec-Fetch-Site': 'none',
-            'Sec-Fetch-User': '?1',
-            'Cache-Control': 'max-age=0',
-            'Sec-Ch-Ua': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
-            'Sec-Ch-Ua-Mobile': '?0',
-            'Sec-Ch-Ua-Platform': '"macOS"',
-        }
-        
-        for attempt in range(retries + 1):
-            try:
-                r = requests.get(url, headers=headers, timeout=15, allow_redirects=True)
-                r.raise_for_status()
-                return r.text
-            except requests.exceptions.RequestException as e:
-                error_str = str(e)
-                status_code = getattr(e.response, 'status_code', None) if hasattr(e, 'response') else None
-                
-                # Rate limited - wait longer before retry
-                if status_code == 429 or "429" in error_str:
-                    wait_time = 10 * (attempt + 1)  # 10s, 20s, 30s
-                    logger.warning(f"Rate limited (429) on {url}, waiting {wait_time}s before retry")
-                    _time.sleep(wait_time)
-                    continue
-                
-                if attempt < retries:
-                    wait_time = 2 ** attempt
-                    logger.warning(f"Retry {attempt + 1}/{retries} for {url} after {wait_time}s: {e}")
-                    _time.sleep(wait_time)
-                else:
-                    # If requests fails with 403 or 429, try Playwright
-                    if status_code in (403, 429) or "403" in error_str or "429" in error_str:
-                        logger.info(f"Access denied ({status_code}), falling back to Playwright for {url}")
-                        return get_page_content_browser(url)
-                    logger.error(f"Failed to fetch {url} after {retries + 1} attempts: {e}")
-                    return None
-    else:
-        return get_page_content_browser(url)
-
-def get_page_content_browser(url):
-    """
-    Fetches page HTML using Playwright headless browser.
-    Slower but bypasses Cloudflare/anti-bot protection.
-    """
-    try:
-        from playwright.sync_api import sync_playwright
-    except ImportError:
-        logger.error("Playwright not installed. Run: pip install playwright && playwright install chromium")
-        return None
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+        'Accept-Language': 'en-GB,en;q=0.9,en-US;q=0.8',
+        'Accept-Encoding': 'gzip, deflate',
+        'Connection': 'keep-alive',
+        'Upgrade-Insecure-Requests': '1',
+        'Sec-Fetch-Dest': 'document',
+        'Sec-Fetch-Mode': 'navigate',
+        'Sec-Fetch-Site': 'none',
+        'Sec-Fetch-User': '?1',
+        'Cache-Control': 'max-age=0',
+        'Sec-Ch-Ua': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
+        'Sec-Ch-Ua-Mobile': '?0',
+        'Sec-Ch-Ua-Platform': '"macOS"',
+    }
     
-    try:
-        with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True)
-            context = browser.new_context(
-                user_agent='Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                viewport={'width': 1920, 'height': 1080}
-            )
-            page = context.new_page()
-            # Navigate and wait for network to be idle (Cloudflare challenge completes)
-            page.goto(url, wait_until="networkidle", timeout=45000)
-            # Extra wait for any JS rendering
-            page.wait_for_timeout(3000)
-            content = page.content()
-            browser.close()
-            logger.info(f"Successfully fetched {url} via Playwright ({len(content)} chars)")
-            return content
-    except Exception as e:
-        logger.error(f"Playwright fetch failed for {url}: {e}")
-        return None
+    for attempt in range(retries + 1):
+        try:
+            r = requests.get(url, headers=headers, timeout=15, allow_redirects=True)
+            r.raise_for_status()
+            return r.text
+        except requests.exceptions.RequestException as e:
+            error_str = str(e)
+            status_code = getattr(e.response, 'status_code', None) if hasattr(e, 'response') else None
+            
+            # Rate limited - wait longer before retry
+            if status_code == 429 or "429" in error_str:
+                wait_time = 10 * (attempt + 1)  # 10s, 20s, 30s
+                logger.warning(f"Rate limited (429) on {url}, waiting {wait_time}s before retry")
+                _time.sleep(wait_time)
+                continue
+            
+            if attempt < retries:
+                wait_time = 2 ** attempt
+                logger.warning(f"Retry {attempt + 1}/{retries} for {url} after {wait_time}s: {e}")
+                _time.sleep(wait_time)
+            else:
+                logger.warning(f"Failed to fetch {url} after {retries + 1} attempts: {e}")
+                return None
+    
+    return None
+
+
 
 def extract_weight_in_grams(text):
     """
@@ -1029,3 +994,79 @@ def get_restock_suggestions():
         except: pass
         
     return suggestions
+
+
+# ============================================
+# ASYNC JOB INFRASTRUCTURE
+# ============================================
+
+import threading
+import uuid
+import time as _time_module
+
+# In-memory job store. Keys are job_id (str), values are dicts with:
+#   status: "pending" | "running" | "done" | "error"
+#   result: dict | None
+#   error: str | None
+#   created_at: float (time.time())
+_jobs = {}
+_jobs_lock = threading.Lock()
+_JOB_TTL_SECONDS = 3600  # Jobs expire after 1 hour
+
+
+def _cleanup_expired_jobs():
+    """Remove jobs older than TTL to prevent unbounded memory growth."""
+    now = _time_module.time()
+    with _jobs_lock:
+        expired = [jid for jid, j in _jobs.items() if now - j["created_at"] > _JOB_TTL_SECONDS]
+        for jid in expired:
+            del _jobs[jid]
+
+
+def compare_recipe_prices_async(recipe_details=None, recipe_tag=None):
+    """
+    Runs compare_recipe_prices in a background thread.
+    Returns a job_id immediately (does not block Flask).
+    """
+    _cleanup_expired_jobs()
+
+    job_id = str(uuid.uuid4())
+    with _jobs_lock:
+        _jobs[job_id] = {
+            "status": "pending",
+            "result": None,
+            "error": None,
+            "created_at": _time_module.time(),
+        }
+
+    def _worker():
+        with _jobs_lock:
+            _jobs[job_id]["status"] = "running"
+        try:
+            result = compare_recipe_prices(recipe_details, recipe_tag=recipe_tag)
+            with _jobs_lock:
+                _jobs[job_id]["status"] = "done"
+                _jobs[job_id]["result"] = result
+        except Exception as e:
+            logger.error(f"Async price comparison failed (job {job_id}): {e}")
+            with _jobs_lock:
+                _jobs[job_id]["status"] = "error"
+                _jobs[job_id]["error"] = str(e)
+
+    thread = threading.Thread(target=_worker, daemon=True)
+    thread.start()
+    return job_id
+
+
+def get_job_status(job_id):
+    """Returns the current state of an async job, or None if not found."""
+    with _jobs_lock:
+        job = _jobs.get(job_id)
+    if job is None:
+        return None
+    return {
+        "job_id": job_id,
+        "status": job["status"],
+        "result": job["result"],
+        "error": job["error"],
+    }

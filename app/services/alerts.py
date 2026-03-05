@@ -1,4 +1,4 @@
-import pandas as pd
+import csv
 import logging
 import io
 import requests
@@ -152,50 +152,77 @@ def fetch_recipe_by_tag(tag: str):
 def parse_tilt_csv(file_stream):
     """
     Parses a TiltPi CSV log file from a stream/file object.
+    Returns a list of dicts with column names as keys.
     """
     try:
-        df = pd.read_csv(file_stream)
-        
-        # Ensure we have a datetime index if possible, commonly 'Timepoint' or 'Time'
-        time_col = next((c for c in df.columns if 'time' in c.lower()), None)
-        if time_col:
-            df['datetime'] = pd.to_datetime(df[time_col])
-        
-        return df
+        if isinstance(file_stream, bytes):
+            file_stream = io.StringIO(file_stream.decode('utf-8'))
+        elif isinstance(file_stream, str):
+            file_stream = io.StringIO(file_stream)
+
+        reader = csv.DictReader(file_stream)
+        rows = list(reader)
+
+        if not rows:
+            return None
+
+        # Convert numeric fields
+        for row in rows:
+            for key in row:
+                try:
+                    row[key] = float(row[key])
+                except (ValueError, TypeError):
+                    pass  # Keep as string (e.g. timestamps, labels)
+
+        return rows
     except Exception as e:
         logger.error(f"Failed to parse CSV: {e}")
         return None
 
-def check_temp_stability(data_source, target_temp, threshold=1.0, is_dataframe=False):
+def check_temp_stability(data_source, target_temp, threshold=1.0, is_list=False):
     """
-    Checks stability. data_source can be a DataFrame or a CSV stream.
+    Checks temperature stability.
+    data_source can be a list of dicts (readings) or a CSV stream.
     """
-    df = data_source
-    if not is_dataframe:
-        df = parse_tilt_csv(data_source)
-    
-    if df is None or df.empty:
+    rows = data_source
+    if not is_list:
+        rows = parse_tilt_csv(data_source)
+
+    if not rows:
         return {"status": "error", "message": "Invalid or Empty Data"}
-    
-    # Look for a Temperature column
-    # If from Brewfather API readings, it might be 'temp'
-    temp_col = next((c for c in df.columns if 'temp' in c.lower() and 'f' not in c.lower()), None)
-    
-    if not temp_col:
-         return {"status": "error", "message": "Temperature column not found"}
+
+    # Find temperature column (case-insensitive, avoids 'tempF'-style columns)
+    sample = rows[0]
+    temp_key = None
+    for key in sample:
+        if 'temp' in key.lower() and 'f' not in key.lower():
+            temp_key = key
+            break
+
+    if not temp_key:
+        return {"status": "error", "message": "Temperature column not found"}
 
     # Use last 20 readings
-    last_temps = df[temp_col].tail(20)
-    if last_temps.empty:
-         return {"status": "error", "message": "Not enough data"}
+    last_rows = rows[-20:]
+    temps = []
+    for row in last_rows:
+        val = row.get(temp_key)
+        if val is not None:
+            try:
+                temps.append(float(val))
+            except (ValueError, TypeError):
+                pass
 
-    max_dev = abs(last_temps - target_temp).max()
+    if not temps:
+        return {"status": "error", "message": "Not enough data"}
+
+    max_dev = max(abs(t - target_temp) for t in temps)
     is_stable = max_dev <= threshold
-    
+
     return {
         "status": "stable" if is_stable else "unstable",
         "max_deviation": round(max_dev, 2),
-        "current_temp": round(last_temps.iloc[-1], 2),
+        "current_temp": round(temps[-1], 2),
         "target_temp": target_temp
     }
 

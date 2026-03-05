@@ -64,7 +64,6 @@ services:
       - INFLUX_BUCKET=fermentation
       - TZ=Europe/London
       - BREW_BRAIN_DATA=/data
-      - PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
     healthcheck:
       test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/api/status', timeout=5)" ]
       interval: 5s
@@ -74,7 +73,6 @@ services:
     volumes:
       - ./brain_data:/data
       - ./app:/app
-      - playwright-cache:/ms-playwright
     networks:
       - brewery-net
     depends_on:
@@ -94,9 +92,6 @@ services:
     depends_on:
       - brew-brain
 
-volumes:
-  playwright-cache:
-    driver: local
 
 networks:
   brewery-net:
