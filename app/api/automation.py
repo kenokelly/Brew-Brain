@@ -2,6 +2,8 @@ from flask import Blueprint, jsonify, request
 from app.core.decorators import api_safe
 from app.services import scout, calculator, water, alerts
 import io
+import json
+import os
 import logging
 
 automation_bp = Blueprint('automation', __name__)
@@ -154,8 +156,6 @@ def compare_prices():
     """Compare recipe ingredient prices between TMM and GEB.
     DIAGNOSTIC MODE: Returns full stack trace for debugging.
     """
-    import traceback
-    
     try:
         data = request.json or {}
         recipe_id = data.get('recipe_id')
@@ -255,8 +255,6 @@ def create_log():
 @automation_bp.route('/api/automation/calcs/save_profile', methods=['POST'])
 def save_profile():
     data = request.json
-    import json
-    import os
     
     # Simple JSON Store
     PROFILE_FILE = 'data/profiles.json'
@@ -265,8 +263,8 @@ def save_profile():
         try:
             with open(PROFILE_FILE, 'r') as f:
                 profiles = json.load(f)
-        except: pass
-        
+        except (json.JSONDecodeError, OSError):
+            pass
     profiles[data.get('name')] = data.get('data')
     
     with open(PROFILE_FILE, 'w') as f:
@@ -276,8 +274,6 @@ def save_profile():
 
 @automation_bp.route('/api/automation/calcs/profiles', methods=['GET'])
 def get_profiles():
-    import json
-    import os
     PROFILE_FILE = 'data/profiles.json'
     if os.path.exists(PROFILE_FILE):
         with open(PROFILE_FILE, 'r') as f:
@@ -287,16 +283,13 @@ def get_profiles():
 
 @automation_bp.route('/api/automation/inventory', methods=['GET'])
 def get_inventory():
-    import json
-    import os
     try:
         with open('data/inventory.json', 'r') as f:
             return jsonify(json.load(f))
-    except: return jsonify({})
+    except (FileNotFoundError, json.JSONDecodeError): return jsonify({})
 
 @automation_bp.route('/api/automation/inventory/save', methods=['POST'])
 def save_inventory():
-    import json
     data = request.json
     try:
         with open('data/inventory.json', 'w') as f:
@@ -308,7 +301,6 @@ def save_inventory():
 @automation_bp.route('/api/automation/inventory/sync', methods=['POST'])
 def sync_inventory():
     from app.services import alerts
-    import json
     
     # 1. Fetch from BF
     bf_inv = alerts.fetch_brewfather_inventory()

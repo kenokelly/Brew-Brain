@@ -35,7 +35,7 @@ def generate_label(data):
         font_header = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 120)
         font_sub = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 60)
         font_detail = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 40)
-    except:
+    except (OSError, IOError):
         # Fallback for dev/mac without specific font paths, using default (will be small)
         # In a real app we'd ship a font file. For now, rely on PIL default which is readable but small.
         # Check if we can use a "better" default logic? 

@@ -623,7 +623,7 @@ def check_price_watch():
                         )
                         alerts.append(msg)
                         break # Found best deal for this item
-                except:
+                except (ValueError, TypeError):
                     continue
         except Exception as e:
             logger.error(f"Price Watch Error for {name}: {e}")
@@ -911,7 +911,7 @@ def compare_recipe_prices(recipe_details, recipe_tag=None, debug_mode=False):
             if t < g and t != 9999: row['best_vendor'] = "TMM"
             elif g < t and g != 9999: row['best_vendor'] = "GEB"
             elif t == g and t != 9999: row['best_vendor'] = "Tie"
-        except: pass
+        except (ValueError, TypeError): pass
         
         results.append(row)
         
@@ -953,7 +953,7 @@ def get_restock_suggestions():
             }
             res = GoogleSearch(params).get_dict().get("shopping_results", [])
             if res: return res[0].get("link", "#")
-        except: pass
+        except Exception: pass
         return "#"
 
     # Scan Categories
@@ -978,7 +978,7 @@ def get_restock_suggestions():
                         "link": link,
                         "vendor": "The Malt Miller"
                     })
-            except:
+            except (ValueError, TypeError):
                 continue
                 
     if suggestions:
@@ -991,7 +991,7 @@ def get_restock_suggestions():
              msg += "\nCheck Dashboard for Purchase Links."
              # Only send if meaningful diff? For now just send.
              send_telegram_message(msg)
-        except: pass
+        except Exception: pass
         
     return suggestions
 

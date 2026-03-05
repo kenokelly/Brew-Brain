@@ -9,13 +9,13 @@ Uses historical batch data from Brewfather + InfluxDB.
 """
 
 import os
-import logging
-import numpy as np
 import glob
+import logging
 import joblib
+import numpy as np
 import pyarrow.parquet as pq
+from datetime import datetime, timezone
 from collections import defaultdict
-from datetime import datetime
 from typing import Dict, List, Optional, Any
 from app.ml.features import calculate_sg_velocity, calculate_temp_variance, calculate_time_in_phase
 
@@ -219,8 +219,7 @@ def predict_fg(og: float, velocity: float = 0.0, variance: float = 0.0, avg_temp
     Returns:
         Dict with predicted_fg, predicted_abv, confidence
     """
-    import joblib
-    import os
+
     
     # Check if model exists
     if not os.path.exists(FG_MODEL_PATH):
@@ -267,8 +266,7 @@ def predict_time_to_fg(og: float, velocity: float = 0.0, variance: float = 0.0, 
     Returns:
         Dict with days_remaining, estimated_completion
     """
-    import joblib
-    import os
+
     
     if not os.path.exists(TIME_MODEL_PATH):
         # Fallback: estimate based on velocity
@@ -306,9 +304,7 @@ def predict_time_to_fg(og: float, velocity: float = 0.0, variance: float = 0.0, 
 
 def get_model_info() -> Dict[str, Any]:
     """Get information about trained models."""
-    import os
-    from datetime import datetime
-    import joblib
+
     
     training_data = load_training_data()
     

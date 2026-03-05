@@ -77,7 +77,7 @@ def extract_range(text, keyword):
         match = re.search(f"{keyword}.*?(\\d+(?:-\\d+)?)\\s*%", text)
         if match:
             return match.group(1) + "%"
-    except:
+    except (re.error, IndexError, ValueError):
         pass
     return "Unknown"
 
@@ -91,7 +91,7 @@ def extract_keyword(text, keyword, options):
         for opt in options:
             if opt in snippet:
                 return opt.capitalize()
-    except:
+    except (IndexError, ValueError):
         pass
     return "Unknown"
 
@@ -107,6 +107,6 @@ def extract_temp_range(text):
         c_match = re.search(r"(\d{2})\s*-\s*(\d{2})\s*°?c", text)
         if c_match:
             return f"{c_match.group(1)}-{c_match.group(2)}°C"
-    except:
+    except (re.error, IndexError, ValueError):
         pass
     return "Unknown"

@@ -4,7 +4,7 @@ from app.core.influx import query_api, INFLUX_BUCKET
 def get_pi_temp():
     try:
         with open("/sys/class/thermal/thermal_zone0/temp", "r") as f: return round(int(f.read()) / 1000, 1)
-    except: return 0.0
+    except (FileNotFoundError, OSError): return 0.0
 
 def get_status_dict():
     test_mode = get_config("test_mode") == "true"
@@ -59,8 +59,8 @@ def get_status_dict():
             if recent_sg == 0.0 or recent_temp == 0.0:
                  # Original Influx Fallback Logic...
                  pass # We keep the query logic above, this just overrides it if TILT_STATE is good.
-    except Exception as e:
-        # logger.error(f"Status Error: {e}")
+    except (ConnectionError, OSError, KeyError) as e:
+        # Fail gracefully — status page should never crash
         pass
 
 

@@ -9,9 +9,6 @@ from flask import Blueprint, jsonify, request, send_from_directory, send_file, R
 from app.core.config import get_config, set_config, get_all_config, DATA_DIR, BACKUP_DIR, logger
 from app.core.influx import query_api, write_api, INFLUX_BUCKET, INFLUX_ORG
 from influxdb_client import Point
-from app.core.config import get_config, set_config, get_all_config, DATA_DIR, BACKUP_DIR, logger
-from app.core.influx import query_api, write_api, INFLUX_BUCKET, INFLUX_ORG
-from influxdb_client import Point
 # DELAYING IMPORT of services to prevent startup crashes if dependencies fail
 # from services.status import get_status_dict
 # from services.label_maker import generate_label
@@ -55,13 +52,12 @@ def status():
 @api_bp.route('/api/health')
 def health():
     """Health check endpoint for Docker/Kubernetes probes."""
-    import time
     try:
         # Check InfluxDB connectivity
         q = f'from(bucket: "{INFLUX_BUCKET}") |> range(start: -1m) |> limit(n: 1)'
         query_api.query(q)
         influx_status = "healthy"
-    except Exception as e:
+    except (ConnectionError, OSError) as e:
         influx_status = f"unhealthy: {str(e)}"
     
     return jsonify({
@@ -151,7 +147,7 @@ def calibrate() -> Tuple[Response, int]:
             .field("sg", manual)\
             .time(datetime.now(timezone.utc))
         write_api.write(bucket=INFLUX_BUCKET, org=INFLUX_ORG, record=p)
-    except Exception as e:
+    except (ConnectionError, OSError) as e:
         logger.error(f"Manual Log Error: {e}")
         # Continue execution, logging failure shouldn't block calibration
 
@@ -230,7 +226,7 @@ def restore():
             set_config(k, v)
             count += 1
         return jsonify({"status": "restored", "keys_restored": count})
-    except Exception as e:
+    except (json.JSONDecodeError, KeyError, ValueError) as e:
         return jsonify({"error": f"Invalid JSON: {e}"}), 400
 
 # --- TAP MANAGEMENT ---
@@ -245,7 +241,7 @@ def get_taps() -> Tuple[Response, int]:
             if raw:
                 try:
                     taps[key] = json.loads(raw)
-                except:
+                except (json.JSONDecodeError, ValueError):
                     taps[key] = None
             else:
                 taps[key] = None

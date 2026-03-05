@@ -50,7 +50,7 @@ def push_recipe_to_repo(recipe_data, token, repo_name):
             # Update existing
             repo.update_file(contents.path, f"Update recipe {name}", content, contents.sha)
             return {"status": "success", "message": f"Updated {file_path} in {repo_name}"}
-        except:
+        except Exception:
             # Create new
             repo.create_file(file_path, f"Add recipe {name}", content)
             return {"status": "success", "message": f"Created {file_path} in {repo_name}"}

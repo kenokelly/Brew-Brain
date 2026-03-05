@@ -55,7 +55,7 @@ def refresh_config_from_influx() -> None:
         
         logger.info("Config refreshed from InfluxDB")
             
-    except Exception as e:
+    except (ConnectionError, OSError) as e:
         logger.error(f"Failed to refresh config from InfluxDB: {e}")
 
 def get_config(key: str) -> Optional[str]:
@@ -76,5 +76,5 @@ def set_config(key: str, value: Any) -> None:
         # Persist to InfluxDB
         p = Point("app_config").field(key, str_val).time(datetime.now(timezone.utc))
         write_api.write(bucket=INFLUX_BUCKET, org=INFLUX_ORG, record=p)
-    except Exception as e:
+    except (ConnectionError, OSError) as e:
         logger.error(f"Failed to save config '{key}' to InfluxDB: {e}")
