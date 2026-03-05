@@ -73,10 +73,11 @@ Transform Brew Brain from a monitoring dashboard into an **Intelligent Fermentat
   - Files: `app/services/sourcing.py`, `app/api/routes.py`
   - `compare_recipe_prices_async` runs in background thread; API returns job ID
 
-- [/] **5.3 Replace Pandas with Lightweight Alternatives**
-  - `alerts.py`: ✅ `parse_tilt_csv` uses stdlib `csv` (no Pandas)
-  - `batch_exporter.py`: ❌ still imports Pandas
-  - `ml/prediction.py`: ❌ still imports Pandas
+- [x] **5.3 Replace Pandas with Lightweight Alternatives** ✅
+  - `alerts.py`: stdlib `csv` (parse_tilt_csv)
+  - `batch_exporter.py`: `pyarrow.Table` / `pq.write_table`
+  - `prediction.py`: `pyarrow.parquet` + list-of-dicts
+  - Pandas removed from `requirements-core.txt` and `requirements.txt`
 
 ---
 
