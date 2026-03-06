@@ -52,7 +52,7 @@ services:
       - influxdb
 
   brew-brain:
-    build: ./app
+    image: ghcr.io/kenokelly/brew-brain-api:latest
     container_name: brew-brain
     restart: unless-stopped
     ports:
@@ -79,7 +79,7 @@ services:
       - influxdb
 
   web:
-    build: ./web
+    image: ghcr.io/kenokelly/brew-brain-web:latest
     container_name: brew-brain-web
     restart: unless-stopped
     ports:

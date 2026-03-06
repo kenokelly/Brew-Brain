@@ -161,12 +161,12 @@ Transform Brew Brain from a monitoring dashboard into an **Intelligent Fermentat
 
 ## Success Metrics
 
-| Metric                    | Target   |
-|---------------------------|----------|
+| Metric                     | Target   |
+|----------------------------|----------|
 | Anomaly detection accuracy | > 90%    |
 | FG prediction accuracy     | ± 0.003  |
 | Time-to-FG accuracy        | ± 2 days |
-| False positive rate         | < 5%     |
+| False positive rate        | < 5%     |
 | API latency (with ML)      | < 500 ms |
 
 ---
@@ -174,7 +174,7 @@ Transform Brew Brain from a monitoring dashboard into an **Intelligent Fermentat
 ## Reference Docs
 
 | Document | Purpose |
-|---|---|
+|----------|---------|
 | [README.md](file:///Users/kokelly/Brew-Brain/README.md) | Installation & usage |
 | [user_guide.md](file:///Users/kokelly/Brew-Brain/docs/user_guide.md) | End-user guide (settings, Telegram, calibration) |
 | [disaster_recovery.md](file:///Users/kokelly/Brew-Brain/docs/disaster_recovery.md) | Backup & restore procedures |

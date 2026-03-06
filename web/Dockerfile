@@ -1,23 +1,26 @@
-FROM node:20-alpine AS runner
+FROM node:20-alpine AS builder
 WORKDIR /app
 
-ENV NODE_ENV production
-ENV PORT 3000
-ENV HOSTNAME "0.0.0.0"
+# Enable corepack for modern package managers, though we use npm here
+RUN corepack enable
 
-# Create non-root user
-RUN addgroup --system --gid 1001 nodejs && \
-    adduser --system --uid 1001 nextjs
+COPY package*.json ./
+RUN npm ci
 
-# We expect the host (Mac) to have run 'npm run build'
-# and generated the standalone output.
-# The sync script will put these in the correct place.
-COPY . ./
-# Next.js standalone output contains everything needed to run:
-# node_modules (production only), .next/server, server.js, etc.
+COPY . .
+RUN npm run build
 
-USER nextjs
+# ============================================
+# Stage 2: Serve static files with Nginx
+# ============================================
+FROM nginx:alpine
+
+# Copy the static export from the builder stage
+COPY --from=builder /app/out /usr/share/nginx/html
+
+# Replace default Nginx configuration with our custom proxy setup
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 3000
 
-CMD ["node", "server.js"]
+CMD ["nginx", "-g", "daemon off;"]
