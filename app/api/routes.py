@@ -8,6 +8,7 @@ from datetime import datetime, timezone, timedelta
 from flask import Blueprint, jsonify, request, send_from_directory, send_file, Response
 from app.core.config import get_config, set_config, get_all_config, DATA_DIR, BACKUP_DIR, logger
 from app.core.influx import query_api, write_api, INFLUX_BUCKET, INFLUX_ORG
+from app.core.auth import require_api_token
 from influxdb_client import Point
 # DELAYING IMPORT of services to prevent startup crashes if dependencies fail
 # from services.status import get_status_dict
@@ -70,6 +71,7 @@ def health():
     })
 
 @api_bp.route('/api/sync_brewfather', methods=['POST'])
+@require_api_token
 def sync_brewfather() -> Tuple[Response, int]:
     u, k = get_config("bf_user"), get_config("bf_key")
     if not u or not k: 
@@ -124,6 +126,7 @@ def sync_brewfather() -> Tuple[Response, int]:
         return handle_error(e, "Sync Error")
 
 @api_bp.route('/api/calibrate', methods=['POST'])
+@require_api_token
 def calibrate() -> Tuple[Response, int]:
     data = request.json
     if not data: 
@@ -169,6 +172,7 @@ def calibrate() -> Tuple[Response, int]:
         return handle_error(e, "Calibration Error")
 
 @api_bp.route('/api/settings', methods=['GET', 'POST'])
+@require_api_token
 def settings() -> Tuple[Response, int]:
     if request.method == 'GET':
         return jsonify(get_all_config())
@@ -215,6 +219,7 @@ def backup():
     )
 
 @api_bp.route('/api/restore', methods=['POST'])
+@require_api_token
 def restore():
     if 'file' not in request.files: return jsonify({"error": "No file"}), 400
     f = request.files['file']
@@ -250,6 +255,7 @@ def get_taps() -> Tuple[Response, int]:
         return handle_error(e, "Get Taps Error")
 
 @api_bp.route('/api/taps/<tap_id>', methods=['POST'])
+@require_api_token
 def update_tap(tap_id: str) -> Tuple[Response, int]:
     if tap_id not in ['tap_1', 'tap_2', 'tap_3', 'tap_4']:
         return api_response(status="error", error="Invalid Tap ID", code=400)

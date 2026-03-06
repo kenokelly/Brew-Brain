@@ -265,8 +265,19 @@ def get_page_content(url, retries=2):
     import time as _time
     from urllib.parse import urlparse
     
-    # Rate limiting - wait if we've requested this domain recently
+    # ----------------------------------------------------
+    # SSRF PROTECTION: Strict Domain Allowlist
+    # ----------------------------------------------------
+    ALLOWED_DOMAINS = {
+        "themaltmiller.co.uk", "www.themaltmiller.co.uk",
+        "geterbrewed.com", "www.geterbrewed.com"
+    }
     domain = urlparse(url).netloc
+    if domain not in ALLOWED_DOMAINS:
+        logger.error(f"SSRF BLOCK: Attempted to scrape unauthorized domain: {domain} -> {url}")
+        return None
+        
+    # Rate limiting - wait if we've requested this domain recently
     now = _time.time()
     if domain in _last_request_time:
         elapsed = now - _last_request_time[domain]
