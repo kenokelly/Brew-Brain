@@ -18,8 +18,8 @@ FROM nginx:alpine
 # Copy the static export from the builder stage
 COPY --from=builder /app/out /usr/share/nginx/html
 
-# Replace default Nginx configuration with our custom proxy setup
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Replace default Nginx configuration with our custom proxy setup (using templates for envsubst support)
+COPY nginx.conf /etc/nginx/templates/default.conf.template
 
 EXPOSE 3000
 
