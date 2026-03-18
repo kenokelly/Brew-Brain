@@ -57,7 +57,6 @@ def init_db():
     ''')
 
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_style ON recipes(style)')
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_source_hash ON recipes(source_hash)')
 
     # --- Schema migration: add columns if missing on older DBs ---
     existing_cols = {row[1] for row in cursor.execute("PRAGMA table_info(recipes)").fetchall()}
@@ -67,7 +66,8 @@ def init_db():
             cursor.execute(f"ALTER TABLE recipes ADD COLUMN {col} {col_type}")
             logger.info(f"Migrated: added column '{col}' to recipes table")
 
-    # Create unique index on source_hash if it doesn't exist yet
+    # Create indexes on source_hash AFTER migration ensures column exists
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_source_hash ON recipes(source_hash)')
     try:
         cursor.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_source_hash_unique ON recipes(source_hash)')
     except sqlite3.OperationalError:
