@@ -1,5 +1,6 @@
 from flask import Blueprint, jsonify, request
 from app.core.decorators import api_safe
+from app.core.auth import require_api_token
 from app.services import scout, calculator, water, alerts
 import io
 import json
