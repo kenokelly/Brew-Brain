@@ -890,6 +890,64 @@ def compare_prices_by_tag(tag):
     except Exception as e:
         return handle_error(e, "Price Comparison Error")
 
+# --- EXTERNAL RECIPE DATABASE ---
+
+@api_bp.route('/api/external-recipes/stats', methods=['GET'])
+def external_recipe_stats() -> Tuple[Response, int]:
+    """Get external recipe database statistics."""
+    try:
+        from app.ml.scraper import recipe_count, init_db
+        init_db()
+        stats = recipe_count()
+        return api_response(data=stats)
+    except Exception as e:
+        return handle_error(e, "External Recipe Stats Error")
+
+
+@api_bp.route('/api/external-recipes/ingest', methods=['POST'])
+@require_api_token
+def external_recipe_ingest() -> Tuple[Response, int]:
+    """Trigger on-demand ingestion of public BeerXML recipe sources."""
+    try:
+        from app.ml.scraper import ingest_all_sources
+        result = ingest_all_sources()
+        return api_response(data=result)
+    except Exception as e:
+        return handle_error(e, "External Recipe Ingestion Error")
+
+
+@api_bp.route('/api/ml/peer-comparison', methods=['GET'])
+def peer_comparison_endpoint() -> Tuple[Response, int]:
+    """
+    Compare active batch or supplied metrics against the external recipe DB.
+
+    Query params (optional): style, og, fg, abv, ibu
+    Falls back to active batch config if not supplied.
+    """
+    try:
+        from app.ml.peer_comparison import peer_comparison
+        from app.core.config import get_all_config
+
+        config = get_all_config()
+
+        style = request.args.get("style") or config.get("style", "IPA")
+        user_recipe = {
+            "og": float(request.args.get("og") or config.get("og") or 1.050),
+            "fg": float(request.args.get("fg") or config.get("target_fg") or 1.010),
+        }
+        if request.args.get("abv"):
+            user_recipe["abv"] = float(request.args["abv"])
+        else:
+            user_recipe["abv"] = round((user_recipe["og"] - user_recipe["fg"]) * 131.25, 1)
+        if request.args.get("ibu"):
+            user_recipe["ibu"] = float(request.args["ibu"])
+
+        result = peer_comparison.compare(user_recipe, style)
+        return api_response(data=result)
+    except Exception as e:
+        return handle_error(e, "Peer Comparison Error")
+
+
 @api_bp.route('/api/debug/logs')
 def get_debug_logs():
     """

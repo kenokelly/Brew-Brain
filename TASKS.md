@@ -129,24 +129,24 @@ Transform Brew Brain from a monitoring dashboard into an **Intelligent Fermentat
 
 ### Phase 9 — Web UI Integration (Priority: MEDIUM) 🟡
 
-- [ ] **9.1 Config Bridge** — Refactor modules to fetch API keys from Brew Brain settings
-- [ ] **9.2 API Endpoints** — Register Scout and Health Check as internal UI routes
-- [ ] **9.3 Bot Hook** — Integrate `alerts.py` with the existing Telegram Bot
-- [ ] **9.4 Non-Intrusive Scout** — Implement `scout.py` using SerpApi
-- [ ] **9.5 Inventory Sync** — Connect to Brewfather API for stock levels
-- [ ] **9.6 Weekly Price Watch** — Scheduled Telegram alerts for key ingredients
-- [ ] **9.7 G40 Calculator** — Tinseth IBU and grain scaling
-- [ ] **9.8 Water Module** — RO water profiles for West Coast IPA and NEIPA
-- [ ] **9.9 Cost per Pint** — End-to-end costing logic
-- [ ] **9.10 GitHub Logger** — Automate Markdown brew log generation
+- [x] **9.1 Config Bridge** — Refactor modules to fetch API keys from Brew Brain settings
+- [x] **9.2 API Endpoints** — Register Scout and Health Check as internal UI routes
+- [x] **9.3 Bot Hook** — Integrate `alerts.py` with the existing Telegram Bot
+- [x] **9.4 Non-Intrusive Scout** — Implement `scout.py` using SerpApi
+- [x] **9.5 Inventory Sync** — Connect to Brewfather API for stock levels
+- [x] **9.6 Weekly Price Watch** — Scheduled Telegram alerts for key ingredients
+- [x] **9.7 G40 Calculator** — Tinseth IBU and grain scaling
+- [x] **9.8 Water Module** — RO water profiles for West Coast IPA and NEIPA
+- [x] **9.9 Cost per Pint** — End-to-end costing logic
+- [x] **9.10 GitHub Logger** — Automate Markdown brew log generation
 
 ---
 
-### Phase 4 — External Learning (Priority: LOW) 🟢
+### Phase 4 — External Learning ✅
 
-- [ ] **4.1 Recipe Scraper Service** — Public BeerXML repositories → local SQLite
-- [ ] **4.2 Style Embedding Model** — Word2Vec on recipe descriptions
-- [ ] **4.3 Peer Comparison** — "Your IPA vs average IPA" with OG/FG/attenuation
+- [x] **4.1 Recipe Scraper Service** — Public BeerXML repositories → local SQLite (dedup, seed sources, ingredient extraction, weekly cron)
+- [x] **4.2 Style Embedding Model** — Ingredient-based TF-IDF on recipe grains/hops/yeast
+- [x] **4.3 Peer Comparison** — "Your IPA vs average IPA" with OG/FG/ABV/IBU/attenuation percentiles
 
 ---
 

@@ -662,6 +662,40 @@ def check_temp():
 
 # ============ ML Prediction Endpoints ============
 
+@automation_bp.route('/api/ml/scraper/ingest', methods=['POST'])
+@api_safe
+@require_api_token
+def ingest_recipes():
+    """
+    Ingest recipes from a BeerXML string or a remote URL into the ML database.
+    
+    Body: {
+        "xml_content": "<RECIPES>...</RECIPES>",  # Optional
+        "xml_url": "http://..."                   # Optional
+    }
+    """
+    from app.ml.scraper import parse_beerxml, batch_save_recipes, scrape_open_brewing_data
+    data = request.json or {}
+    
+    xml_content = data.get('xml_content')
+    xml_url = data.get('xml_url')
+    
+    if not xml_content and not xml_url:
+        return jsonify({"error": "Either xml_content or xml_url is required."}), 400
+        
+    if xml_content:
+        recipes = parse_beerxml(xml_content)
+        if recipes:
+            batch_save_recipes(recipes)
+            return jsonify({"status": "success", "inserted": len(recipes), "source": "direct"})
+        return jsonify({"error": "Failed to parse any valid recipes from xml_content"}), 400
+        
+    if xml_url:
+        count = scrape_open_brewing_data(xml_url)
+        if count > 0:
+            return jsonify({"status": "success", "inserted": count, "source": xml_url})
+        return jsonify({"error": f"Failed to fetch or parse recipes from {xml_url}"}), 400
+
 @automation_bp.route('/api/ml/train', methods=['POST'])
 @api_safe
 def train_ml_models():

@@ -64,7 +64,7 @@ services:
       - INFLUX_BUCKET=fermentation
       - TZ=Europe/London
       - BREW_BRAIN_DATA=/data
-      - BREW_BRAIN_API_TOKEN=${BREW_BRAIN_API_TOKEN}
+      - BREW_BRAIN_API_TOKEN=${BREW_BRAIN_API_TOKEN:-secure_default_token}
     healthcheck:
       test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/api/status', timeout=5)" ]
       interval: 5s

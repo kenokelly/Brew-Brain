@@ -453,8 +453,19 @@ def audit_recipe(recipe):
         "peer_count": len(peers),
         "tips": tips,
         "avg_peer_og": round(avg_og, 3),
-        "avg_peer_att": round(avg_att, 1)
+        "avg_peer_att": round(avg_att, 1),
+        "external_comparison": _get_external_comparison(recipe, style),
     }
+
+
+def _get_external_comparison(recipe: dict, style: str) -> dict:
+    """Enrich audit with external recipe DB percentile rankings."""
+    try:
+        from app.ml.peer_comparison import peer_comparison
+        return peer_comparison.compare(recipe, style)
+    except Exception as e:
+        logger.warning(f"External peer comparison unavailable: {e}")
+        return {"error": str(e)}
 
 def check_batch_health(current_sg, original_gravity, yeast_name, days_in, temp=None, style=None, batch_name="Batch", current_stability=None):
     """

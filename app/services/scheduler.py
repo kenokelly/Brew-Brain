@@ -117,6 +117,28 @@ def init_scheduler(app):
         replace_existing=True
     )
     
+    # Weekly external recipe ingestion (Sunday 03:00)
+    from app.ml.scraper import ingest_all_sources
+
+    def recipe_ingest_job():
+        """Ingest public BeerXML recipes into the external recipe DB."""
+        try:
+            result = ingest_all_sources()
+            logger.info(f"Recipe ingestion: {result['total_inserted']} new, {result['db_total']} total")
+        except Exception as e:
+            logger.error(f"Recipe ingestion error: {e}")
+
+    scheduler.add_job(
+        recipe_ingest_job,
+        'cron',
+        day_of_week='sun',
+        hour=3,
+        minute=0,
+        id='recipe_ingest',
+        name='Weekly Recipe Ingestion',
+        replace_existing=True
+    )
+    
     # Start the scheduler
     scheduler.start()
     logger.info("APScheduler started with %d jobs", len(scheduler.get_jobs()))
