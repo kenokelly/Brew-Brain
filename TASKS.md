@@ -1,7 +1,7 @@
 # Brew Brain — Master Plan
 
 > Single source of truth for project status, requirements, and roadmap.
-> Last updated: 2026-03-05
+> Last updated: 2026-03-19
 
 ---
 
@@ -81,49 +81,26 @@ Transform Brew Brain from a monitoring dashboard into an **Intelligent Fermentat
 
 ---
 
-### Phase 6 — Security (Priority: HIGH) 🔴
+### Phase 6 — Security ✅
 
-> Required before exposing beyond home LAN.
-
-- [ ] **6.1 Add Authentication**
-  - Files: `app/main.py`, `app/api/routes.py`
-  - Why: Zero auth — anyone on LAN has full control including config overwrite
-  - Minimum: env var for API token, checked via decorator
-
-- [ ] **6.2 Fix SSRF Risk in Sourcing**
-  - Endpoint: `/api/sourcing/compare-by-tag/<tag>`
-  - Validate and sanitise tag input; restrict outbound requests to known vendor domains
+- [x] **6.1 Add Authentication** — API token via env var, checked via `@require_api_token` decorator
+- [x] **6.2 Fix SSRF Risk in Sourcing** — Tag input sanitised, outbound requests restricted
 
 ---
 
-### Phase 7 — Code Quality (Priority: MEDIUM) 🟡
+### Phase 7 — Code Quality ✅
 
-- [ ] **7.1 Fix Exception Handling**
-  - Catch specific exceptions (`requests.Timeout`, `KeyError`, `InfluxDBError`)
-  - Return meaningful error responses instead of generic 500s
-
-- [ ] **7.2 Clean Up Lazy Imports**
-  - Move heavy imports to top of file; use feature flags for optional deps
-
-- [ ] **7.3 Improve Testing**
-  - Switch to pytest with `unittest.mock.patch`
-  - Add fixtures for InfluxDB mocking; cover core services
+- [x] **7.1 Fix Exception Handling** — Specific exceptions, meaningful error responses
+- [x] **7.2 Clean Up Lazy Imports** — Heavy imports moved to top of file
+- [x] **7.3 Improve Testing** — Pytest with `unittest.mock.patch`, InfluxDB fixtures
 
 ---
 
-### Phase 8 — DevOps & Optimisation (Priority: MEDIUM) 🟡
+### Phase 8 — DevOps & Optimisation ✅
 
-- [ ] **8.1 GitHub Actions CI Pipeline**
-  - Build `linux/arm64` Docker images on GitHub runners, push to GHCR
-  - Pi just pulls pre-built images (avoids OOM during on-device builds)
-
-- [ ] **8.2 Static Export for Frontend**
-  - Add `output: 'export'` to Next.js config
-  - Serve static files via Nginx or Flask (removes Node.js runtime from Pi)
-
-- [ ] **8.3 Config Caching**
-  - Cache config in memory or local JSON file
-  - Refresh on explicit update only (currently queries InfluxDB on every read)
+- [x] **8.1 GitHub Actions CI Pipeline** — `linux/amd64` + `linux/arm64` images built on GitHub, pushed to GHCR
+- [x] **8.2 Static Export for Frontend** — Next.js static export served via Nginx container
+- [x] **8.3 Config Caching** — Config cached in memory, refreshed on explicit update only
 
 ---
 
