@@ -42,6 +42,19 @@ To build the definitive, pro-grade operating system for Intelligent Fermentation
 
 ---
 
+## 🤖 The Core AI Development Board (The "Team")
+These personas act as specialized agents within the Gemini/Antigravity environment to handle specific tasks, utilizing Agent Skills to run autonomously.
+
+*   **System Architect (The Brain):** Defines the technical stack, architectural patterns, and ensures code consistency. Uses Antigravity to create implementation plans.
+*   **System Analyst (The Linchpin):** Translates product requirements into actionable technical specifications. Documents decisions and ensures no loss of context.
+*   **Lead Software Developer (The Builder):** Translates architecture into working code, specifically using Gemini/Claude Code to write, debug, and maintain code.
+*   **DevOps/Infrastructure Specialist (The Operator):** Manages deployment pipelines, server configurations, and environment setups within the terminal (Auto-mode).
+*   **QA/Testing Lead (The Guardian):** Sets up testing infrastructure and MCP servers to debug errors automatically. Ensures 100% test coverage before final deployment.
+*   **Product UX/UI Designer (The Visualizer):** Translates design briefs into frontend code, using AI design tools to create brand guidelines and CSS design tokens.
+*   **Data/Analytics Analyst (The Strategist):** Manages data architecture, database migrations, and performance analytics.
+
+---
+
 ## 🏢 The Board of Directors & Strategic Cadence
 
 The Executive Team answers directly to the Board of Directors, chaired by the CEO.
