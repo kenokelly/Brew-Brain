@@ -18,6 +18,8 @@ from datetime import datetime, timezone
 from collections import defaultdict
 from typing import Dict, List, Optional, Any
 from app.ml.features import calculate_sg_velocity, calculate_temp_variance, calculate_time_in_phase
+from app.core.influx import write_api, INFLUX_BUCKET, INFLUX_ORG
+from influxdb_client import Point
 
 logger = logging.getLogger(__name__)
 
@@ -189,6 +191,18 @@ def train_models() -> Dict[str, Any]:
     joblib.dump(fg_model, FG_MODEL_PATH)
     joblib.dump(time_model, TIME_MODEL_PATH)
     
+    # Log metrics to InfluxDB for Grafana alerting
+    try:
+        p = Point("ml_metrics") \
+            .field("fg_mae", float(fg_mae)) \
+            .field("time_mae", float(time_mae)) \
+            .field("batches_used", int(len(X))) \
+            .time(datetime.now(timezone.utc))
+        write_api.write(bucket=INFLUX_BUCKET, org=INFLUX_ORG, record=p)
+        logger.info("ML metrics logged to InfluxDB")
+    except Exception as e:
+        logger.error(f"Failed to log ML metrics: {e}")
+
     logger.info(f"Models trained on {len(X)} batches. FG MAE: {fg_mae:.4f}, Time MAE: {time_mae:.1f} days")
     
     return {

@@ -13,9 +13,9 @@ import logging
 import numpy as np
 from datetime import datetime, timezone, timedelta
 from typing import Dict, List, Optional, Any
-from app.core.config import get_config
-from app.core.influx import query_api, INFLUX_BUCKET
-from app.services.notifications import send_telegram_message, broadcast_alert, troubleshoot_tiltpi
+from core.config import get_config
+from core.influx import query_api, INFLUX_BUCKET
+from services.notifications import send_telegram_message, broadcast_alert, troubleshoot_tiltpi
 
 logger = logging.getLogger(__name__)
 

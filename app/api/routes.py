@@ -678,16 +678,20 @@ def batch_features(batch_id: str) -> Tuple[Response, int]:
     except Exception as e:
         return handle_error(e, "Feature Extraction Error")
 @api_bp.route('/api/ml/train', methods=['POST'])
+@require_api_token
 def train_ml_models() -> Tuple[Response, int]:
-    """Trigger ML model training."""
+    """Trigger ML model training asynchronously via Celery."""
     try:
-        from app.ml.prediction import train_models
-        result = train_models()
-        if "error" in result:
-            return api_response(status="error", error=result["error"], code=400)
-        return api_response(data=result)
+        from app.ml.tasks import train_prediction_models
+        # Trigger task
+        task = train_prediction_models.delay()
+        return api_response(data={
+            "status": "Task Queued",
+            "task_id": task.id,
+            "message": "Model training started in background."
+        })
     except Exception as e:
-        return handle_error(e, "Model Training Error")
+        return handle_error(e, "Model Training Trigger Error")
 
 
 @api_bp.route('/api/ml/models', methods=['GET'])
@@ -762,7 +766,7 @@ def get_style_peers() -> Tuple[Response, int]:
     """Get style benchmarks and peer comparison data for the active batch."""
     try:
         from ml.style_intelligence import style_intel
-        from core.config import get_all_config
+        from app.core.config import get_all_config
         
         config = get_all_config()
         active_style = config.get("style", "IPA")
@@ -789,7 +793,7 @@ def brew_day_check() -> Tuple[Response, int]:
     Checks and Balances: Verifies all metadata and sensor data is correct for the current brew day.
     """
     try:
-        from core.config import get_all_config
+        from app.core.config import get_all_config
         from core.influx import query_api, INFLUX_BUCKET
         from datetime import datetime, timezone, timedelta
         

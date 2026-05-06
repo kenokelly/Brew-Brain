@@ -114,7 +114,7 @@ def troubleshoot_tiltpi() -> dict:
     
     # Check 3: Telegraf receiving data?
     try:
-        from app.core.influx import query_api, INFLUX_BUCKET
+        from core.influx import query_api, INFLUX_BUCKET
         query = f'''
         from(bucket: "{INFLUX_BUCKET}")
             |> range(start: -5m)

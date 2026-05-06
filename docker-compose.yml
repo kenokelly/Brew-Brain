@@ -52,8 +52,9 @@ services:
       - influxdb
 
   brew-brain:
-    image: ghcr.io/kenokelly/brew-brain-api:latest
+    image: brew-brain-patched
     container_name: brew-brain
+    working_dir: /app
     restart: unless-stopped
     ports:
       - "5000:5000"
@@ -65,6 +66,8 @@ services:
       - TZ=Europe/London
       - BREW_BRAIN_DATA=/data
       - BREW_BRAIN_API_TOKEN=${BREW_BRAIN_API_TOKEN:-secure_default_token}
+      - REDIS_URL=redis://redis:6379/0
+      - PYTHONPATH=/app
     healthcheck:
       test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/api/status', timeout=5)" ]
       interval: 5s
@@ -73,10 +76,12 @@ services:
       start_period: 5s
     volumes:
       - ./brain_data:/data
+      - ./app:/app
     networks:
       - brewery-net
     depends_on:
       - influxdb
+      - redis
 
   web:
     image: ghcr.io/kenokelly/brew-brain-web:latest
@@ -92,6 +97,39 @@ services:
       - brewery-net
     depends_on:
       - brew-brain
+
+  celery-worker:
+    image: brew-brain-patched
+    container_name: celery-worker
+    command: python -m celery -A app.extensions.celery worker --loglevel=info
+    working_dir: /app
+    restart: unless-stopped
+    environment:
+      - INFLUX_URL=http://influxdb:8086
+      - INFLUX_TOKEN=${INFLUX_TOKEN}
+      - INFLUX_ORG=homebrew
+      - INFLUX_BUCKET=fermentation
+      - REDIS_URL=redis://redis:6379/0
+      - BREW_BRAIN_DATA=/data
+      - PYTHONPATH=/
+    volumes:
+      - ./brain_data:/data
+      - ./app:/app
+    networks:
+      - brewery-net
+    depends_on:
+      - redis
+      - influxdb
+
+  redis:
+    image: redis:alpine
+    container_name: redis
+    command: redis-server --maxmemory 128mb --maxmemory-policy allkeys-lru
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    networks:
+      - brewery-net
 
 
 networks:

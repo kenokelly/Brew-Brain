@@ -2,6 +2,7 @@ from flask import Blueprint, jsonify, request
 from app.core.decorators import api_safe
 from app.core.auth import require_api_token
 from app.services import scout, calculator, water, alerts
+
 import io
 import json
 import os
@@ -656,6 +657,7 @@ def check_stalled():
 def check_temp():
     """Check for temperature deviation only."""
     from app.services.anomaly import check_temperature_deviation
+
     from app.core.config import get_config
     batch_name = get_config("batch_name") or "Current Batch"
     return jsonify(check_temperature_deviation(batch_name=batch_name))
@@ -782,3 +784,4 @@ def ml_model_info():
     """Get information about trained ML models."""
     from app.ml.prediction import get_model_info
     return jsonify(get_model_info())
+info())

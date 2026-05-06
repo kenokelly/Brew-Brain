@@ -4,8 +4,8 @@ import io
 import requests
 import base64
 import re
-from app.core.config import get_config
-from app.services import yeast
+from core.config import get_config
+from services import yeast
 
 logger = logging.getLogger(__name__)
 

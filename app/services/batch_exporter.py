@@ -13,9 +13,9 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 from datetime import datetime, timezone
 from typing import Dict, List, Optional, Any
-from app.core.config import get_config
-from app.core.influx import query_api, INFLUX_BUCKET
-from app.ml.features import extract_features_from_batch
+from core.config import get_config
+from core.influx import query_api, INFLUX_BUCKET
+from ml.features import extract_features_from_batch
 
 logger = logging.getLogger(__name__)
 

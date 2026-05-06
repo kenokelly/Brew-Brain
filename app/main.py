@@ -4,8 +4,8 @@ from flask_cors import CORS
 from flask_socketio import SocketIO
 from app.core.config import refresh_config_from_influx, logger
 from app.extensions import socketio
-from api.routes import api_bp
-from api.automation import automation_bp
+from app.api.routes import api_bp
+from app.api.automation import automation_bp
 
 app = Flask(__name__, static_folder='static')
 CORS(app)
