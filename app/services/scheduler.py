@@ -139,6 +139,31 @@ def init_scheduler(app):
         replace_existing=True
     )
 
+    # Daily Telemetry Report (Weekdays 08:30, Weekends 11:00)
+    from app.services.telemetry import send_daily_board_report
+    
+    scheduler.add_job(
+        send_daily_board_report,
+        'cron',
+        day_of_week='mon,tue,wed,thu,fri',
+        hour=8,
+        minute=30,
+        id='daily_report_weekday',
+        name='Daily Board Report (Weekday)',
+        replace_existing=True
+    )
+    
+    scheduler.add_job(
+        send_daily_board_report,
+        'cron',
+        day_of_week='sat,sun',
+        hour=11,
+        minute=0,
+        id='daily_report_weekend',
+        name='Daily Board Report (Weekend)',
+        replace_existing=True
+    )
+
     # Weekly maintenance summary (Monday 08:00)
     def maintenance_summary_job():
         """Send weekly system health summary via Telegram."""

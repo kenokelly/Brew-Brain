@@ -114,6 +114,68 @@ def get_sd_io_stats() -> dict:
     except (FileNotFoundError, OSError, IndexError):
         return {"error": "SD card stats not available (not running on Pi)"}
 
+def get_daily_telemetry() -> dict:
+    """Calculates a 24-hour snapshot of fermentation progress."""
+    try:
+        from app.services.prediction import get_predicted_fg
+        
+        batch_name = get_config("batch_name") or "Unknown"
+        og = float(get_config("og") or 1.050)
+        
+        # 1. Get Latest and 24h ago data
+        q_now = f'from(bucket: "{INFLUX_BUCKET}") |> range(start: -1h) |> filter(fn: (r) => r["_measurement"] == "calibrated_readings") |> last()'
+        q_24h = f'from(bucket: "{INFLUX_BUCKET}") |> range(start: -25h, stop: -23h) |> filter(fn: (r) => r["_measurement"] == "calibrated_readings") |> last()'
+        
+        res_now = query_api.query(q_now)
+        res_24h = query_api.query(q_24h)
+        
+        sg_now, sg_24h = None, None
+        temp_min, temp_max = 99.0, 0.0
+        
+        # Parse current
+        for t in res_now:
+            for r in t.records:
+                if r.get_field() == "sg": sg_now = r.get_value()
+        
+        # Parse 24h ago and get temp range for stability check
+        for t in res_24h:
+            for r in t.records:
+                if r.get_field() == "sg": sg_24h = r.get_value()
+        
+        # Temp stability check (24h window)
+        q_temp = f'from(bucket: "{INFLUX_BUCKET}") |> range(start: -24h) |> filter(fn: (r) => r["_measurement"] == "calibrated_readings" and r["_field"] == "temp")'
+        res_temp = query_api.query(q_temp)
+        for t in res_temp:
+            for r in t.records:
+                val = r.get_value()
+                if val < temp_min: temp_min = val
+                if val > temp_max: temp_max = val
+        
+        if not sg_now or not sg_24h:
+            return {"error": "Insufficient data for 24h diff"}
+            
+        sg_diff = sg_24h - sg_now
+        abv_gain = round(sg_diff * 131.25, 2)
+        total_abv = round((og - sg_now) * 131.25, 2)
+        
+        # Prediction update
+        pred = get_predicted_fg()
+        
+        return {
+            "batch_name": batch_name,
+            "sg_now": round(sg_now, 3),
+            "sg_24h_ago": round(sg_24h, 3),
+            "sg_diff": round(sg_diff, 3),
+            "abv_gain": abv_gain,
+            "total_abv": total_abv,
+            "temp_range": f"{temp_min:.1f} - {temp_max:.1f}°C",
+            "is_stable": (temp_max - temp_min) < 1.5,
+            "predicted_fg": pred.get("fg", 1.010),
+            "predicted_date": pred.get("date", "Unknown")
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
 def get_maintenance_summary() -> dict:
     """Aggregates all maintenance metrics into a single dict."""
     return {

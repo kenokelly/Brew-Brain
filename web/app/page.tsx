@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
-import { Activity, Thermometer, Droplets, Server, Wifi, Brain, RefreshCcw, ExternalLink } from 'lucide-react';
+import { Activity, Thermometer, Droplets, Server, Wifi, Brain, RefreshCcw, ExternalLink, BookOpen } from 'lucide-react';
 import { useSocket } from '@/lib/socket';
 import { RealTimeChart } from '@/components/charts';
 import { useStatus } from '@/lib/hooks';
@@ -13,8 +13,9 @@ import { PredictionCard } from '@/components/PredictionCard';
 import { PeerComparisonWidget } from '@/components/PeerComparison';
 import { BrewDayGuide } from '@/components/BrewDayGuide';
 import { GrafanaChart } from '@/components/GrafanaChart';
+import { SystemHealth } from '@/components/SystemHealth';
+import { motion, AnimatePresence } from 'framer-motion';
 import type { SystemStatus } from '@/types/api';
-import { BookOpen } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 interface DataPoint {
@@ -33,7 +34,6 @@ export default function Dashboard() {
   // Update history when status changes (from SWR or socket)
   useEffect(() => {
     if (status?.temp && status?.sg) {
-      // Calculate dynamic values if not present
       updateHistory(status);
     }
   }, [status?.temp, status?.sg]);
@@ -42,16 +42,16 @@ export default function Dashboard() {
   useEffect(() => {
     if (!socket) return;
 
-    socket.on('status_update', (data: typeof status) => {
-      // SWR will handle the data, but we also update history
+    const handleStatusUpdate = (data: SystemStatus) => {
       if (data?.temp && data?.sg) {
         updateHistory(data);
         mutateStatus(); // Refresh SWR cache
       }
-    });
+    };
 
+    socket.on('status_update', handleStatusUpdate);
     return () => {
-      socket.off('status_update');
+      socket.off('status_update', handleStatusUpdate);
     };
   }, [socket, mutateStatus]);
 
@@ -60,7 +60,6 @@ export default function Dashboard() {
     if (data.temp && data.sg) {
       setHistory(prev => {
         const newPoint = { time: now, temp: data.temp!, sg: data.sg! };
-        // Keep last 50 points
         const newHistory = [...prev, newPoint];
         if (newHistory.length > 50) newHistory.shift();
         return newHistory;
@@ -71,18 +70,13 @@ export default function Dashboard() {
   const handleSyncBrewfather = async () => {
     const toastId = toast.loading("Syncing with Brewfather...");
     try {
-      // Use manual safe fetch logic
       const res = await fetch('/api/sync_brewfather', { method: 'POST' });
-
-      // Safety Check
       const contentType = res.headers.get("content-type");
       if (!contentType || !contentType.includes("application/json")) {
         const text = await res.text();
         throw new Error(`API returned non-JSON (${res.status}): ${text.substring(0, 100)}`);
       }
-
       const d = await res.json();
-
       if (res.ok && d.status === 'synced') {
         toast.success(`Synced batch: ${d.data.name}`, { id: toastId });
         mutateStatus();
@@ -104,12 +98,18 @@ export default function Dashboard() {
   const abv = Math.max(0, (og - sg) * 131.25);
   const att = Math.max(0, ((og - sg) / (og - 1)) * 100);
 
+  if (isLoading) return <DashboardSkeleton />;
+
   return (
     <main className="min-h-screen bg-background text-foreground p-4 md:p-8 font-sans selection:bg-primary/20 pb-24">
       <div className="max-w-7xl mx-auto space-y-6">
 
         {/* Header */}
-        <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <motion.header 
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4"
+        >
           <div>
             <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/60">
               Brew Brain
@@ -135,13 +135,18 @@ export default function Dashboard() {
             <BookOpen className="w-4 h-4" />
             Brew Day Prep
           </button>
-        </header>
+        </motion.header>
 
         {/* Brew Day Guide Modal */}
         <BrewDayGuide isOpen={isGuideOpen} onClose={() => setIsGuideOpen(false)} />
 
         {/* Status Cards (Top 4 Grid) */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.1 }}
+          className="grid grid-cols-2 md:grid-cols-4 gap-4"
+        >
           <StatCard
             title="Gravity"
             value={status?.sg ? status.sg.toFixed(3) : "--.---"}
@@ -156,23 +161,26 @@ export default function Dashboard() {
             subtext={status?.pi_temp ? `Pi: ${status.pi_temp}°C` : undefined}
           />
 
-          {/* Alcohol Ring Card */}
           <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-2xl p-4 flex flex-col items-center justify-center relative overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-transparent pointer-events-none" />
             <span className="text-xs uppercase tracking-widest text-emerald-500/80 mb-2 font-bold z-10">Alcohol</span>
             <RingChart value={abv} max={15} color="#10b981" unit="%" />
           </div>
 
-          {/* Attenuation Ring Card */}
           <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-2xl p-4 flex flex-col items-center justify-center relative overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-transparent pointer-events-none" />
             <span className="text-xs uppercase tracking-widest text-purple-500/80 mb-2 font-bold z-10">Atten.</span>
             <RingChart value={att} max={100} color="#a855f7" unit="%" />
           </div>
-        </div>
+        </motion.div>
 
-        {/* Batch Info Card (Legacy Restoration) */}
-        <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-2xl p-6 relative overflow-hidden">
+        {/* Batch Info Card */}
+        <motion.div 
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.2 }}
+          className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-2xl p-6 relative overflow-hidden"
+        >
           <div className="flex justify-between items-start mb-2 relative z-10">
             <div className="flex items-center gap-3">
               <h2 className="text-xl font-bold">{status?.batch_name || '--'}</h2>
@@ -197,7 +205,6 @@ export default function Dashboard() {
               <p className="text-xs text-muted-foreground">Started: {status?.start_date || '--'}</p>
               <p className="text-sm text-muted-foreground italic mt-1 line-clamp-1">{status?.batch_notes || 'No notes'}</p>
             </div>
-            {/* Mobile Targets */}
             <div className="md:hidden flex justify-between items-end border-t border-border/50 pt-2 mt-2">
               <div className="text-xs text-muted-foreground uppercase tracking-wider">Targets</div>
               <span className="font-mono text-sm text-blue-400">
@@ -206,13 +213,14 @@ export default function Dashboard() {
               </span>
             </div>
           </div>
-        </div>
+        </motion.div>
 
         {/* AI & Insights */}
-        <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <PredictionCard />
           <AnomalyWidget />
           <PeerComparisonWidget />
+          <SystemHealth />
         </section>
 
         {/* Grafana Controls Section */}
@@ -253,8 +261,6 @@ export default function Dashboard() {
     </main>
   );
 }
-
-// Sub-components
 
 function StatCard({ title, value, unit, color, subtext }: { title: string, value: string, unit: string, color: 'amber' | 'blue' | 'emerald' | 'rose', subtext?: string }) {
   const gradients = {
