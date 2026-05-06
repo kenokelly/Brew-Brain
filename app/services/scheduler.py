@@ -138,6 +138,71 @@ def init_scheduler(app):
         name='Weekly Recipe Ingestion',
         replace_existing=True
     )
+
+    # Daily Telemetry Report (Weekdays 08:30, Weekends 11:00)
+    from app.services.telemetry import send_daily_board_report
+    
+    scheduler.add_job(
+        send_daily_board_report,
+        'cron',
+        day_of_week='mon,tue,wed,thu,fri',
+        hour=8,
+        minute=30,
+        id='daily_report_weekday',
+        name='Daily Board Report (Weekday)',
+        replace_existing=True
+    )
+    
+    scheduler.add_job(
+        send_daily_board_report,
+        'cron',
+        day_of_week='sat,sun',
+        hour=11,
+        minute=0,
+        id='daily_report_weekend',
+        name='Daily Board Report (Weekend)',
+        replace_existing=True
+    )
+
+    # Weekly maintenance summary (Monday 08:00)
+    def maintenance_summary_job():
+        """Send weekly system health summary via Telegram."""
+        try:
+            from services.status import get_maintenance_summary
+            from services.notifications import send_telegram_message
+
+            summary = get_maintenance_summary()
+            disk = summary.get("disk", {})
+            data_vol = summary.get("data_volume", {})
+            pi_temp = summary.get("pi_temp", 0.0)
+
+            msg = (
+                "📊 *Brew Brain Weekly Maintenance*\n\n"
+                f"💾 *Root Disk:* {disk.get('used_percent', '?')}% used "
+                f"({disk.get('free_gb', '?')} GB free)\n"
+                f"📂 *Data Volume:* {data_vol.get('used_percent', '?')}% used "
+                f"({data_vol.get('free_gb', '?')} GB free)\n"
+                f"🌡️ *Pi Temp:* {pi_temp}°C\n"
+            )
+
+            if disk.get("warning"):
+                msg += "\n⚠️ *DISK WARNING:* Usage above 80%!"
+
+            send_telegram_message(msg, force=True)
+            logger.info("Weekly maintenance summary sent")
+        except Exception as e:
+            logger.error(f"Maintenance summary error: {e}")
+
+    scheduler.add_job(
+        maintenance_summary_job,
+        'cron',
+        day_of_week='mon',
+        hour=8,
+        minute=0,
+        id='maintenance_summary',
+        name='Weekly Maintenance Summary',
+        replace_existing=True
+    )
     
     # Start the scheduler
     scheduler.start()

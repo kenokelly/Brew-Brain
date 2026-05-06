@@ -6,6 +6,10 @@ from core.config import refresh_config_from_influx, logger
 from extensions import socketio
 from api.routes import api_bp
 from api.automation import automation_bp
+from api.batches import batches_bp
+from api.ml import ml_bp
+from api.settings import settings_bp
+from api.taps import taps_bp
 
 app = Flask(__name__, static_folder='static')
 CORS(app)
@@ -14,6 +18,10 @@ socketio.init_app(app)
 # Register Blueprints
 app.register_blueprint(api_bp)
 app.register_blueprint(automation_bp)
+app.register_blueprint(batches_bp)
+app.register_blueprint(ml_bp)
+app.register_blueprint(settings_bp)
+app.register_blueprint(taps_bp)
 
 @app.after_request
 def add_header(response):

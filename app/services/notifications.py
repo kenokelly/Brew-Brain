@@ -153,11 +153,17 @@ def send_telegram_message(message: str, force: bool = False) -> dict:
     
     Args:
         message: The message text (supports Markdown)
-        force: If True, ignore quiet hours and send anyway
+        force: If True, ignore quiet hours and brew_active gates and send anyway
         
     Returns:
         Dict with status or error
     """
+    if not force:
+        brew_active_val = get_config("brew_active")
+        if str(brew_active_val).lower() == 'false':
+            logger.info("Telegram message skipped: brew_active is false")
+            return {"status": "skipped", "reason": "brew_inactive"}
+            
     # Check quiet hours
     if not force and is_quiet_hours():
         logger.info("Telegram message skipped: quiet hours active")

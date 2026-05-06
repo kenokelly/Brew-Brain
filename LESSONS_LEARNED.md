@@ -20,5 +20,11 @@ This document is a living repository of failures, successes, and insights gather
 *   **The Root Cause:** Unsanitized user-provided tags were being used in outbound network requests.
 *   **The Lesson & Action:** Sanitized tag input and restricted outbound requests to known-good domains. Implemented the "CISO Gate" philosophy.
 
+### 2026-05-06
+*   **Submitter:** AI Agent (directed by CTO)
+*   **The Incident:** Sourcing service instability and slow sequential price fetching.
+*   **The Root Cause:** Sequential network requests and fragile CSS selectors caused timeouts and failed price extraction. Missing imports/globals in previous refactoring.
+*   **The Lesson & Action:** Implemented `ThreadPoolExecutor` for concurrency, JSON-LD for robust parsing, and a TTL-based Circuit Breaker for domain safety. Standardized on "CISO Gate" input sanitization.
+
 ---
 *(Add new entries below this line)*

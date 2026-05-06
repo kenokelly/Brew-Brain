@@ -1,8 +1,12 @@
 import logging
 import requests
 import json
+import difflib
 import math
 import re
+import time as std_time
+import threading
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, date
 from bs4 import BeautifulSoup
 from app.core.config import get_config
@@ -15,129 +19,18 @@ def _get_inventory():
     """Fetches inventory from Brewfather (cached for duration of request)."""
     from app.services import alerts
     return alerts.fetch_brewfather_inventory()
+from app.services.hop_math import calculate_hop_freshness
+from app.services.scraper_utils import (
+    get_page_content, 
+    parse_product_page, 
+    extract_weight_in_grams, 
+    extract_json_ld_products, 
+    extract_price
+)
 
-
-# ============================================
-# HOP FRESHNESS & ALPHA ACID DEGRADATION
-# ============================================
-
-# Hop Storage Index (HSI) - % alpha acid loss per 6 months at 20°C
-# Lower HSI = better storage characteristics
-HOP_HSI = {
-    # High HSI (poor storage) - 35-50%
-    "cascade": 50, "centennial": 45, "chinook": 40, "columbus": 40,
-    "crystal": 50, "fuggle": 45, "glacier": 50, "hallertau": 40,
-    "mt hood": 45, "sterling": 45, "tettnang": 45, "willamette": 50,
-    
-    # Medium HSI (moderate storage) - 25-35%
-    "amarillo": 30, "citra": 30, "el dorado": 28, "galaxy": 30,
-    "mosaic": 25, "nelson sauvin": 30, "simcoe": 25, "warrior": 25,
-    
-    # Low HSI (good storage) - 15-25%
-    "apollo": 20, "bravo": 20, "magnum": 20, "nugget": 20,
-    "summit": 15, "target": 20, "zeus": 20,
-    
-    # Default for unknown varieties
-    "default": 35
-}
-
-# Temperature factor - multiplier for storage temp
-STORAGE_TEMP_FACTORS = {
-    "freezer": 0.15,     # -18°C - minimal degradation
-    "fridge": 0.35,      # 4°C - slow degradation  
-    "cool": 0.70,        # 10-15°C - moderate degradation
-    "ambient": 1.00,     # 20°C - baseline (HSI rating)
-    "warm": 1.50         # 25°C+ - accelerated degradation
-}
-
-
-def calculate_hop_freshness(
-    hop_name: str,
-    original_alpha: float,
-    purchase_date: str,
-    storage_condition: str = "freezer",
-    current_date: str = None
-) -> dict:
-    """
-    Calculates degraded alpha acid using Hop Storage Index (HSI) formula.
-    
-    Args:
-        hop_name: Variety name (e.g., "Citra", "Cascade")
-        original_alpha: Alpha acid % at purchase (e.g., 12.0)
-        purchase_date: ISO date string (YYYY-MM-DD)
-        storage_condition: freezer, fridge, cool, ambient, warm
-        current_date: Override date for testing (default: today)
-    
-    Returns:
-        Dict with current alpha, degradation %, freshness rating
-    
-    Formula:
-        Remaining % = 100 - (HSI × temp_factor × (months/6))
-        Current Alpha = Original Alpha × (Remaining % / 100)
-    """
-    try:
-        # Parse dates
-        if isinstance(purchase_date, str):
-            purchase = datetime.strptime(purchase_date, "%Y-%m-%d").date()
-        else:
-            purchase = purchase_date
-            
-        today = date.today() if not current_date else datetime.strptime(current_date, "%Y-%m-%d").date()
-        
-        # Calculate age in months
-        days_old = (today - purchase).days
-        months_old = days_old / 30.44  # Average days per month
-        
-        # Get HSI for this hop variety
-        hop_lower = hop_name.lower().strip()
-        hsi = HOP_HSI.get(hop_lower, HOP_HSI["default"])
-        
-        # Get temperature factor
-        temp_factor = STORAGE_TEMP_FACTORS.get(storage_condition.lower(), 1.0)
-        
-        # Calculate degradation
-        # HSI is % loss per 6 months at 20°C
-        degradation_pct = (hsi / 100) * temp_factor * (months_old / 6)
-        degradation_pct = min(degradation_pct, 0.95)  # Cap at 95% loss
-        
-        remaining_pct = 1 - degradation_pct
-        current_alpha = original_alpha * remaining_pct
-        
-        # Freshness rating
-        if remaining_pct >= 0.90:
-            freshness = "Excellent"
-            status = "✅"
-        elif remaining_pct >= 0.75:
-            freshness = "Good"
-            status = "✅"
-        elif remaining_pct >= 0.60:
-            freshness = "Fair"
-            status = "⚠️"
-        elif remaining_pct >= 0.40:
-            freshness = "Poor"
-            status = "⚠️"
-        else:
-            freshness = "Bad - Consider Replacing"
-            status = "❌"
-        
-        return {
-            "hop_name": hop_name,
-            "original_alpha": original_alpha,
-            "current_alpha": round(current_alpha, 2),
-            "alpha_loss_pct": round(degradation_pct * 100, 1),
-            "remaining_pct": round(remaining_pct * 100, 1),
-            "age_months": round(months_old, 1),
-            "storage": storage_condition,
-            "hsi": hsi,
-            "freshness_rating": freshness,
-            "status": status,
-            "recommendation": f"Use {round(original_alpha / current_alpha, 2)}x more to compensate" if current_alpha > 0 else "Replace hops"
-        }
-        
-    except Exception as e:
-        logger.error(f"Hop freshness calculation error: {e}")
-        return {"error": str(e)}
-
+# In-memory cache for ingredient search results to avoid redundant network hits
+_ingredient_cache = {}
+_ingredient_cache_lock = threading.Lock()
 
 def check_inventory_hop_freshness(inventory: dict = None) -> list:
     """
@@ -190,13 +83,31 @@ INGREDIENT_ALIASES = {
     "carafa special i": ["carafa malt"],
     "carafa special ii": ["carafa malt"],
     "carafa special iii": ["carafa malt"],
-    # Hops with codes
+    "crisp extra pale malt": ["extra pale malt", "crisp extra pale"],
+    "weyermann vienna malt": ["vienna malt"],
+    "weyermann munich i": ["munich malt", "munich i"],
+    "weyermann munich ii": ["munich malt", "munich ii"],
+    "simpsons golden promise": ["golden promise", "golden promise malt"],
+    "simpsons maris otter": ["maris otter", "maris otter malt"],
+    # Hops
     "mosaic (hbc 369)": ["mosaic hops"],
     "sabro (hbc 438)": ["sabro hops"],
     "strata (x-331)": ["strata hops"],
     "idaho 7 (a07270)": ["idaho 7 hops"],
     "nelson sauvin (hop)": ["nelson sauvin hops"],
+    "citra crg": ["citra hops", "citra cryo"],
+    "mosaic crg": ["mosaic hops", "mosaic cryo"],
+    "simcoe crg": ["simcoe hops", "simcoe cryo"],
+    "cascade (us)": ["cascade hops"],
+    "centennial (us)": ["centennial hops"],
+    "columbus (us)": ["columbus hops", "ctz hops"],
+    "magnum (ger)": ["magnum hops"],
 }
+
+def get_fuzzy_match(name, choices, threshold=0.6):
+    """Returns the best fuzzy match from a list of choices."""
+    matches = difflib.get_close_matches(name, choices, n=1, cutoff=threshold)
+    return matches[0] if matches else None
 
 def normalize_ingredient_name(name):
     """
@@ -218,227 +129,12 @@ def normalize_ingredient_name(name):
     normalized = re.sub(r'\s*\([^)]*\)', '', normalized)
     
     # Remove trailing origin codes like "Ger", "UK", "US", "Bel"
-    normalized = re.sub(r'\s+(ger|uk|us|bel|aus|nz)$', '', normalized, flags=re.IGNORECASE)
+    normalized = re.sub(r'\s+(ger|uk|us|bel|aus|nz|crg)$', '', normalized, flags=re.IGNORECASE)
+    
+    # Strip common pellet indicators
+    normalized = re.sub(r'\s+(t90|t-90|pellets|pellet)$', '', normalized, flags=re.IGNORECASE)
     
     return normalized.strip()
-
-def extract_price(text):
-    if not text: return None
-    # Clean text
-    text = text.replace(',', '') # Handle 1,000.00
-    
-    # 1. Look for £ followed by digits (e.g. £13.95)
-    match = re.search(r'[£$€]\s?(\d+(?:\.\d{2})?)', text)
-    if match:
-            return float(match.group(1))
-
-    # 2. Look for digits followed by GBP (e.g. 7.50 GBP)
-    match = re.search(r'(\d+(?:\.\d{2})?)\s?GBP', text, re.IGNORECASE)
-    if match:
-        return float(match.group(1))
-
-    # 3. Look for "Price/Cost:" followed by digits (e.g. Price: 10.00)
-    match = re.search(r'(?:Price|Cost):\s?£?(\d+(?:\.\d{2})?)', text, re.IGNORECASE)
-    if match:
-        return float(match.group(1))
-            
-    # 4. Fallback: Pure number if context suggests (simplified)
-    # Be careful not to pick up "2023" or "100g" as price blindly, but for snippets often the price field is clean.
-    try:
-        # If text is just a number (common in rich snippet 'price' field)
-        return float(text)
-    except Exception as e:
-        logger.debug(f"Price parse fallback failed: {e}")
-        
-    return None
-
-# Rate limiting - track last request time per domain
-_last_request_time = {}
-_MIN_REQUEST_INTERVAL = 2.0  # Minimum 2 seconds between requests to same domain
-
-def get_page_content(url, retries=2):
-    """
-    Fetches page HTML using requests + retries with exponential backoff.
-    Includes rate limiting to be respectful to vendor sites.
-    Returns None if all attempts fail.
-    """
-    import time as _time
-    from urllib.parse import urlparse
-    
-    # ----------------------------------------------------
-    # SSRF PROTECTION: Strict Domain Allowlist
-    # ----------------------------------------------------
-    ALLOWED_DOMAINS = {
-        "themaltmiller.co.uk", "www.themaltmiller.co.uk",
-        "geterbrewed.com", "www.geterbrewed.com"
-    }
-    domain = urlparse(url).netloc
-    if domain not in ALLOWED_DOMAINS:
-        logger.error(f"SSRF BLOCK: Attempted to scrape unauthorized domain: {domain} -> {url}")
-        return None
-        
-    # Rate limiting - wait if we've requested this domain recently
-    now = _time.time()
-    if domain in _last_request_time:
-        elapsed = now - _last_request_time[domain]
-        if elapsed < _MIN_REQUEST_INTERVAL:
-            wait_time = _MIN_REQUEST_INTERVAL - elapsed
-            logger.debug(f"Rate limiting: waiting {wait_time:.1f}s before requesting {domain}")
-            _time.sleep(wait_time)
-    _last_request_time[domain] = _time.time()
-    
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-        'Accept-Language': 'en-GB,en;q=0.9,en-US;q=0.8',
-        'Accept-Encoding': 'gzip, deflate',
-        'Connection': 'keep-alive',
-        'Upgrade-Insecure-Requests': '1',
-        'Sec-Fetch-Dest': 'document',
-        'Sec-Fetch-Mode': 'navigate',
-        'Sec-Fetch-Site': 'none',
-        'Sec-Fetch-User': '?1',
-        'Cache-Control': 'max-age=0',
-        'Sec-Ch-Ua': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
-        'Sec-Ch-Ua-Mobile': '?0',
-        'Sec-Ch-Ua-Platform': '"macOS"',
-    }
-    
-    for attempt in range(retries + 1):
-        try:
-            r = requests.get(url, headers=headers, timeout=15, allow_redirects=True)
-            r.raise_for_status()
-            return r.text
-        except requests.exceptions.RequestException as e:
-            error_str = str(e)
-            status_code = getattr(e.response, 'status_code', None) if hasattr(e, 'response') else None
-            
-            # Rate limited - wait longer before retry
-            if status_code == 429 or "429" in error_str:
-                wait_time = 10 * (attempt + 1)  # 10s, 20s, 30s
-                logger.warning(f"Rate limited (429) on {url}, waiting {wait_time}s before retry")
-                _time.sleep(wait_time)
-                continue
-            
-            if attempt < retries:
-                wait_time = 2 ** attempt
-                logger.warning(f"Retry {attempt + 1}/{retries} for {url} after {wait_time}s: {e}")
-                _time.sleep(wait_time)
-            else:
-                logger.warning(f"Failed to fetch {url} after {retries + 1} attempts: {e}")
-                return None
-    
-    return None
-
-
-
-def extract_weight_in_grams(text):
-    """
-    Parses weight string (e.g. "100g", "1kg", "500 ml") and returns grams.
-    Returns None if no weight found.
-    """
-    if not text: return None
-    
-    # Normalize to lower but KEEP SPACES for boundaries
-    text = text.lower()
-    
-    # KG (e.g. 1kg, 1.5 kg)
-    # \b ensures we don't match inside other numbers
-    match = re.search(r'\b(\d+(?:\.\d+)?)\s?kg\b', text)
-    if match:
-        return float(match.group(1)) * 1000
-        
-    # Grams (e.g. 100g, 100 g)
-    match = re.search(r'\b(\d+(?:\.\d+)?)\s?g\b', text)
-    if match:
-        return float(match.group(1))
-
-    # Lbs
-    match = re.search(r'\b(\d+(?:\.\d+)?)\s?lbs?\b', text)
-    if match:
-        return float(match.group(1)) * 453.59
-        
-    # Oz
-    match = re.search(r'\b(\d+(?:\.\d+)?)\s?oz\b', text)
-    if match:
-        return float(match.group(1)) * 28.35
-        
-    # ML/L
-    match = re.search(r'\b(\d+(?:\.\d+)?)\s?ml\b', text)
-    if match:
-        return float(match.group(1))
-
-    match = re.search(r'\b(\d+(?:\.\d+)?)\s?l\b', text)
-    if match:
-        return float(match.group(1)) * 1000
-        
-    return None
-
-def parse_product_page(html, source):
-    """
-    Extracts price and weight/pack-size from HTML.
-    Calculates cost per gram if possible.
-    """
-    if not html: return None
-    
-    soup = BeautifulSoup(html, 'html.parser')
-    data = {"price": None, "weight": None, "weight_g": None}
-    
-    try:
-        # Debugging
-        # print(f"DEBUG: Parsing {source}...")
-
-        # --- THE MALT MILLER (WooCommerce) ---
-        if "malt miller" in str(source).lower() or soup.select('.tmm-logo'):
-            # Price
-            # Generic WooCommerce Price
-            price_tag = soup.select_one('.price .amount')
-            if price_tag:
-                 # Extract text but handle nested tags like <bdi>
-                 data['price'] = extract_price(price_tag.get_text())
-            
-            # Weight/Size
-            # 1. Attribute table
-            # 2. Product Title
-            title = soup.select_one('h1.product_title') or soup.find('h1')
-            title_text = title.get_text() if title else ""
-            
-            # Extract grams/kg from title
-            weight_match = re.search(r'(\d+)\s?(g|kg|ml|l)', title_text, re.IGNORECASE)
-            if weight_match:
-                data['weight'] = f"{weight_match.group(1)}{weight_match.group(2)}"
-                
-        # --- GET ER BREWED ---
-        elif "get er brewed" in str(source).lower() or "geterbrewed" in str(source).lower():
-             # Price
-             price_tag = soup.select_one('[itemprop="price"]') or soup.select_one('.product-price')
-             if price_tag:
-                # content attribute often cleans "12.50"
-                 p_text = price_tag.get("content") or price_tag.get_text()
-                 data['price'] = extract_price(p_text)
-                 
-             # Weight
-             title = soup.select_one('h1')
-             title_text = title.get_text() if title else ""
-             weight_match = re.search(r'(\d+)\s?(g|kg|ml|l)', title_text, re.IGNORECASE)
-             if weight_match:
-                data['weight'] = f"{weight_match.group(1)}{weight_match.group(2)}"
-
-        # --- GENERIC FALLBACK ---
-        else:
-             # Try generic meta tags
-             price_meta = soup.select_one('meta[property="product:price:amount"]') or soup.select_one('meta[property="og:price:amount"]')
-             if price_meta:
-                 data['price'] = float(price_meta['content'])
-        
-        # Calculate Weight in Grams
-        if data.get('weight'):
-            data['weight_g'] = extract_weight_in_grams(data['weight'])
-                 
-    except Exception as e:
-        logger.error(f"Page Parsing Error: {e}")
-        
-    return data
 
 def search_ingredient(name, ingredient_type="hop"):
     """
@@ -700,6 +396,16 @@ def compare_recipe_prices(recipe_details, recipe_tag=None, debug_mode=False):
         name = yeast.get('name')
         items_to_check.append({"name": name, "amount": 1, "unit": "pack", "type": "Yeast"})
     
+    # Deduplicate items to check (merge amounts for same name/unit/type)
+    deduped = {}
+    for item in items_to_check:
+        key = (item['name'], item['unit'], item['type'])
+        if key in deduped:
+            deduped[key]['amount'] += item['amount']
+        else:
+            deduped[key] = item
+    items_to_check = list(deduped.values())
+    
     # Fetch inventory to check stock levels
     inventory = {}
     try:
@@ -741,37 +447,82 @@ def compare_recipe_prices(recipe_details, recipe_tag=None, debug_mode=False):
             if not html:
                 logger.warning(f"[DIRECT] No response from {source_name}")
                 return None
+                
+            # 1. Try JSON-LD Extraction first
+            products = extract_json_ld_products(html)
+            best_match = None
+            best_confidence = 0.0
+            target_clean = ingredient_name.lower().strip()
             
+            for p in products:
+                p_name = p.get('name', '')
+                if not p_name: continue
+                
+                conf = difflib.SequenceMatcher(None, target_clean, p_name.lower()).ratio()
+                if target_clean in p_name.lower(): conf = max(conf, 0.8)
+                
+                if conf > best_confidence:
+                    best_confidence = conf
+                    best_match = p
+
+            if best_match and best_confidence >= 0.5:
+                price = None
+                offers = best_match.get('offers', {})
+                if isinstance(offers, dict): offers = [offers]
+                for offer in offers:
+                    if offer.get('@type') == 'Offer' and offer.get('price'):
+                        try:
+                            price = float(offer['price'])
+                            break
+                        except ValueError:
+                            pass
+                            
+                if price:
+                    title = best_match.get('name')
+                    link = best_match.get('url') or search_url
+                    if link == search_url and isinstance(offers, list) and len(offers) > 0:
+                        link = offers[0].get('url', search_url)
+                        
+                    return {
+                        "price": price,
+                        "link": link,
+                        "title": title,
+                        "weight_g": extract_weight_in_grams(title),
+                        "confidence": best_confidence
+                    }
+
+            # 2. Fallback to HTML/CSS Parsing
             soup = BeautifulSoup(html, 'html.parser')
             
-            # Find first product result - WooCommerce structure
-            product = soup.select_one('.product, .products .product, li.product')
+            product = soup.select_one('.product, .products .product, li.product, .item, .product-item')
             if not product:
                 logger.debug(f"[DIRECT] No product found for '{ingredient_name}' on {source_name}")
                 return None
             
-            # Extract price from WooCommerce
-            price_tag = product.select_one('.price .amount, .price ins .amount, .woocommerce-Price-amount')
+            title_tag = product.select_one('.woocommerce-loop-product__title, h2, .product-title, .product-name')
+            title = title_tag.get_text().strip() if title_tag else ingredient_name
+            
+            conf = difflib.SequenceMatcher(None, target_clean, title.lower()).ratio()
+            if target_clean in title.lower(): conf = max(conf, 0.8)
+            
+            if conf < 0.4:
+                logger.debug(f"[DIRECT] Rejected '{title}' for '{ingredient_name}'. Low confidence: {conf:.2f}")
+                return None
+            
+            price_tag = product.select_one('.price .amount bdi, .price ins .amount bdi, .price .amount, .price ins .amount, .woocommerce-Price-amount, .product-price')
             price = None
             if price_tag:
                 price = extract_price(price_tag.get_text())
             
-            # Extract product link
-            link_tag = product.select_one('a[href*="/product/"], a.woocommerce-LoopProduct-link')
+            link_tag = product.select_one('a[href*="/product/"], a[href*="/item/"], a.woocommerce-LoopProduct-link')
             link = link_tag.get('href') if link_tag else search_url
-            
-            # Extract title
-            title_tag = product.select_one('.woocommerce-loop-product__title, h2, .product-title')
-            title = title_tag.get_text().strip() if title_tag else ingredient_name
-            
-            # Try to extract weight for cost per gram calculation
-            weight_g = extract_weight_in_grams(title)
             
             return {
                 "price": price,
                 "link": link,
                 "title": title,
-                "weight_g": weight_g
+                "weight_g": extract_weight_in_grams(title),
+                "confidence": conf
             }
             
         except Exception as e:
@@ -838,79 +589,72 @@ def compare_recipe_prices(recipe_details, recipe_tag=None, debug_mode=False):
             logger.error(f"Search Error: {e}")
         return None
 
-    # Limit to top 3 items for speed/cost (Optimized to prevent timeouts)
-    for item in items_to_check[:3]: 
+    def process_item(item):
         row = {
             "name": item['name'],
             "type": item['type'],
             "amount": f"{item['amount']} {item['unit']}",
-            "amount_g": item['amount'] * 1000 if item['unit'] == 'kg' else item['amount'], # Standardize needed amount
-            
-            "tmm_price": "N/A", "tmm_cost": 0.0, "tmm_link": "#",
-            "geb_price": "N/A", "geb_cost": 0.0, "geb_link": "#",
-            
+            "amount_g": item['amount'] * 1000 if item['unit'] == 'kg' else item['amount'],
+            "tmm_price": "N/A", "tmm_cost": 0.0, "tmm_cost_raw": 0.0, "tmm_link": "#",
+            "geb_price": "N/A", "geb_cost": 0.0, "geb_cost_raw": 0.0, "geb_link": "#",
             "best_vendor": "None",
             "in_stock": False,
             "stock_qty": 0
         }
-        
-        # Check inventory stock (Logic omitted for brevity, keeping existing)
-        # For prototype, we assume we need to buy everything that is not in stock
-        # Ideally check local inventory here.
         
         names_to_try = [item['name']]
         normalized_name = normalize_ingredient_name(item['name'])
         if normalized_name:
              names_to_try.append(normalized_name)
         
-        # --- SEARCH MALT MILLER (Direct first, SerpAPI fallback) ---
-        res_tmm = None
-        for try_name in names_to_try:
-            # Try direct scraping first (free, no quota)
-            res_tmm = search_vendor_direct(try_name, "tmm")
-            if res_tmm and res_tmm.get('price'):
-                logger.debug(f"[TMM] Direct hit for '{try_name}': £{res_tmm['price']}")
-                break
-            # Fallback to SerpAPI if available and direct failed
-            if use_serp and not res_tmm:
-                res_tmm = search_price(f"{try_name} site:themaltmiller.co.uk", "The Malt Miller")
-                if res_tmm: break
+        def get_cached_or_fetch(vendor, names):
+            for try_name in names:
+                cache_key = f"{vendor}_{try_name}"
+                with _ingredient_cache_lock:
+                    cached = _ingredient_cache.get(cache_key)
+                    if cached and (std_time.time() - cached['ts']) < 14400: # 4 hours TTL
+                        return cached['data']
+                        
+                res = search_vendor_direct(try_name, vendor)
+                if res and res.get('price'):
+                    with _ingredient_cache_lock:
+                        _ingredient_cache[cache_key] = {"data": res, "ts": std_time.time()}
+                    return res
+            return None
+
+        # --- SEARCH MALT MILLER ---
+        res_tmm = get_cached_or_fetch("tmm", names_to_try)
+        if use_serp and not res_tmm:
+            for try_name in names_to_try:
+                 res_tmm = search_price(f"{try_name} site:themaltmiller.co.uk", "The Malt Miller")
+                 if res_tmm: break
         
         if res_tmm:
             row['tmm_price'] = res_tmm['price']
             row['tmm_link'] = res_tmm.get('link', '#')
-            
-            # Calculate Cost for Recipe Amount
             if res_tmm.get('weight_g') and res_tmm['weight_g'] > 0:
                 cost_per_g = res_tmm['price'] / res_tmm['weight_g']
                 item_cost = cost_per_g * row['amount_g']
+                row['tmm_cost_raw'] = item_cost
                 row['tmm_cost'] = round(item_cost, 2)
-                total_tmm += item_cost
             else:
                 row['tmm_cost'] = "?" 
 
-        # --- SEARCH GET ER BREWED (Direct first, SerpAPI fallback) ---
-        res_geb = None
-        for try_name in names_to_try:
-            # Try direct scraping first (free, no quota)
-            res_geb = search_vendor_direct(try_name, "geb")
-            if res_geb and res_geb.get('price'):
-                logger.debug(f"[GEB] Direct hit for '{try_name}': £{res_geb['price']}")
-                break
-            # Fallback to SerpAPI if available and direct failed
-            if use_serp and not res_geb:
-                res_geb = search_price(f"{try_name} site:geterbrewed.com", "Get Er Brewed")
-                if res_geb: break
+        # --- SEARCH GET ER BREWED ---
+        res_geb = get_cached_or_fetch("geb", names_to_try)
+        if use_serp and not res_geb:
+            for try_name in names_to_try:
+                 res_geb = search_price(f"{try_name} site:geterbrewed.com", "Get Er Brewed")
+                 if res_geb: break
             
         if res_geb:
             row['geb_price'] = res_geb['price']
             row['geb_link'] = res_geb.get('link', '#')
-            
             if res_geb.get('weight_g') and res_geb['weight_g'] > 0:
                 cost_per_g = res_geb['price'] / res_geb['weight_g']
                 item_cost = cost_per_g * row['amount_g']
+                row['geb_cost_raw'] = item_cost
                 row['geb_cost'] = round(item_cost, 2)
-                total_geb += item_cost
             else:
                 row['geb_cost'] = "?"
         
@@ -918,13 +662,22 @@ def compare_recipe_prices(recipe_details, recipe_tag=None, debug_mode=False):
         try:
             t = float(row['tmm_price']) if row['tmm_price'] != "N/A" else 9999
             g = float(row['geb_price']) if row['geb_price'] != "N/A" else 9999
-            
             if t < g and t != 9999: row['best_vendor'] = "TMM"
             elif g < t and g != 9999: row['best_vendor'] = "GEB"
             elif t == g and t != 9999: row['best_vendor'] = "Tie"
         except (ValueError, TypeError): pass
         
-        results.append(row)
+        return row
+
+    # Process all items concurrently using ThreadPoolExecutor (max 3 workers to prevent overwhelming)
+    with ThreadPoolExecutor(max_workers=3) as executor:
+        for row in executor.map(process_item, items_to_check):
+            if row:
+                results.append(row)
+                if isinstance(row.get('tmm_cost_raw'), float) and row['tmm_cost_raw'] > 0:
+                    total_tmm += row['tmm_cost_raw']
+                if isinstance(row.get('geb_cost_raw'), float) and row['geb_cost_raw'] > 0:
+                    total_geb += row['geb_cost_raw']
         
     return {
         "breakdown": results,

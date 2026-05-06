@@ -49,36 +49,63 @@ def fetch_batch_readings(batch_id):
         logger.error(f"Failed to fetch readings: {e}")
         return None
 
-def fetch_brewfather_recipes(limit=20):
+def fetch_brewfather_recipes(limit=50):
     """
     Fetches recipes from Brewfather.
     """
     headers = get_auth_headers()
     if not headers: return {"error": "Missing Credentials"}
     
-    url = f"https://api.brewfather.app/v2/recipes?limit={limit}&order_by=name"
-    try:
-        r = requests.get(url, headers=headers, timeout=10)
-        if r.status_code != 200:
-            return {"error": f"API Error {r.status_code}"}
-        recipes = r.json()
-        
-        # Post-process: Add fallback name for recipes with empty names
-        for recipe in recipes:
-            if not recipe.get('name') or recipe.get('name', '').strip() == '':
-                style_name = recipe.get('style', {}).get('name', '')
-                author = recipe.get('author', '')
+    all_recipes = []
+    start_after = None
+    
+    while True:
+        url = f"https://api.brewfather.app/v2/recipes?limit={limit}&order_by=name"
+        if start_after:
+            url += f"&start_after={start_after}"
+            
+        try:
+            r = requests.get(url, headers=headers, timeout=10)
+            if r.status_code != 200:
+                if all_recipes:
+                    break # Return what we have
+                return {"error": f"API Error {r.status_code}"}
+            
+            recipes = r.json()
+            if not recipes:
+                break
                 
-                if style_name:
-                    recipe['name'] = f"Untitled {style_name}"
-                elif author:
-                    recipe['name'] = f"{author}'s Recipe"
-                else:
-                    recipe['name'] = f"Untitled Recipe"
-        
-        return recipes
-    except Exception as e:
-        return {"error": str(e)}
+            all_recipes.extend(recipes)
+            
+            # If we got fewer than the limit, we're at the end
+            if len(recipes) < limit:
+                break
+                
+            # Get the ID of the last recipe for the next page
+            start_after = recipes[-1].get('_id')
+            if not start_after:
+                break
+                
+        except Exception as e:
+            logger.error(f"Error fetching recipes page: {e}")
+            if all_recipes:
+                break
+            return {"error": str(e)}
+            
+    # Post-process: Add fallback name for recipes with empty names
+    for recipe in all_recipes:
+        if not recipe.get('name') or recipe.get('name', '').strip() == '':
+            style_name = recipe.get('style', {}).get('name', '')
+            author = recipe.get('author', '')
+            
+            if style_name:
+                recipe['name'] = f"Untitled {style_name}"
+            elif author:
+                recipe['name'] = f"{author}'s Recipe"
+            else:
+                recipe['name'] = f"Untitled Recipe"
+    
+    return all_recipes
 
 def fetch_recipe_details(recipe_id):
     """
@@ -110,20 +137,14 @@ def fetch_recipe_by_tag(tag: str):
     headers = get_auth_headers()
     if not headers: return {"error": "Missing Credentials"}
     
-    # Iterate through pages (max 5 pages for safety)
     limit = 50
-    for page in range(5):
-        # start_after logic would be needed for full pagination, 
-        # but Brewfather V2 uses 'start_after' ID.
-        # For simplicity in this iteration, we'll just check the most recent 100 via limit if API allows,
-        # or just the first page. The V2 API is basic.
-        
-        # NOTE: Brewfather API filtering by tag isn't direct. We must fetch and filter.
+    start_after = None
+    
+    # Iterate through pages (max 10 pages for safety)
+    for page in range(10):
         url = f"https://api.brewfather.app/v2/recipes?limit={limit}&order_by=name"
-        if page > 0:
-            # Pagination in BF requires last_id, which makes this complex without keeping state.
-            # For MVP, we only search the first 50 items.
-            break
+        if start_after:
+            url += f"&start_after={start_after}"
             
         try:
             r = requests.get(url, headers=headers, timeout=10)
@@ -134,8 +155,6 @@ def fetch_recipe_by_tag(tag: str):
             for recipe in recipes:
                 # Check tags
                 r_tags = recipe.get("tags", [])
-                # Tags can be objects or strings depending on API version, usually list of strings/objs
-                # Normalize tags to lower strings
                 tag_list = []
                 for t in r_tags:
                     if isinstance(t, str): tag_list.append(t.lower())
@@ -144,6 +163,13 @@ def fetch_recipe_by_tag(tag: str):
                 if tag.lower() in tag_list:
                     return fetch_recipe_details(recipe.get('_id'))
                     
+            if len(recipes) < limit:
+                break
+                
+            start_after = recipes[-1].get('_id')
+            if not start_after:
+                break
+                
         except Exception as e:
             return {"error": str(e)}
             
