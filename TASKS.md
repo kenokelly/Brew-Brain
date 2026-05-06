@@ -191,15 +191,14 @@ Transform Brew Brain from a monitoring dashboard into an **Intelligent Fermentat
 
 ---
 
-### Phase 16 — Sourcing & SRE Fixes (Priority: HIGH) 🟡 (Planned)
-
-- [ ] **16.1 Fix Price Comparison Logic (SRE)** — Remove the 3-item limit in `compare_recipe_prices`. Implement `ThreadPoolExecutor` for concurrent fetching, an in-memory TTL cache, and thread-safe domain rate-limiting.
-- [ ] **16.2 Improve Scraper Reliability** — Update `search_vendor_direct` with robust CSS selectors and introduce a 429/403 Circuit Breaker in `get_page_content` to prevent proxy timeouts.
-- [ ] **16.3 Implement Brewfather Pagination** — Update `fetch_brewfather_recipes` and `fetch_recipe_by_tag` in `alerts.py` to support `start_after` pagination for full recipe listing.
-- [ ] **16.4 Broaden Ingredient Matching** — Enhance `normalize_ingredient_name` and `INGREDIENT_ALIASES` to improve matching across different vendor naming conventions.
-- [x] **16.5 Restrict Vendor Allowlist** — Ensure `ALLOWED_DOMAINS` strictly limits scraping to only The Malt Miller and Get Er Brewed.
-- [ ] **16.6 Robust Sourcing Logic (SRE)** — Implement JSON-LD (`application/ld+json`) parsing for accurate price/stock extraction instead of fragile CSS selectors.
-- [ ] **16.7 Fuzzy Ingredient Matching** — Introduce sequence matching (`difflib`) to analyze vendor product titles against internal recipe tokens with a Confidence Score.
+### Phase 16 — Sourcing & SRE Fixes (Priority: HIGH) ✅
+- [x] **16.1 Fix Price Comparison Logic (SRE)** — Removed the 3-item limit. Implemented `ThreadPoolExecutor` for concurrent fetching, an in-memory TTL cache, and thread-safe domain rate-limiting.
+- [x] **16.2 Improve Scraper Reliability** — Updated `search_vendor_direct` with robust JSON-LD parsing and introduced a 429/403 Circuit Breaker in `get_page_content`.
+- [x] **16.3 Implement Brewfather Pagination** — Updated `fetch_brewfather_recipes` and `fetch_recipe_by_tag` in `alerts.py` to support `start_after` pagination.
+- [x] **16.4 Broaden Ingredient Matching** — Enhanced `normalize_ingredient_name` and `INGREDIENT_ALIASES` with fuzzy matching (`difflib`).
+- [x] **16.5 Restrict Vendor Allowlist** — Ensured `ALLOWED_DOMAINS` strictly limits scraping to only The Malt Miller and Get Er Brewed.
+- [x] **16.6 Robust Sourcing Logic (SRE)** — Implemented JSON-LD (`application/ld+json`) parsing for accurate price/stock extraction.
+- [x] **16.7 Fuzzy Ingredient Matching** — Introduced sequence matching (`difflib`) to analyze vendor product titles.
 
 ---
 

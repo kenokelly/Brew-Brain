@@ -20,7 +20,17 @@ def _get_inventory():
     from app.services import alerts
     return alerts.fetch_brewfather_inventory()
 from app.services.hop_math import calculate_hop_freshness
-from app.services.scraper_utils import get_page_content, parse_product_page, extract_weight_in_grams
+from app.services.scraper_utils import (
+    get_page_content, 
+    parse_product_page, 
+    extract_weight_in_grams, 
+    extract_json_ld_products, 
+    extract_price
+)
+
+# In-memory cache for ingredient search results to avoid redundant network hits
+_ingredient_cache = {}
+_ingredient_cache_lock = threading.Lock()
 
 def check_inventory_hop_freshness(inventory: dict = None) -> list:
     """
@@ -93,6 +103,11 @@ INGREDIENT_ALIASES = {
     "columbus (us)": ["columbus hops", "ctz hops"],
     "magnum (ger)": ["magnum hops"],
 }
+
+def get_fuzzy_match(name, choices, threshold=0.6):
+    """Returns the best fuzzy match from a list of choices."""
+    matches = difflib.get_close_matches(name, choices, n=1, cutoff=threshold)
+    return matches[0] if matches else None
 
 def normalize_ingredient_name(name):
     """
@@ -380,6 +395,16 @@ def compare_recipe_prices(recipe_details, recipe_tag=None, debug_mode=False):
     for yeast in recipe_details.get('yeasts', []):
         name = yeast.get('name')
         items_to_check.append({"name": name, "amount": 1, "unit": "pack", "type": "Yeast"})
+    
+    # Deduplicate items to check (merge amounts for same name/unit/type)
+    deduped = {}
+    for item in items_to_check:
+        key = (item['name'], item['unit'], item['type'])
+        if key in deduped:
+            deduped[key]['amount'] += item['amount']
+        else:
+            deduped[key] = item
+    items_to_check = list(deduped.values())
     
     # Fetch inventory to check stock levels
     inventory = {}

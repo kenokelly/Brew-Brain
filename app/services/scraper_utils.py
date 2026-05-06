@@ -66,9 +66,11 @@ def get_page_content(url, retries=2):
         now = std_time.time()
         if cb["failures"] >= _MAX_FAILURES:
             if now < cb["backoff_until"]:
-                logger.warning(f"Circuit Breaker active for {domain}. Skipping request.")
+                remaining = int(cb["backoff_until"] - now)
+                logger.warning(f"Circuit Breaker active for {domain} ({remaining}s remaining). Skipping request.")
                 return None
             else:
+                logger.info(f"Circuit Breaker cooling period over for {domain}. Retrying...")
                 cb["failures"] = 0
                 _circuit_breaker[domain] = cb
     
@@ -94,37 +96,44 @@ def get_page_content(url, retries=2):
         'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
         'Accept-Language': 'en-GB,en;q=0.9,en-US;q=0.8',
-        'Cache-Control': 'max-age=0',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
     }
     
     for attempt in range(retries + 1):
         try:
             r = requests.get(url, headers=headers, timeout=15, allow_redirects=True)
             r.raise_for_status()
+            
+            # Reset failure count on success
+            with _req_lock:
+                if domain in _circuit_breaker:
+                    _circuit_breaker[domain]["failures"] = 0
+            
             return r.text
         except requests.exceptions.RequestException as e:
-            error_str = str(e)
             status_code = getattr(e.response, 'status_code', None) if hasattr(e, 'response') else None
             
+            # Record failure for Circuit Breaker
+            with _req_lock:
+                cb = _circuit_breaker.get(domain, {"failures": 0, "backoff_until": 0})
+                cb["failures"] += 1
+                if cb["failures"] >= _MAX_FAILURES:
+                    cb["backoff_until"] = std_time.time() + _BACKOFF_TIME
+                    logger.error(f"CIRCUIT BREAKER TRIGGERED for {domain} due to: {e}")
+                _circuit_breaker[domain] = cb
+
             # Rate limited or Forbidden
-            if status_code in (429, 403) or "429" in error_str or "403" in error_str:
-                wait_time = 10 * (attempt + 1)
-                logger.warning(f"Rate limited/Forbidden on {url}, waiting {wait_time}s before retry")
-                std_time.sleep(wait_time)
-                
-                # Record circuit breaker failure on last attempt
-                if attempt == retries:
-                    with _req_lock:
-                        cb = _circuit_breaker.get(domain, {"failures": 0, "backoff_until": 0})
-                        cb["failures"] += 1
-                        if cb["failures"] >= _MAX_FAILURES:
-                            cb["backoff_until"] = std_time.time() + _BACKOFF_TIME
-                            logger.error(f"CIRCUIT BREAKER TRIGGERED for {domain}")
-                        _circuit_breaker[domain] = cb
-                continue
+            if status_code in (429, 403):
+                wait_time = 30 * (attempt + 1) # More aggressive backoff for 429/403
+                logger.warning(f"Rate limited (HTTP {status_code}) on {domain}, waiting {wait_time}s")
+                if attempt < retries:
+                    std_time.sleep(wait_time)
+                    continue
+                return None
             
             if attempt < retries:
-                wait_time = 2 ** attempt
+                wait_time = 5 * (attempt + 1)
                 logger.warning(f"Retry {attempt + 1}/{retries} for {url} after {wait_time}s: {e}")
                 std_time.sleep(wait_time)
             else:
