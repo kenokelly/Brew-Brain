@@ -36,6 +36,17 @@ Transform Brew Brain from a monitoring dashboard into an **Intelligent Fermentat
 
 ---
 
+## Host Status
+
+| Component | Status | Metrics / Info |
+|-----------|--------|----------------|
+| **Pi Connectivity** | 🟢 Online | Responsive on port 5000 (ICMP/Ping blocked) |
+| **Pi Health** | 🟢 Healthy | Temp: 48.5°C |
+| **Active Batch** | 🍺 "IPA no 1" | SG: 1.010 (Target: 1.001) at 16.1°C |
+| **Last Checked** | 2026-03-19 | Verified via `/api/status` |
+
+---
+
 ## Completed Work
 
 ### Phase 1 — Anomaly Detection ✅
@@ -127,12 +138,83 @@ Transform Brew Brain from a monitoring dashboard into an **Intelligent Fermentat
 
 ---
 
-### Infrastructure (Optional / Future)
+### Phase 10 — ML Refinement (Priority: MEDIUM) 🟡
 
-- [ ] Add Redis to Docker Compose (redis:alpine, 128 MB limit)
-- [ ] Celery worker for async ML (train_model, batch_predict, export_data)
-- [ ] ML Metrics Dashboard in Grafana (prediction accuracy over time)
-- [ ] Alert if prediction accuracy degrades
+- [ ] **10.1 Fix Normalization Disconnect** — Ensure `normalize_features` is consistently used in both `train_models` and `predict_fg`.
+- [ ] **10.2 Sliding Window Velocity** — Update `calculate_sg_velocity` in `features.py` to use a 24h window instead of a simple linear average.
+- [ ] **10.3 Feature Expansion (Yeast & Style)** — Encode and include `yeast_strain` and `style` features in FG and Time models.
+- [ ] **10.4 Hyperparameter Tuning** — Implement Grid/Randomized search in `train_models` to optimize Gradient Boosting parameters.
+- [ ] **10.5 Library Standardization** — Either switch to the `xgboost` library or update docstrings/logging to reflect the use of `sklearn.ensemble`.
+
+---
+
+### Phase 11 — Infrastructure & Async (Priority: HIGH) 🟡
+
+- [ ] **11.1 Integrate Redis** — Add `redis:alpine` to `docker-compose.yml` with memory limits.
+- [ ] **11.2 Implement Celery** — Replace manual threading in `services/worker.py` and `services/scheduler.py` with Celery workers.
+- [ ] **11.3 Config Store Migration** — Evaluate moving from InfluxDB to a more standard config store (SQLite/JSON) for better reliability.
+- [ ] **11.4 Persistent Logging** — Ensure `/data/app_debug.log` is properly rotated and accessible via the UI.
+
+---
+
+### Phase 12 — Backend Refactoring (Priority: MEDIUM) ✅
+
+- [x] **12.1 Modularize API Routes** — Split `api/routes.py` (37KB) into `batches.py`, `ml.py`, and `settings.py`.
+- [x] **12.2 Clean Up Services** — Refactor `services/sourcing.py` (40KB) and consolidate `water.py`/`water_chemistry.py`.
+- [x] **12.3 API Validation** — Implement Pydantic models for all request bodies and response schemas.
+- [x] **12.4 Dependency Cleanup** — Verify and remove unused dependencies from `requirements.txt`.
+
+---
+
+### Phase 13 — Testing & Quality (Priority: LOW) ⚪
+
+- [ ] **13.1 Increase Coverage** — Add unit tests for `worker.py`, `scheduler.py`, and `alerting.py`.
+- [ ] **13.2 Automate Verifications** — Convert `verify_*.py` scripts into proper `pytest` integration tests.
+- [ ] **13.3 Linting & Type Checking** — Add `mypy` and `ruff` to the CI pipeline for stricter code quality.
+
+---
+
+### Phase 14 — Frontend Optimization (Priority: LOW) ⚪
+
+- [ ] **14.1 Component Refactor** — Break down `AnomalyWidget.tsx` and `nav.tsx` into smaller, reusable components.
+- [ ] **14.2 Socket.io Optimization** — Ensure WebSocket connections are properly managed and don't cause memory leaks.
+- [ ] **14.3 Loading States** — Implement skeleton loaders for all data-heavy views (Charts, Anomaly Widget).
+
+---
+
+### Phase 15 — Edge AI (Experimental) ⚪
+
+- [ ] **15.1 Ollama Deployment** — Add `ollama/ollama` to `docker-compose.yml` and pull a quantized 3B/8B model (e.g., Llama-3 or Phi-4).
+- [ ] **15.2 Narrative Brew Logs** — Create `services/ai.py` to feed InfluxDB trends to the SLM and generate automated Markdown brew summaries.
+- [ ] **15.3 Natural Language "Brewmaster"** — Implement a chat interface to query fermentation state (e.g., "How is my IPA doing?").
+- [ ] **15.4 Smart Troubleshooting** — Use the SLM to analyze anomalies and provide actionable advice (e.g., "Increase temp to finish fermentation").
+
+---
+
+### Phase 16 — Sourcing & SRE Fixes (Priority: HIGH) 🟡 (Planned)
+
+- [ ] **16.1 Fix Price Comparison Logic (SRE)** — Remove the 3-item limit in `compare_recipe_prices`. Implement `ThreadPoolExecutor` for concurrent fetching, an in-memory TTL cache, and thread-safe domain rate-limiting.
+- [ ] **16.2 Improve Scraper Reliability** — Update `search_vendor_direct` with robust CSS selectors and introduce a 429/403 Circuit Breaker in `get_page_content` to prevent proxy timeouts.
+- [ ] **16.3 Implement Brewfather Pagination** — Update `fetch_brewfather_recipes` and `fetch_recipe_by_tag` in `alerts.py` to support `start_after` pagination for full recipe listing.
+- [ ] **16.4 Broaden Ingredient Matching** — Enhance `normalize_ingredient_name` and `INGREDIENT_ALIASES` to improve matching across different vendor naming conventions.
+- [x] **16.5 Restrict Vendor Allowlist** — Ensure `ALLOWED_DOMAINS` strictly limits scraping to only The Malt Miller and Get Er Brewed.
+- [ ] **16.6 Robust Sourcing Logic (SRE)** — Implement JSON-LD (`application/ld+json`) parsing for accurate price/stock extraction instead of fragile CSS selectors.
+- [ ] **16.7 Fuzzy Ingredient Matching** — Introduce sequence matching (`difflib`) to analyze vendor product titles against internal recipe tokens with a Confidence Score.
+
+---
+
+### Phase 17 — Maintenance & Observability (Priority: HIGH) ✅
+
+> 32 GB SD card — disk is the tightest constraint on this Pi. Proactive monitoring prevents silent failures.
+
+- [x] **17.1 Disk Usage Health Endpoint** — Add `GET /api/health/disk` returning total/used/free bytes and percentage for the SD card. Trigger a Telegram alert when usage exceeds 80%.
+- [x] **17.2 Docker Image Pruning** — Add a cron script (`scripts/prune_docker.sh`) to run `docker image prune -f` and `docker builder prune -f` weekly. Log output to `/data/maintenance.log`.
+- [x] **17.3 InfluxDB Retention Policy** — Configure a retention policy on the `fermentation` bucket (e.g. 90 days) to prevent unbounded growth. Archive older data to Parquet exports before drop.
+- [x] **17.4 Log Rotation** — Implement `RotatingFileHandler` in Python logging config for `app_debug.log` (max 5 MB × 3 backups). Add `--log-opt max-size=10m` to Docker Compose log driver.
+- [x] **17.5 Container Memory Limits** — Add `mem_limit` to `docker-compose.yml` for each container: InfluxDB (512 MB), Grafana (256 MB), Flask (384 MB), Telegraf (128 MB), Nginx (64 MB).
+- [x] **17.6 SD Card Health Check** — Add SMART/wear-level monitoring via `scripts/sd_health.sh` using `iostat` or `/sys/block/mmcblk0/stat` to detect degrading I/O performance before failure.
+- [x] **17.7 Scheduled Maintenance Summary** — Weekly Telegram message with disk %, container memory usage, InfluxDB bucket size, and uptime.
+- [x] **17.8 Disable Tilt Notifications When Idle** — Add a "brew active" toggle (settings or auto-detect from Brewfather batch status). When no brew is active, suppress all Tilt-related Telegram alerts (temp deviation, stall warnings, signal loss) to avoid noise.
 
 ---
 

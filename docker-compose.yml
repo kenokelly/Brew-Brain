@@ -3,6 +3,12 @@ services:
     image: influxdb:2
     container_name: influxdb
     restart: unless-stopped
+    mem_limit: 512m
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     environment:
       DOCKER_INFLUXDB_INIT_MODE: setup
       DOCKER_INFLUXDB_INIT_USERNAME: ${INFLUX_USER}
@@ -21,6 +27,12 @@ services:
     image: telegraf:latest
     container_name: telegraf
     restart: unless-stopped
+    mem_limit: 128m
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     environment:
       - INFLUX_TOKEN=${INFLUX_TOKEN}
       - INFLUX_ORG=homebrew
@@ -37,6 +49,12 @@ services:
     image: grafana/grafana:latest
     container_name: grafana
     restart: unless-stopped
+    mem_limit: 256m
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     ports:
       - "3000:3000"
     environment:
@@ -55,6 +73,12 @@ services:
     image: ghcr.io/kenokelly/brew-brain-api:latest
     container_name: brew-brain
     restart: unless-stopped
+    mem_limit: 384m
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     ports:
       - "5000:5000"
     environment:
@@ -82,6 +106,12 @@ services:
     image: ghcr.io/kenokelly/brew-brain-web:latest
     container_name: brew-brain-web
     restart: unless-stopped
+    mem_limit: 64m
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     ports:
       - "3001:3000"
     environment:
@@ -97,3 +127,4 @@ services:
 networks:
   brewery-net:
     driver: bridge
+

@@ -76,3 +76,49 @@ def get_status_dict():
         "batch_name": get_config("batch_name"), "batch_notes": get_config("batch_notes"), "start_date": get_config("start_date"),
         "config": {"telegram_configured": bool(get_config("alert_telegram_token"))}
     }
+
+def get_disk_usage(path: str = "/") -> dict:
+    """Returns disk usage stats for the given mount point."""
+    import shutil
+    try:
+        usage = shutil.disk_usage(path)
+        pct = round((usage.used / usage.total) * 100, 1)
+        return {
+            "total_bytes": usage.total,
+            "used_bytes": usage.used,
+            "free_bytes": usage.free,
+            "used_percent": pct,
+            "total_gb": round(usage.total / (1024**3), 2),
+            "used_gb": round(usage.used / (1024**3), 2),
+            "free_gb": round(usage.free / (1024**3), 2),
+            "warning": pct >= 80.0
+        }
+    except OSError as e:
+        return {"error": str(e)}
+
+def get_sd_io_stats() -> dict:
+    """Reads SD card I/O counters from /sys/block/mmcblk0/stat."""
+    try:
+        with open("/sys/block/mmcblk0/stat", "r") as f:
+            parts = f.read().split()
+        # Kernel doc: reads_completed, reads_merged, sectors_read, ms_reading,
+        #             writes_completed, writes_merged, sectors_written, ms_writing, ...
+        return {
+            "reads_completed": int(parts[0]),
+            "sectors_read": int(parts[2]),
+            "read_ms": int(parts[3]),
+            "writes_completed": int(parts[4]),
+            "sectors_written": int(parts[6]),
+            "write_ms": int(parts[7]),
+        }
+    except (FileNotFoundError, OSError, IndexError):
+        return {"error": "SD card stats not available (not running on Pi)"}
+
+def get_maintenance_summary() -> dict:
+    """Aggregates all maintenance metrics into a single dict."""
+    return {
+        "disk": get_disk_usage("/"),
+        "data_volume": get_disk_usage("/data"),
+        "pi_temp": get_pi_temp(),
+        "sd_io": get_sd_io_stats(),
+    }
