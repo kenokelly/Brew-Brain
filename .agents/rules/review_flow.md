@@ -31,7 +31,8 @@ This policy defines the autonomous loops that gate all code changes before they 
 
 ## 🔁 The Failure Loop: DevOps & SRE
 - **Trigger:** `deploy_status == fail` OR `health_check == fail`.
-- **Action:** 
-    1. Execute `agent_rollback` to previous stable SHA.
-    2. Notify **System Analyst** with full error trace and container logs.
-    3. Re-assign task back to **QA Squad** for root-cause analysis.
+- **Mandatory Action Sequence:**
+    1.  **Capture:** Aggregate all terminal logs, container logs, and network error traces.
+    2.  **Revert:** Immediately execute `agent_rollback` or `git revert` to the last stable SHA.
+    3.  **Document:** Open a new 'Issue' or 'Bug' context for the **Senior Supplier** with the captured logs.
+    4.  **Freeze:** **DO NOT** attempt to re-deploy until the **QA Squad** has re-verified the fix in the staging environment.
