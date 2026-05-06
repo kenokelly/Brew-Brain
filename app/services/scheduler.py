@@ -40,16 +40,19 @@ def init_scheduler(app):
     from services.worker import process_data_once, check_alerts_once
     from services.telegram import telegram_poll_once
     from services.status import get_status_dict
-    from app.extensions import socketio
+    from extensions import socketio
 
     def emit_status_update():
         """Fetch and broadcast system status via WebSocket."""
         try:
             status = get_status_dict()
-            with scheduler.app.app_context():
-                socketio.emit('status_update', status)
+            # Use global socketio instance directly
+            socketio.emit('status_update', status)
         except Exception as e:
-            logger.error(f"WebSocket Emit Error: {e}")
+            # Silence this error during early startup as it's expected until server is fully ready
+            if "NoneType" not in str(e):
+                logger.error(f"WebSocket Emit Error: {e}")
+
 
     # Add recurring jobs
     # Real-time Status Emit (Every 5s)
@@ -140,7 +143,7 @@ def init_scheduler(app):
     )
 
     # Daily Telemetry Report (Weekdays 08:30, Weekends 11:00)
-    from app.services.telemetry import send_daily_board_report
+    from services.telemetry import send_daily_board_report
     
     scheduler.add_job(
         send_daily_board_report,

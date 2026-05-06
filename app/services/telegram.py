@@ -1,7 +1,7 @@
 import time
 import requests
 import logging
-from app.core.config import get_config
+from core.config import get_config
 from services.status import get_status_dict
 
 logger = logging.getLogger("BrewBrain")

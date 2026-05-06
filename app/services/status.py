@@ -117,7 +117,7 @@ def get_sd_io_stats() -> dict:
 def get_daily_telemetry() -> dict:
     """Calculates a 24-hour snapshot of fermentation progress."""
     try:
-        from app.services.prediction import get_predicted_fg
+        from services.prediction import get_predicted_fg
         
         batch_name = get_config("batch_name") or "Unknown"
         og = float(get_config("og") or 1.050)

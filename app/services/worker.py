@@ -5,11 +5,12 @@ from scipy.optimize import curve_fit
 from scipy.signal import medfilt
 import logging
 from influxdb_client import Point
-from app.core.config import get_config, set_config
-from app.core.influx import write_api, query_api, INFLUX_BUCKET, INFLUX_ORG
+from core.config import get_config, set_config
+from core.influx import write_api, query_api, INFLUX_BUCKET, INFLUX_ORG
 from services.telegram import send_telegram
 from services.ai import analyze_yeast_history
-from app.services.tilt_monitor import get_tilt_state
+from services.tilt_monitor import get_tilt_state
+
 
 logger = logging.getLogger("BrewBrain")
 

@@ -1,6 +1,6 @@
 import logging
-from app.services.status import get_daily_telemetry
-from app.services.notifications import send_telegram_message
+from services.status import get_daily_telemetry
+from services.notifications import send_telegram_message
 
 logger = logging.getLogger(__name__)
 

@@ -1,8 +1,8 @@
 import requests
 import logging
 from datetime import datetime, timezone
-from app.core.config import get_config
-from app.core.influx import write_api, INFLUX_BUCKET, INFLUX_ORG
+from core.config import get_config
+from core.influx import write_api, INFLUX_BUCKET, INFLUX_ORG
 from influxdb_client import Point
 
 logger = logging.getLogger("BrewBrain")

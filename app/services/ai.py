@@ -1,6 +1,6 @@
 import numpy as np
 from datetime import datetime, timezone, timedelta
-from app.core.influx import query_api, INFLUX_BUCKET
+from core.influx import query_api, INFLUX_BUCKET
 
 def analyze_yeast_history(yeast_name):
     """
