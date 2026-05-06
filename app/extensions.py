@@ -10,7 +10,7 @@ def make_celery(app_name=__name__):
         app_name,
         backend=redis_url,
         broker=redis_url,
-        include=['app.ml.tasks'] # We will create this
+        include=['ml.tasks'] # We will create this
     )
 
 celery = make_celery()

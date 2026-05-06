@@ -8,7 +8,7 @@ import logging
 import numpy as np
 from datetime import datetime, timezone, timedelta
 from typing import Dict, List, Optional, Any
-from app.core.influx import query_api, INFLUX_BUCKET
+from core.influx import query_api, INFLUX_BUCKET
 
 logger = logging.getLogger(__name__)
 

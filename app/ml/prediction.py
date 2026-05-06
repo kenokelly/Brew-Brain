@@ -17,8 +17,8 @@ import pyarrow.parquet as pq
 from datetime import datetime, timezone
 from collections import defaultdict
 from typing import Dict, List, Optional, Any
-from app.ml.features import calculate_sg_velocity, calculate_temp_variance, calculate_time_in_phase
-from app.core.influx import write_api, INFLUX_BUCKET, INFLUX_ORG
+from ml.features import calculate_sg_velocity, calculate_temp_variance, calculate_time_in_phase
+from core.influx import write_api, INFLUX_BUCKET, INFLUX_ORG
 from influxdb_client import Point
 
 logger = logging.getLogger(__name__)

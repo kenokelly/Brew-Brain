@@ -1,5 +1,5 @@
-from app.extensions import celery
-from app.ml.prediction import train_models as run_training
+from extensions import celery
+from ml.prediction import train_models as run_training
 import logging
 
 logger = logging.getLogger("BrewBrain.Tasks")

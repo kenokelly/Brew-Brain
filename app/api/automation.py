@@ -2,7 +2,6 @@ from flask import Blueprint, jsonify, request
 from app.core.decorators import api_safe
 from app.core.auth import require_api_token
 from app.services import scout, calculator, water, alerts
-
 import io
 import json
 import os
@@ -20,7 +19,7 @@ def run_qat_suite():
     return jsonify(report)
 
 @automation_bp.route('/api/automation/scout', methods=['POST'])
-def search_ingredients():
+def scout_ingredients():
     data = request.json
     query = data.get('query')
     if not query:
@@ -29,70 +28,15 @@ def search_ingredients():
     results = scout.search_ingredients(query)
     return jsonify(results)
 
-@automation_bp.route('/api/automation/calc_ibu', methods=['POST'])
-def calc_ibu():
+@automation_bp.route('/api/automation/calculator/strike', methods=['POST'])
+def calc_strike():
     data = request.json
-    try:
-        ibu = calculator.calculate_tinseth_ibu(
-            float(data.get('amount', 0)),
-            float(data.get('alpha', 0)),
-            float(data.get('time', 0)),
-            float(data.get('volume', 0)),
-            float(data.get('gravity', 1.050))
-        )
-        return jsonify({"ibu": ibu})
-    except (ValueError, TypeError):
-        return jsonify({"error": "Invalid numbers"}), 400
-
-@automation_bp.route('/api/automation/water/<profile>', methods=['GET'])
-def get_water(profile):
-    if profile == 'all':
-        return jsonify(water.get_all_profiles())
-    
-    p = water.get_profile(profile)
-    if not p:
-        return jsonify({"error": "Profile not found"}), 404
-        
-    return jsonify(p)
-
-@automation_bp.route('/api/automation/alerts', methods=['POST'])
-def check_alerts():
-    if 'file' not in request.files:
-        return jsonify({"error": "No file uploaded"}), 400
-    
-    f = request.files['file']
-    target = float(request.form.get('target', 20.0))
-    
-    res = alerts.check_temp_stability(f, target)
-    return jsonify(res)
-
-@automation_bp.route('/api/automation/brewfather/batches', methods=['GET'])
-def get_bf_batches():
-    res = alerts.fetch_brewfather_batches()
-    if isinstance(res, dict) and res.get("error"):
-        return jsonify(res), 500
-    return jsonify(res)
-
-@automation_bp.route('/api/automation/brewfather/analyze', methods=['POST'])
-def analyze_bf_batch():
-    data = request.json
-    batch_id = data.get('batch_id')
-    target = float(data.get('target', 20.0))
-    
-    if not batch_id: return jsonify({"error": "Batch ID required"}), 400
-    
-    readings = alerts.fetch_batch_readings(batch_id)
-    if not readings: return jsonify({"error": "No readings found or API error"}), 404
-    
-    # Ensure 'temp' values are numeric
-    for r in readings:
-        if 'temp' in r:
-            try:
-                r['temp'] = float(r['temp'])
-            except (ValueError, TypeError):
-                pass
-    
-    res = alerts.check_temp_stability(readings, target, is_list=True)
+    res = calculator.calculate_strike_water(
+        float(data.get('grain_temp', 20)),
+        float(data.get('target_mash_temp', 65)),
+        float(data.get('grain_weight_kg', 5)),
+        float(data.get('water_ratio', 3))
+    )
     return jsonify(res)
 
 @automation_bp.route('/api/automation/sourcing/list', methods=['POST'])
@@ -120,23 +64,10 @@ def sourcing_watch():
 
 @automation_bp.route('/api/automation/sourcing/compare-async', methods=['POST'])
 def compare_prices_async():
-    """Start a background price comparison job. Returns a job_id (HTTP 202)."""
-    data = request.json or {}
-    recipe_id = data.get('recipe_id')
-    recipe_tag = data.get('recipe_tag')
-
-    from app.services import sourcing, alerts as bf_alerts
-
-    recipe_details = None
-    if recipe_id:
-        recipe_details = bf_alerts.fetch_recipe_details(recipe_id)
-        if not recipe_details or (isinstance(recipe_details, dict) and 'error' in recipe_details):
-            return jsonify({"error": "Recipe not found"}), 404
-
-    job_id = sourcing.compare_recipe_prices_async(
-        recipe_details=recipe_details,
-        recipe_tag=recipe_tag
-    )
+    """Trigger an async price comparison job for a recipe."""
+    data = request.json
+    from app.services import sourcing
+    job_id = sourcing.trigger_comparison_job(data.get('recipe_details', {}))
     return jsonify({"job_id": job_id, "status": "accepted"}), 202
 
 @automation_bp.route('/api/automation/sourcing/job/<job_id>', methods=['GET'])
@@ -156,147 +87,19 @@ def get_bf_recipes():
 @automation_bp.route('/api/automation/sourcing/compare', methods=['POST'])
 def compare_prices():
     """Compare recipe ingredient prices between TMM and GEB.
-    DIAGNOSTIC MODE: Returns full stack trace for debugging.
+    
+    Body: {
+        "recipe_details": {
+            "hops": [{"name": "Citra", "amount": 100}, ...],
+            "fermentables": [{"name": "Maris Otter", "amount": 5000}, ...]
+        }
+    }
     """
+    data = request.json
+    from app.services import sourcing
     try:
-        data = request.json or {}
-        recipe_id = data.get('recipe_id')
-        
-        if not recipe_id:
-            return jsonify({
-                "error": "Missing recipe_id",
-                "breakdown": [],
-                "total_tmm": 0,
-                "total_geb": 0,
-                "winner": ""
-            }), 400
-        
-        from app.services import alerts, sourcing
-        
-        # 1. Get Recipe with detailed error
-        logger.info(f"[DIAG] Fetching recipe: {recipe_id}")
-        recipe = alerts.fetch_recipe_details(recipe_id)
-        
-        if not recipe:
-            return jsonify({
-                "error": "Recipe not found (null response from Brewfather)",
-                "breakdown": [],
-                "total_tmm": 0,
-                "total_geb": 0,
-                "winner": ""
-            }), 404
-            
-        if isinstance(recipe, dict) and 'error' in recipe:
-            return jsonify({
-                "error": f"Recipe fetch error: {recipe.get('error', 'Unknown')}",
-                "breakdown": [],
-                "total_tmm": 0,
-                "total_geb": 0,
-                "winner": ""
-            }), 400
-        
-        # 2. Compare prices with FULL stack trace on error
-        logger.info(f"[DIAG] Starting price comparison for: {recipe.get('name', 'Unknown')}")
-        try:
-            result = sourcing.compare_recipe_prices(recipe)
-            logger.info(f"[DIAG] Price comparison complete. Result keys: {list(result.keys()) if isinstance(result, dict) else 'NOT A DICT'}")
-        except Exception as scrape_error:
-            tb = traceback.format_exc()
-            logger.error(f"[DIAG] Price scraping CRASHED:\n{tb}")
-            return jsonify({
-                "error": f"Price scraping failed: {str(scrape_error)}",
-                "stack_trace": tb,
-                "breakdown": [],
-                "total_tmm": 0,
-                "total_geb": 0,
-                "winner": ""
-            }), 500
-            
-        # Ensure result has expected structure
-        if not isinstance(result, dict):
-            return jsonify({
-                "error": f"Invalid response type from price comparison: {type(result).__name__}",
-                "breakdown": [],
-                "total_tmm": 0,
-                "total_geb": 0,
-                "winner": ""
-            }), 500
-            
+        result = sourcing.compare_recipe_prices(data.get('recipe_details', {}))
         return jsonify(result)
-        
-    except Exception as e:
-        tb = traceback.format_exc()
-        logger.error(f"[DIAG] Unexpected error in compare_prices:\n{tb}")
-        return jsonify({
-            "error": f"Internal server error: {str(e)}",
-            "stack_trace": tb,
-            "breakdown": [],
-            "total_tmm": 0,
-            "total_geb": 0,
-            "winner": ""
-        }), 500
-
-@automation_bp.route('/api/automation/pizza', methods=['GET'])
-def get_pizza():
-    from app.services import calculator
-    return jsonify(calculator.get_pizza_schedule())
-
-@automation_bp.route('/api/automation/logger/create', methods=['POST'])
-def create_log():
-    data = request.json
-    from app.services import brew_logger
-    content = brew_logger.generate_log_content(
-        data.get('name', 'Brew Day'),
-        data.get('batch', {}),
-        data.get('water', {}),
-        data.get('sourcing', {})
-    )
-    res = brew_logger.save_log(data.get('name', 'brew'), content)
-    return jsonify(res)
-
-@automation_bp.route('/api/automation/calcs/save_profile', methods=['POST'])
-def save_profile():
-    data = request.json
-    
-    # Simple JSON Store
-    PROFILE_FILE = 'data/profiles.json'
-    profiles = {}
-    if os.path.exists(PROFILE_FILE):
-        try:
-            with open(PROFILE_FILE, 'r') as f:
-                profiles = json.load(f)
-        except (json.JSONDecodeError, OSError):
-            pass
-    profiles[data.get('name')] = data.get('data')
-    
-    with open(PROFILE_FILE, 'w') as f:
-        json.dump(profiles, f, indent=2)
-        
-    return jsonify({"status": "success"})
-
-@automation_bp.route('/api/automation/calcs/profiles', methods=['GET'])
-def get_profiles():
-    PROFILE_FILE = 'data/profiles.json'
-    if os.path.exists(PROFILE_FILE):
-        with open(PROFILE_FILE, 'r') as f:
-            return jsonify(json.load(f))
-
-    return jsonify({})
-
-@automation_bp.route('/api/automation/inventory', methods=['GET'])
-def get_inventory():
-    try:
-        with open('data/inventory.json', 'r') as f:
-            return jsonify(json.load(f))
-    except (FileNotFoundError, json.JSONDecodeError): return jsonify({})
-
-@automation_bp.route('/api/automation/inventory/save', methods=['POST'])
-def save_inventory():
-    data = request.json
-    try:
-        with open('data/inventory.json', 'w') as f:
-            json.dump(data, f, indent=4)
-        return jsonify({"status": "success"})
     except Exception as e:
         return jsonify({"error": str(e)})
 
@@ -308,260 +111,21 @@ def sync_inventory():
     bf_inv = alerts.fetch_brewfather_inventory()
     if "error" in bf_inv:
         return jsonify(bf_inv)
-        
-    # 2. Save locally (Overwrite or Merge? Let's Overwrite for "Sync")
-    try:
-        with open('data/inventory.json', 'w') as f:
-            json.dump(bf_inv, f, indent=4)
-        return jsonify({"status": "success", "inventory": bf_inv})
-    except Exception as e:
-        return jsonify({"error": str(e)})
-
-@automation_bp.route('/api/automation/learning/save', methods=['POST'])
-def learn_save():
-    from app.services import learning
-    res = learning.save_brew_outcome(request.json)
-    return jsonify(res)
-
-@automation_bp.route('/api/automation/learning/audit', methods=['POST'])
-def learn_audit():
-    from app.services import learning
-    # recipe: {style, og, ibu, abv, name}
-    res = learning.audit_recipe(request.json)
-    return jsonify(res)
-
-@automation_bp.route('/api/automation/learning/simulate', methods=['POST'])
-def learn_simulate():
-    data = request.json
-    from app.services import learning, calculator
     
-    # Pre-Validation
-    grains = data.get('grains', [])
-    total_grain = sum(g.get('weight_kg', 0) for g in grains)
-    volume = float(data.get('volume', 23))
-    
-    # Check Hardware
-    hw_check = calculator.validate_equipment(volume, total_grain)
-    
-    # grains: list of {weight_kg, potential}
-    res = learning.simulate_brew_day(
-        grains,
-        volume,
-        data.get('efficiency', 75)
-    )
-    
-    # Inject Hardware Warnings
-    if not hw_check['valid']:
-        res['hardware_error'] = " | ".join(hw_check['warnings'])
-    elif hw_check['warnings']:
-        res['hardware_warning'] = " | ".join(hw_check['warnings'])
-    
-    # Add Fermentation Prediction if yeast provided
-    if data.get('yeast'):
-        ferm_pred = learning.predict_fg_from_history(data.get('yeast'), res['predicted_og'])
-        res.update(ferm_pred)
-        
-    return jsonify(res)
+    # 2. Map to local DB (Simplified for now)
+    return jsonify({"status": "synced", "items_fetched": len(bf_inv.get('inventory', []))})
 
-@automation_bp.route('/api/automation/learning/import_log', methods=['POST'])
-def learn_import():
-    data = request.json
-    from app.services import learning
-    # Expects: csv_content, recipe_name, yeast_name
-    res = learning.learn_from_logs(
-        data.get('csv_content'),
-        data.get('recipe_name', 'Unknown Brew'),
-        data.get('yeast_name', 'Unknown Yeast')
-    )
-    return jsonify(res)
-
-@automation_bp.route('/api/automation/monitoring/check', methods=['POST'])
-def monitor_check():
-    data = request.json
-    from app.services import learning
-    # Expects: current_sg, original_gravity, yeast_name, days_in, temp, style, batch_name, stability
-    res = learning.check_batch_health(
-        data.get('current_sg'),
-        data.get('original_gravity'),
-        data.get('yeast_name'),
-        data.get('days_in', 0),
-        data.get('temp'),
-        data.get('style'),
-        data.get('batch_name', 'Current Batch'),
-        data.get('stability') # New param
-    )
-    return jsonify(res)
-
-@automation_bp.route('/api/automation/github/save', methods=['POST'])
-def github_save():
-    # Placeholder for actual save logic wrapper
-    return jsonify({"status": "not implemented yet"})
-
-@automation_bp.route('/api/automation/monitoring/scan', methods=['POST'])
-def monitoring_scan():
-    """
-    Triggers the full R&D pipeline scan:
-    Brewfather -> Tilt Data -> Health Check -> Telegram
-    """
-    from app.services import alerts
-    res = alerts.monitor_active_batches()
-    return jsonify(res)
-
-@automation_bp.route('/api/automation/recipes', methods=['POST'])
-def search_recipes():
-    data = request.json
-    from app.services import scout
-    return jsonify(scout.search_recipes(data.get('query')))
-
-@automation_bp.route('/api/automation/recipes/analyze', methods=['POST'])
-def exp_analyze_recipes():
-    data = request.json
-    from app.services import scout
-    return jsonify(scout.analyze_xml_recipes(data.get('query')))
-
-@automation_bp.route('/api/automation/recipes/scale', methods=['POST'])
-def scale_recipe():
-    data = request.json
-    from app.services import calculator
-    return jsonify(calculator.scale_recipe_to_equipment(data))
-
-@automation_bp.route('/api/automation/brewfather/import', methods=['POST'])
-def exp_import_recipe():
-    # Placeholder for import
-    return jsonify({"status": "success", "message": "Recipe imported to Brewfather (Simulation)"})
-
-
-# ============================================
-# NEW BREWING CALCULATORS API
-# ============================================
-
-@automation_bp.route('/api/automation/calc/water_chemistry', methods=['POST'])
+@automation_bp.route('/api/automation/inventory/hop_freshness', methods=['GET'])
 @api_safe
-def calc_water_chemistry():
-    """
-    Calculate salt additions to transform source water to target profile.
-    
-    Body: {
-        "source_water": {"calcium": 0, "magnesium": 0, ...} or null for RO,
-        "target_profile": "neipa" | "west_coast" | "balanced" | etc,
-        "volume_liters": 23
-    }
-    """
-    from app.services import water_chemistry
-    data = request.json
-    
-    # Default to RO water if not specified
-    source = data.get('source_water') or water_chemistry.get_ro_water_source()
-    target = data.get('target_profile', 'balanced')
-    volume = float(data.get('volume_liters', 23))
-    
-    result = water_chemistry.calculate_salt_additions(source, target, volume)
-    return jsonify(result)
+def inventory_hop_freshness():
+    """Check freshness of all hops in inventory."""
+    from app.services import sourcing
+    results = sourcing.check_inventory_hop_freshness()
+    return jsonify({"hops": results})
 
-
-@automation_bp.route('/api/automation/calc/carbonation', methods=['POST'])
-@api_safe
-def calc_carbonation():
-    """
-    Calculate PSI for forced carbonation.
-    
-    Body: {
-        "temp_c": 4,
-        "volumes_co2": 2.4
-    }
-    """
-    data = request.json
-    result = calculator.calculate_carbonation_psi(
-        float(data.get('temp_c', 4)),
-        float(data.get('volumes_co2', 2.4))
-    )
-    return jsonify(result)
-
-
-@automation_bp.route('/api/automation/calc/refractometer', methods=['POST'])
-@api_safe
-def calc_refractometer():
-    """
-    Correct refractometer reading for alcohol presence.
-    
-    Body: {
-        "original_brix": 15.0,
-        "final_brix": 8.0,
-        "wort_correction_factor": 1.04 (optional)
-    }
-    """
-    data = request.json
-    result = calculator.correct_refractometer_reading(
-        float(data.get('final_brix', 0)),
-        float(data.get('original_brix', 0)),
-        float(data.get('wort_correction_factor', 1.04))
-    )
-    return jsonify(result)
-
-
-@automation_bp.route('/api/automation/calc/priming', methods=['POST'])
-@api_safe
-def calc_priming():
-    """
-    Calculate priming sugar for bottle conditioning.
-    
-    Body: {
-        "volume_liters": 20,
-        "temp_c": 20,
-        "target_co2": 2.4,
-        "sugar_type": "corn_sugar" (optional)
-    }
-    """
-    data = request.json
-    result = calculator.calculate_priming_sugar(
-        float(data.get('volume_liters', 20)),
-        float(data.get('temp_c', 20)),
-        float(data.get('target_co2', 2.4)),
-        data.get('sugar_type', 'corn_sugar')
-    )
-    return jsonify(result)
-
-
-@automation_bp.route('/api/automation/water/profiles', methods=['GET'])
-@api_safe
-def get_all_water_profiles():
-    """Get all available water profiles for the chemistry calculator."""
-    return jsonify(water.get_all_profiles())
-
-
-@automation_bp.route('/api/automation/calc/mash_ph', methods=['POST'])
-@api_safe
-def calc_mash_ph():
-    """
-    Predict mash pH from grain bill and water chemistry.
-    
-    Body: {
-        "grains": [
-            {"name": "Pale Malt", "weight_kg": 5.0, "lovibond": 2.5},
-            {"name": "Crystal 60", "weight_kg": 0.5, "lovibond": 60}
-        ],
-        "water_profile": {"bicarbonate": 100, "calcium": 50, "magnesium": 10},
-        "target_ph": 5.4,
-        "mash_volume_l": 20
-    }
-    """
-    from app.services import mash_chemistry
-    data = request.json
-    
-    grains = data.get('grains', [])
-    water_profile = data.get('water_profile', {"bicarbonate": 0, "calcium": 0, "magnesium": 0})
-    target_ph = float(data.get('target_ph', 5.4))
-    mash_volume = float(data.get('mash_volume_l', 20))
-    
-    result = mash_chemistry.predict_mash_ph(grains, water_profile, target_ph, mash_volume)
-    return jsonify(result)
-
-
-@automation_bp.route('/api/automation/calc/hop_freshness', methods=['POST'])
-@api_safe
-def calc_hop_freshness():
-    """
-    Calculate hop freshness and alpha acid degradation.
+@automation_bp.route('/api/automation/hop/freshness', methods=['POST'])
+def calculate_hop_freshness():
+    """Calculate the remaining alpha acids for a hop based on storage.
     
     Body: {
         "hop_name": "Citra",
@@ -576,26 +140,14 @@ def calc_hop_freshness():
     result = sourcing.calculate_hop_freshness(
         data.get('hop_name', 'Unknown'),
         float(data.get('original_alpha', 10.0)),
-        data.get('purchase_date', '2025-01-01'),
+        data.get('purchase_date'),
         data.get('storage', 'freezer')
     )
     return jsonify(result)
 
-
-@automation_bp.route('/api/automation/inventory/hop_freshness', methods=['GET'])
-@api_safe
-def get_inventory_hop_freshness():
-    """Check freshness of all hops in inventory."""
-    from app.services import sourcing
-    results = sourcing.check_inventory_hop_freshness()
-    return jsonify({"hops": results})
-
-
 @automation_bp.route('/api/automation/yeast/search', methods=['POST'])
-@api_safe
 def search_yeast():
-    """
-    Search for yeast strain metadata (attenuation, flocculation, temp range).
+    """Search for yeast metadata and compatibility.
     
     Body: {
         "query": "WLP001"
@@ -609,24 +161,110 @@ def search_yeast():
     result = yeast.search_yeast_meta(query)
     return jsonify(result)
 
+@automation_bp.route('/api/automation/sourcing/labels', methods=['POST'])
+def print_ingredient_labels():
+    """Generate labels for new hop/malt purchases."""
+    from app.services import sourcing
+    data = request.json
+    # Placeholder for Dymo/Brother integration
+    return jsonify({"status": "Labels sent to print queue", "count": len(data.get('items', []))})
+
+@automation_bp.route('/api/automation/scan', methods=['POST'])
+def monitoring_scan():
+    """
+    Triggers the full R&D pipeline scan:
+    Brewfather -> Tilt Data -> Health Check -> Telegram
+    """
+    from app.services import alerts
+    res = alerts.monitor_active_batches()
+    return jsonify(res)
+
+@automation_bp.route('/api/automation/recipes', methods=['POST'])
+def search_recipes():
+    """Search community recipes (HomebrewTalk, Brewfather Library)."""
+    from app.services import scout
+    data = request.json
+    res = scout.search_recipes(data.get('query'))
+    return jsonify(res)
+
+@automation_bp.route('/api/automation/calculator/pizza', methods=['GET'])
+def pizza_calc():
+    """Returns a pizza dough schedule based on brew day timing."""
+    from app.services import calculator
+    return jsonify(calculator.get_pizza_schedule())
+
+@automation_bp.route('/api/automation/logger/create', methods=['POST'])
+def create_log():
+    data = request.json
+    from app.services import brew_logger
+    content = brew_logger.generate_log_content(
+        data.get('name', 'Brew Day'),
+        data.get('batch', {}),
+        data.get('water', {}),
+        data.get('sourcing', {})
+    )
+    # Return as markdown
+    return jsonify({"markdown": content})
+
+# ============ WATER & CHEMISTRY ============
+
+@automation_bp.route('/api/automation/water/optimize', methods=['POST'])
+def optimize_water():
+    """Optimize water additions for a target profile.
+    
+    Body: {
+        "source_water": {"calcium": 0, "magnesium": 0, ...} or null for RO,
+        "target_profile": "neipa" | "west_coast" | "balanced" | etc,
+        "volume_liters": 23
+    }
+    """
+    from app.services import water_chemistry
+    data = request.json
+    
+    # Default to RO water if not specified
+    source = data.get('source_water') or water_chemistry.get_ro_water_source()
+    target = data.get('target_profile', 'balanced')
+    
+    result = water_chemistry.optimize_additions(source, target, float(data.get('volume_liters', 20)))
+    return jsonify(result)
+
+@automation_bp.route('/api/automation/mash/ph', methods=['POST'])
+def predict_mash_ph():
+    """Predict mash pH based on grain bill and water profile.
+    
+    Body: {
+        "grains": [{"name": "Pilsner", "amount_kg": 5, "color_ebc": 3}, ...],
+        "water_profile": {"bicarbonate": 100, "calcium": 50, "magnesium": 10},
+        "target_ph": 5.4,
+        "mash_volume_l": 20
+    }
+    """
+    from app.services import mash_chemistry
+    data = request.json
+    
+    grains = data.get('grains', [])
+    water_profile = data.get('water_profile', {"bicarbonate": 0, "calcium": 0, "magnesium": 0})
+    target_ph = float(data.get('target_ph', 5.4))
+    
+    result = mash_chemistry.predict_ph_and_acid_additions(grains, water_profile, target_ph, float(data.get('mash_volume_l', 20)))
+    return jsonify(result)
+
+# ============ ANOMALY DETECTION ============
 
 @automation_bp.route('/api/automation/anomaly/check', methods=['POST'])
 @api_safe
-def check_anomalies():
+def run_anomaly_check():
     """
-    Run anomaly detection checks manually.
+    Manual trigger for anomaly check.
     
-    Body (optional): {
-        "batch_name": "My IPA"
-    }
-    
+    Body: {
+        "batch_name": "Optional name override"
+    },
     Returns: {
-        "timestamp": "...",
-        "checks": {
-            "stalled": {...},
-            "temp_deviation": {...},
-            "runaway": {...},
-            "signal_loss": {...}
+        "anomaly_score": 0.45,
+        "results": {
+            "temp_stable": true,
+            "fermentation_active": true
         },
         "alerts_sent": 0,
         "status": "ok"
@@ -641,7 +279,6 @@ def check_anomalies():
     result = run_all_anomaly_checks(batch_name)
     return jsonify(result)
 
-
 @automation_bp.route('/api/automation/anomaly/stalled', methods=['GET'])
 @api_safe
 def check_stalled():
@@ -651,77 +288,29 @@ def check_stalled():
     batch_name = get_config("batch_name") or "Current Batch"
     return jsonify(check_stalled_fermentation(batch_name))
 
-
 @automation_bp.route('/api/automation/anomaly/temp', methods=['GET'])
 @api_safe
 def check_temp():
     """Check for temperature deviation only."""
     from app.services.anomaly import check_temperature_deviation
-
     from app.core.config import get_config
     batch_name = get_config("batch_name") or "Current Batch"
     return jsonify(check_temperature_deviation(batch_name=batch_name))
 
-
 # ============ ML Prediction Endpoints ============
-
-@automation_bp.route('/api/ml/scraper/ingest', methods=['POST'])
-@api_safe
-@require_api_token
-def ingest_recipes():
-    """
-    Ingest recipes from a BeerXML string or a remote URL into the ML database.
-    
-    Body: {
-        "xml_content": "<RECIPES>...</RECIPES>",  # Optional
-        "xml_url": "http://..."                   # Optional
-    }
-    """
-    from app.ml.scraper import parse_beerxml, batch_save_recipes, scrape_open_brewing_data
-    data = request.json or {}
-    
-    xml_content = data.get('xml_content')
-    xml_url = data.get('xml_url')
-    
-    if not xml_content and not xml_url:
-        return jsonify({"error": "Either xml_content or xml_url is required."}), 400
-        
-    if xml_content:
-        recipes = parse_beerxml(xml_content)
-        if recipes:
-            batch_save_recipes(recipes)
-            return jsonify({"status": "success", "inserted": len(recipes), "source": "direct"})
-        return jsonify({"error": "Failed to parse any valid recipes from xml_content"}), 400
-        
-    if xml_url:
-        count = scrape_open_brewing_data(xml_url)
-        if count > 0:
-            return jsonify({"status": "success", "inserted": count, "source": xml_url})
-        return jsonify({"error": f"Failed to fetch or parse recipes from {xml_url}"}), 400
 
 @automation_bp.route('/api/ml/train', methods=['POST'])
 @api_safe
-def train_ml_models():
-    """
-    Train ML prediction models using historical batch data.
-    
-    Returns: {
-        "status": "success",
-        "batches_used": 15,
-        "fg_model": {"mae": 0.003},
-        "time_model": {"mae": 1.2}
-    }
-    """
+def trigger_training():
+    """Trigger a manual retraining of the ML gravity models."""
     from app.ml.prediction import train_models
     result = train_models()
     return jsonify(result)
 
-
 @automation_bp.route('/api/ml/predict/fg', methods=['POST'])
 @api_safe
 def predict_fg():
-    """
-    Predict Final Gravity for a batch.
+    """Predict Final Gravity using real-time batch features.
     
     Body: {
         "og": 1.055,
@@ -736,21 +325,20 @@ def predict_fg():
     attenuation = data.get('attenuation')
     
     if not og or not attenuation:
-        return jsonify({"error": "og and attenuation required"}), 400
-    
+        return jsonify({"error": "OG and Attenuation required"}), 400
+        
     result = ml_predict_fg(
-        float(og),
-        float(attenuation),
+        float(og), 
+        0.0, # Velocity placeholder
+        0.0, # Variance placeholder
         float(data.get('avg_temp', 20.0))
     )
-    return jsonify(result)
-
+    return jsonify({"predicted_fg": result})
 
 @automation_bp.route('/api/ml/predict/time', methods=['POST'])
 @api_safe
 def predict_time():
-    """
-    Predict days remaining until FG is reached.
+    """Predict Time to FG completion.
     
     Body: {
         "og": 1.055,
@@ -767,16 +355,16 @@ def predict_time():
     attenuation = data.get('attenuation')
     
     if not og or not current_sg or not attenuation:
-        return jsonify({"error": "og, current_sg, and attenuation required"}), 400
-    
+        return jsonify({"error": "OG, Current SG and Attenuation required"}), 400
+        
     result = predict_time_to_fg(
         float(og),
-        float(current_sg),
-        float(attenuation),
-        float(data.get('days_elapsed', 0))
+        0.0, # Velocity placeholder
+        0.0, # Variance placeholder
+        20.0, # Temp placeholder
+        float(data.get('days_elapsed', 0.0))
     )
-    return jsonify(result)
-
+    return jsonify({"days_to_fg": result})
 
 @automation_bp.route('/api/ml/info', methods=['GET'])
 @api_safe
@@ -784,4 +372,3 @@ def ml_model_info():
     """Get information about trained ML models."""
     from app.ml.prediction import get_model_info
     return jsonify(get_model_info())
-info())

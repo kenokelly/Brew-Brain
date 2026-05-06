@@ -5,7 +5,7 @@ from typing import Optional, Dict, Any
 from logging.handlers import RotatingFileHandler
 from datetime import datetime, timezone
 from influxdb_client import Point
-from app.core.influx import write_api, query_api, INFLUX_BUCKET, INFLUX_ORG
+from core.influx import write_api, query_api, INFLUX_BUCKET, INFLUX_ORG
 
 # --- CONFIGURATION & LOGGING ---
 # Use Env Var or Default to local 'data' folder

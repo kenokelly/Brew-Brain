@@ -52,7 +52,7 @@ services:
       - influxdb
 
   brew-brain:
-    image: brew-brain-patched
+    build: ./app
     container_name: brew-brain
     working_dir: /app
     restart: unless-stopped
@@ -67,16 +67,15 @@ services:
       - BREW_BRAIN_DATA=/data
       - BREW_BRAIN_API_TOKEN=${BREW_BRAIN_API_TOKEN:-secure_default_token}
       - REDIS_URL=redis://redis:6379/0
-      - PYTHONPATH=/app
+      - PYTHONPATH=/
     healthcheck:
-      test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/api/status', timeout=5)" ]
-      interval: 5s
+      test: [ "CMD", "curl", "-f", "http://localhost:5000/api/status" ]
+      interval: 10s
       timeout: 5s
-      retries: 3
-      start_period: 5s
+      retries: 5
+      start_period: 15s
     volumes:
       - ./brain_data:/data
-      - ./app:/app
     networks:
       - brewery-net
     depends_on:
@@ -99,9 +98,9 @@ services:
       - brew-brain
 
   celery-worker:
-    image: brew-brain-patched
+    build: ./app
     container_name: celery-worker
-    command: python -m celery -A app.extensions.celery worker --loglevel=info
+    command: celery -A app.extensions.celery worker --loglevel=info
     working_dir: /app
     restart: unless-stopped
     environment:
@@ -114,7 +113,6 @@ services:
       - PYTHONPATH=/
     volumes:
       - ./brain_data:/data
-      - ./app:/app
     networks:
       - brewery-net
     depends_on:

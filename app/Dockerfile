@@ -1,44 +1,33 @@
 FROM python:3.11-slim-bookworm
 
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
+ENV PYTHONPATH=/app
+
 WORKDIR /app
 
-# ============================================
-# LAYER 1: System Dependencies (Optimized for slim)
-# ============================================
+# Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libatlas-base-dev \
-    libopenblas-dev \
-    gfortran \
-    libgpiod2 \
-    wget \
     build-essential \
     curl \
+    libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# ============================================
-# LAYER 2: Core Scientific Stack (Rarely changes)
-# ============================================
+# Install Python dependencies
+COPY requirements.txt .
 COPY requirements-core.txt .
-RUN --mount=type=cache,target=/root/.cache/pip \
-    pip install --upgrade pip setuptools wheel && \
-    pip install -r requirements-core.txt
-
-# ============================================
-# LAYER 3: Application Dependencies
-# ============================================
 COPY requirements-app.txt .
-RUN --mount=type=cache,target=/root/.cache/pip \
-    pip install -r requirements-app.txt
 
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
 
-
-# ============================================
-# LAYER 4: Application Code
-# ============================================
+# Copy application code
 COPY . /app
-ENV PYTHONPATH=/
-ENV PYTHONUNBUFFERED=1
 
+# Ensure data directory exists
 RUN mkdir -p /data
+
+EXPOSE 5000
 
 CMD ["python", "main.py"]

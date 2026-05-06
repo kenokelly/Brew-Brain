@@ -6,9 +6,9 @@ from typing import Any, Dict, Tuple, Optional, Union
 import numpy as np
 from datetime import datetime, timezone, timedelta
 from flask import Blueprint, jsonify, request, send_from_directory, send_file, Response
-from app.core.config import get_config, set_config, get_all_config, DATA_DIR, BACKUP_DIR, logger
-from app.core.influx import query_api, write_api, INFLUX_BUCKET, INFLUX_ORG
-from app.core.auth import require_api_token
+from core.config import get_config, set_config, get_all_config, DATA_DIR, BACKUP_DIR, logger
+from core.influx import query_api, write_api, INFLUX_BUCKET, INFLUX_ORG
+from core.auth import require_api_token
 from influxdb_client import Point
 # DELAYING IMPORT of services to prevent startup crashes if dependencies fail
 # from services.status import get_status_dict
@@ -449,8 +449,8 @@ def anomaly_status() -> Tuple[Response, int]:
     Returns anomaly_score (0.0-1.0+), individual check results, and alerts.
     """
     try:
-        from app.services.anomaly import run_all_anomaly_checks, calculate_anomaly_score
-        from app.core.config import get_config
+        from services.anomaly import run_all_anomaly_checks, calculate_anomaly_score
+        from core.config import get_config
         
         batch_name = get_config("batch_name") or "Current Batch"
         
@@ -478,7 +478,7 @@ def anomaly_score_only() -> Tuple[Response, int]:
     Get just the statistical anomaly score (lightweight endpoint for polling).
     """
     try:
-        from app.services.anomaly import calculate_anomaly_score
+        from services.anomaly import calculate_anomaly_score
         
         result = calculate_anomaly_score()
         
@@ -502,7 +502,7 @@ def export_batch(batch_id: str) -> Tuple[Response, int]:
     Requires batch metadata in query params or fetches from Brewfather.
     """
     try:
-        from app.services.batch_exporter import export_batch_to_parquet, get_batch_metadata_from_brewfather
+        from services.batch_exporter import export_batch_to_parquet, get_batch_metadata_from_brewfather
         from datetime import datetime
         from flask import send_file
         
@@ -575,7 +575,7 @@ def batches_history() -> Tuple[Response, int]:
     List all completed batches from Brewfather.
     """
     try:
-        from app.services.batch_exporter import get_completed_batches
+        from services.batch_exporter import get_completed_batches
         
         batches = get_completed_batches()
         
@@ -605,7 +605,7 @@ def aggregate_batches() -> Tuple[Response, int]:
         {"batch_ids": ["id1", "id2", ...]}
     """
     try:
-        from app.services.batch_exporter import aggregate_training_data
+        from services.batch_exporter import aggregate_training_data
         
         data = request.json or {}
         batch_ids = data.get('batch_ids')
@@ -627,8 +627,8 @@ def batch_features(batch_id: str) -> Tuple[Response, int]:
     Extract features from a batch for ML training.
     """
     try:
-        from app.services.batch_exporter import get_batch_metadata_from_brewfather
-        from app.ml.features import extract_features_from_batch
+        from services.batch_exporter import get_batch_metadata_from_brewfather
+        from ml.features import extract_features_from_batch
         from datetime import datetime
         
         # Get metadata
@@ -677,12 +677,13 @@ def batch_features(batch_id: str) -> Tuple[Response, int]:
         
     except Exception as e:
         return handle_error(e, "Feature Extraction Error")
+
 @api_bp.route('/api/ml/train', methods=['POST'])
 @require_api_token
 def train_ml_models() -> Tuple[Response, int]:
     """Trigger ML model training asynchronously via Celery."""
     try:
-        from app.ml.tasks import train_prediction_models
+        from ml.tasks import train_prediction_models
         # Trigger task
         task = train_prediction_models.delay()
         return api_response(data={
@@ -698,7 +699,7 @@ def train_ml_models() -> Tuple[Response, int]:
 def get_ml_models_info() -> Tuple[Response, int]:
     """Get status and metrics of trained models."""
     try:
-        from app.ml.prediction import get_model_info
+        from ml.prediction import get_model_info
         return api_response(data=get_model_info())
     except Exception as e:
         return handle_error(e, "Model Info Error")
@@ -708,9 +709,9 @@ def get_ml_models_info() -> Tuple[Response, int]:
 def predict_active_batch() -> Tuple[Response, int]:
     """Get ML predictions for the active batch using real-time features."""
     try:
-        from app.ml.prediction import predict_fg, predict_time_to_fg
-        from app.ml.features import query_batch_data, calculate_sg_velocity, calculate_temp_variance, calculate_time_in_phase
-        from app.core.config import get_all_config
+        from ml.prediction import predict_fg, predict_time_to_fg
+        from ml.features import query_batch_data, calculate_sg_velocity, calculate_temp_variance, calculate_time_in_phase
+        from core.config import get_all_config
         from datetime import datetime, timezone
         
         # Get active batch metadata from config
@@ -723,7 +724,7 @@ def predict_active_batch() -> Tuple[Response, int]:
             
         # Parse start_date (YYYY-MM-DD or ISO)
         try:
-            if len(pitch_date_str) == 10: # YYYY-MM-DD
+            if pitch_date_str and len(pitch_date_str) == 10: # YYYY-MM-DD
                 pitch_time = datetime.strptime(pitch_date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
             else:
                 pitch_time = datetime.fromisoformat(pitch_date_str).replace(tzinfo=timezone.utc)
@@ -761,12 +762,13 @@ def predict_active_batch() -> Tuple[Response, int]:
         
     except Exception as e:
         return handle_error(e, "Prediction Error")
+
 @api_bp.route('/api/ml/peers', methods=['GET'])
 def get_style_peers() -> Tuple[Response, int]:
     """Get style benchmarks and peer comparison data for the active batch."""
     try:
         from ml.style_intelligence import style_intel
-        from app.core.config import get_all_config
+        from core.config import get_all_config
         
         config = get_all_config()
         active_style = config.get("style", "IPA")
@@ -793,7 +795,7 @@ def brew_day_check() -> Tuple[Response, int]:
     Checks and Balances: Verifies all metadata and sensor data is correct for the current brew day.
     """
     try:
-        from app.core.config import get_all_config
+        from core.config import get_all_config
         from core.influx import query_api, INFLUX_BUCKET
         from datetime import datetime, timezone, timedelta
         
@@ -830,8 +832,8 @@ def brew_day_check() -> Tuple[Response, int]:
             q = f'from(bucket: "{INFLUX_BUCKET}") |> range(start: -60m) |> filter(fn: (r) => r["_measurement"] == "sensor_data") |> filter(fn: (r) => r["_field"] == "SG") |> last()'
             tables = query_api.query(q)
             last_reading = None
-            for t in tables:
-                for r in t.records: last_reading = r.get_time()
+            for r in tables:
+                for rec in r.records: last_reading = rec.get_time()
             
             if last_reading:
                 last_ts = last_reading.timestamp()
@@ -863,6 +865,7 @@ def brew_day_check() -> Tuple[Response, int]:
         
     except Exception as e:
         return handle_error(e, "Brew Day Check Error")
+
 @api_bp.route('/api/sourcing/compare-by-tag/<tag>')
 def compare_prices_by_tag(tag):
     """
@@ -870,7 +873,7 @@ def compare_prices_by_tag(tag):
     """
     try:
         try:
-            from app.services.sourcing import compare_recipe_prices
+            from services.sourcing import compare_recipe_prices
         except ImportError as e:
             return api_response(status="error", error=f"Dependency Error: {str(e)}", code=500)
             
@@ -882,8 +885,7 @@ def compare_prices_by_tag(tag):
         # Check for debug flag
         debug_mode = flask.request.args.get('debug', '').lower() == 'true'
         
-        # Run Comparison (logic inside sourcing.py now handles tag lookup)
-        # We pass empty dict for recipe_details as we are relying on tag lookup
+        # Run Comparison
         result = compare_recipe_prices({}, recipe_tag=decoded_tag, debug_mode=debug_mode)
         
         if "error" in result:
@@ -900,7 +902,7 @@ def compare_prices_by_tag(tag):
 def external_recipe_stats() -> Tuple[Response, int]:
     """Get external recipe database statistics."""
     try:
-        from app.ml.scraper import recipe_count, init_db
+        from ml.scraper import recipe_count, init_db
         init_db()
         stats = recipe_count()
         return api_response(data=stats)
@@ -913,7 +915,7 @@ def external_recipe_stats() -> Tuple[Response, int]:
 def external_recipe_ingest() -> Tuple[Response, int]:
     """Trigger on-demand ingestion of public BeerXML recipe sources."""
     try:
-        from app.ml.scraper import ingest_all_sources
+        from ml.scraper import ingest_all_sources
         result = ingest_all_sources()
         return api_response(data=result)
     except Exception as e:
@@ -924,13 +926,10 @@ def external_recipe_ingest() -> Tuple[Response, int]:
 def peer_comparison_endpoint() -> Tuple[Response, int]:
     """
     Compare active batch or supplied metrics against the external recipe DB.
-
-    Query params (optional): style, og, fg, abv, ibu
-    Falls back to active batch config if not supplied.
     """
     try:
-        from app.ml.peer_comparison import peer_comparison
-        from app.core.config import get_all_config
+        from ml.peer_comparison import peer_comparison
+        from core.config import get_all_config
 
         config = get_all_config()
 
@@ -963,7 +962,6 @@ def get_debug_logs():
             return api_response(status="error", error="Log file not found", code=404)
             
         with open(log_path, 'r') as f:
-            # Efficiently read last lines (simple approach for now)
             lines = f.readlines()
             last_lines = lines[-100:]
             
