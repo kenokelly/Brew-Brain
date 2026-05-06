@@ -69,190 +69,93 @@ def health():
         }
     })
 
-@api_bp.route('/api/sync_brewfather', methods=['POST'])
-@require_api_token
-def sync_brewfather() -> Tuple[Response, int]:
-    u, k = get_config("bf_user"), get_config("bf_key")
-    if not u or not k: 
-        return api_response(status="error", error="Missing Credentials", code=400)
-    
+@api_bp.route('/api/health/disk')
+def health_disk():
+    """Disk usage endpoint for monitoring the SD card."""
     try:
-        auth = base64.b64encode(f"{u}:{k}".encode()).decode()
-        r = requests.get("https://api.brewfather.app/v2/batches?status=Fermenting&include=recipe", headers={"Authorization": f"Basic {auth}"}, timeout=10)
+        from services.status import get_disk_usage
+        disk = get_disk_usage("/")
+        return jsonify({"status": "success", "data": disk})
+    except Exception as e:
+        return handle_error(e, "Disk Health Error")
+
+@api_bp.route('/api/health/maintenance')
+def health_maintenance():
+    """Aggregated maintenance metrics for the SRE dashboard."""
+    try:
+        from services.status import get_maintenance_summary
+        return jsonify({"status": "success", "data": get_maintenance_summary()})
+    except Exception as e:
+        return handle_error(e, "Maintenance Health Error")
+
+@api_bp.route('/api/brew_day_check', methods=['GET'])
+def brew_day_check() -> Tuple[Response, int]:
+    """
+    Checks and Balances: Verifies all metadata and sensor data is correct for the current brew day.
+    """
+    try:
+        config = get_all_config()
+        checks = []
         
-        if r.status_code != 200: 
-            return api_response(status="error", error=f"API Error {r.status_code}", code=400)
+        # 1. Metadata Checks
+        checks.append({
+            "name": "Active Batch Name",
+            "status": "ready" if config.get("batch_name") else "warning",
+            "message": f"Currently brewing: {config.get('batch_name')}" if config.get("batch_name") else "No active batch name set."
+        })
         
-        batches = r.json()
-        if not batches: 
-            return api_response(status="error", error="No Fermenting batch found", code=404)
+        checks.append({
+            "name": "Original Gravity (OG)",
+            "status": "ready" if config.get("og") and float(config.get("og")) > 1.0 else "error",
+            "message": f"Target OG: {config.get('og')}" if config.get("og") else "OG is missing! AI predictions will be inaccurate."
+        })
         
-        b = batches[0]
-        rec = b.get('recipe', {})
-        date_str = b.get('brewDate', datetime.now().strftime("%Y-%m-%d"))
-        if isinstance(date_str, int): date_str = datetime.fromtimestamp(date_str/1000).strftime("%Y-%m-%d")
+        # 2. Sensor Health Checks
+        try:
+            q = f'from(bucket: "{INFLUX_BUCKET}") |> range(start: -60m) |> filter(fn: (r) => r["_measurement"] == "sensor_data") |> filter(fn: (r) => r["_field"] == "SG") |> last()'
+            tables = query_api.query(q)
+            last_reading = None
+            for t in tables:
+                for rec in t.records: last_reading = rec.get_time()
+            
+            if last_reading:
+                last_ts = last_reading.timestamp()
+                now_ts = datetime.now(timezone.utc).timestamp()
+                diff_min = (now_ts - last_ts) / 60
+                
+                checks.append({
+                    "name": "Sensor Signal (Tilt/iSpindel)",
+                    "status": "ready" if diff_min < 20 else "warning",
+                    "message": f"Last signal received {int(diff_min)} minutes ago." if diff_min < 60 else "Signal is stale (> 1 hour)."
+                })
+            else:
+                checks.append({
+                    "name": "Sensor Signal",
+                    "status": "error",
+                    "message": "No sensor data found in InfluxDB for the last hour."
+                })
+        except Exception as e:
+            checks.append({"name": "Sensor Health Check", "status": "error", "message": f"Database error: {str(e)}"})
+
+        # 3. Overall Readiness Score
+        readiness_score = sum(100 for c in checks if c["status"] == "ready") / len(checks) if checks else 0
         
-        # Capture Yeast
-        yeasts = rec.get('yeasts', [])
-        yeast_name = "Unknown"
-        if yeasts and len(yeasts) > 0:
-            y = yeasts[0]
-            yeast_name = y.get('name', 'Unknown')
-            set_config("yeast_min_temp", y.get('minTemp'))
-            set_config("yeast_max_temp", y.get('maxTemp'))
-            set_config("yeast_attenuation", y.get('attenuation'))
-            set_config("yeast_flocculation", y.get('flocculation'))
+        return api_response(data={
+            "score": round(readiness_score),
+            "checks": checks,
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        })
         
-        set_config("yeast_strain", yeast_name)
-        set_config("batch_name", b.get('name'))
-        set_config("og", rec.get('og'))
-        set_config("target_fg", rec.get('fg'))
-        set_config("batch_notes", b.get('notes') or rec.get('notes'))
-        set_config("start_date", date_str)
-        
-        style_obj = rec.get('style', {})
-        style_name_val = style_obj.get('name') or "Unknown"
-        set_config("style", style_name_val)
-        
-        return api_response(status="synced", data={"name": b.get('name'), "style": style_name_val, "yeast": yeast_name})
     except Exception as e:
-        return handle_error(e, "Sync Error")
+        return handle_error(e, "Brew Day Check Error")
 
-@api_bp.route('/api/calibrate', methods=['POST'])
-@require_api_token
-def calibrate() -> Tuple[Response, int]:
-    data = request.json
-    if not data: return api_response(status="error", error="No data", code=400)
-    if data.get('action') == 'reset':
-        set_config("offset", "0.0")
-        return api_response(status="reset")
-    try:
-        manual = float(data.get('sg'))
-        source = data.get('source', 'Unknown')
-        p = Point("manual_readings").tag("device", source).tag("type", "manual").field("sg", manual).time(datetime.now(timezone.utc))
-        write_api.write(bucket=INFLUX_BUCKET, org=INFLUX_ORG, record=p)
-        q = f'from(bucket: "{INFLUX_BUCKET}") |> range(start: -1h) |> filter(fn: (r) => r["_measurement"] == "sensor_data") |> filter(fn: (r) => r["_field"] == "SG") |> last()'
-        tables = query_api.query(q)
-        raw = None
-        for t in tables:
-            for r in t.records: raw = r.get_value()
-        if raw:
-            new_offset = manual - raw
-            set_config("offset", new_offset)
-            return api_response(status="set", data={"new_offset": new_offset, "logged": True})
-        return api_response(status="error", error="No raw data from Tilt", code=400)
-    except Exception as e:
-        return handle_error(e, "Calibration Error")
-
-@api_bp.route('/api/settings', methods=['GET', 'POST'])
-@require_api_token
-def settings() -> Tuple[Response, int]:
-    if request.method == 'GET': return jsonify(get_all_config())
-    data = request.json
-    if not data: return api_response(status="error", error="No data", code=400)
-    for key, value in data.items():
-        set_config(key, value)
-    return api_response(status="saved")
-
-@api_bp.route('/api/backup')
-def backup():
-    cfg = get_all_config()
-    export_data = {"timestamp": datetime.now().isoformat(), "config": cfg}
-    return Response(json.dumps(export_data, indent=2), mimetype="application/json", headers={"Content-disposition": "attachment; filename=brew_brain_config.json"})
-
-@api_bp.route('/api/taps', methods=['GET'])
-def get_taps() -> Tuple[Response, int]:
-    taps = {}
-    cfg = get_all_config()
-    for i in range(1, 5):
-        key = f"tap_{i}"
-        raw = cfg.get(key)
-        taps[key] = json.loads(raw) if raw else None
-    return jsonify(taps)
-
-@api_bp.route('/api/taps/<tap_id>', methods=['POST'])
-@require_api_token
-def update_tap(tap_id: str) -> Tuple[Response, int]:
-    data = request.json
-    set_config(tap_id, json.dumps(data))
-    return api_response(status="saved")
-
-@api_bp.route('/api/label')
-def label() -> Tuple[Response, int]:
-    try:
-        cfg = get_all_config()
-        from services.label_maker import generate_label
-        data = {"name": cfg.get('batch_name'), "style": cfg.get('style'), "og": cfg.get('og'), "fg": 1.010, "abv": 5.5, "date": cfg.get('start_date')}
-        img_buffer = generate_label(data)
-        return send_file(img_buffer, mimetype='image/png', as_attachment=True, download_name=f"label.png")
-    except Exception as e:
-        return handle_error(e, "Label Error")
-
-@api_bp.route('/api/scheduler')
-def scheduler_status() -> Tuple[Response, int]:
-    from services.scheduler import get_job_status
-    return jsonify({"status": "running", "jobs": get_job_status()})
-
-@api_bp.route('/api/anomaly')
-def anomaly_status() -> Tuple[Response, int]:
-    from services.anomaly import run_all_anomaly_checks
-    batch_name = get_config("batch_name") or "Current Batch"
-    return jsonify({"status": "success", "data": run_all_anomaly_checks(batch_name)})
-
-# --- DATA PIPELINE ENDPOINTS ---
-
-@api_bp.route('/api/export/batch/<batch_id>', methods=['GET'])
-def export_batch(batch_id: str) -> Tuple[Response, int]:
-    try:
-        from services.batch_exporter import export_batch_to_parquet, get_batch_metadata_from_brewfather
-        metadata = get_batch_metadata_from_brewfather(batch_id)
-        if not metadata: return api_response(status="error", error="Batch not found", code=404)
-        result = export_batch_to_parquet(batch_id=batch_id, **metadata)
-        if result.get('status') == 'success':
-            return send_file(result['filepath'], as_attachment=True)
-        return api_response(status="error", error=result.get('error'), code=500)
-    except Exception as e:
-        return handle_error(e, "Export Error")
-
-@api_bp.route('/api/batches/history', methods=['GET'])
-def batches_history() -> Tuple[Response, int]:
-    try:
-        from services.batch_exporter import get_completed_batches
-        return api_response(data={"batches": get_completed_batches()})
-    except Exception as e:
-        return handle_error(e, "History Error")
-
-@api_bp.route('/api/ml/train', methods=['POST'])
-@require_api_token
-def train_ml_models() -> Tuple[Response, int]:
-    try:
-        from ml.tasks import train_prediction_models
-        task = train_prediction_models.delay()
-        return api_response(data={"status": "Task Queued", "task_id": task.id})
-    except Exception as e:
-        return handle_error(e, "ML Train Error")
-
-@api_bp.route('/api/ml/models', methods=['GET'])
-def get_ml_models_info() -> Tuple[Response, int]:
-    try:
-        from ml.prediction import get_model_info
-        return api_response(data=get_model_info())
-    except Exception as e:
-        return handle_error(e, "Model Info Error")
-
-@api_bp.route('/api/ml/predict', methods=['GET'])
-def predict_active_batch() -> Tuple[Response, int]:
-    try:
-        from ml.prediction import predict_fg, predict_time_to_fg
-        from core.config import get_all_config
-        return api_response(data={"prediction_fg": 1.010, "prediction_time": 2.0})
-    except Exception as e:
-        return handle_error(e, "ML Predict Error")
 
 @api_bp.route('/api/debug/logs')
 def get_debug_logs():
     try:
-        with open('/data/brew_brain.log', 'r') as f:
-            return api_response(data={"logs": f.readlines()[-100:]})
+        log_path = '/data/brew_brain.log'
+        with open(log_path, 'r') as f:
+            lines = f.readlines()[-100:]
+        return api_response(data={"logs": lines})
     except Exception as e:
         return handle_error(e, "Log Error")

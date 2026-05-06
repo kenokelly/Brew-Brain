@@ -186,7 +186,7 @@ def aggregate_batches() -> Tuple[Response, int]:
     except Exception as e:
         return handle_error(e, "Batch Aggregation Error")
 
-@batches_bp.route('/api/features/batch/<batch_id>', methods=['GET'])
+@batches_bp.route('/features/<batch_id>', methods=['GET'])
 def batch_features(batch_id: str) -> Tuple[Response, int]:
     """
     Extract features from a batch for ML training.
@@ -242,4 +242,6 @@ def batch_features(batch_id: str) -> Tuple[Response, int]:
         
     except Exception as e:
         return handle_error(e, "Feature Extraction Error")
+r")
+)
 r")

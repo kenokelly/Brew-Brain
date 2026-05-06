@@ -37,7 +37,7 @@ def settings() -> Tuple[Response, int]:
         return handle_error(e, "Settings Update Error")
 
 
-@settings_bp.route('/api/calibrate', methods=['POST'])
+@settings_bp.route('/calibrate', methods=['POST'])
 @require_api_token
 def calibrate() -> Tuple[Response, int]:
     """Store explicit SG/Temp points for model calibration."""

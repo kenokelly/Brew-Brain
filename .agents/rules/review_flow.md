@@ -17,10 +17,12 @@ This policy defines the autonomous loops that gate all code changes before they 
 - **Action:** Execute `security_scan` (secrets, dependencies, guidelines).
 - **Condition:** Must return `PASS` to proceed.
 
-### 2. 🧪 Automation Engineer (The QA)
-- **Trigger:** Security Architect returns `PASS`.
-- **Action:** Execute full test suite (`pytest` for API, `npm test` for Web).
-- **Condition:** 100% pass rate required. Only persona allowed to trigger `BUILD`.
+### 2. 📡 SRE (Monitor/Verify)
+- **Action:** Execute "Deep Health Checks" on live services.
+- **Mandate:** 
+    - **API:** Verify JSON payload structure against schema (No unexpected `nulls`).
+    - **UI:** Execute a headless render check. Verify that the app-root contains rendered data, not just the HTML shell.
+- **Trigger:** `deploy_status == fail` OR `deep_health_check == fail`.
 
 ### 3. ✍️ Documentation Critic (The Verification)
 - **Trigger:** Tests return `PASS`.

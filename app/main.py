@@ -16,12 +16,12 @@ CORS(app)
 socketio.init_app(app)
 
 # Register Blueprints
-app.register_blueprint(api_bp)
+app.register_blueprint(api_bp) # Routes already have /api or are root
 app.register_blueprint(automation_bp)
-app.register_blueprint(batches_bp)
-app.register_blueprint(ml_bp)
-app.register_blueprint(settings_bp)
-app.register_blueprint(taps_bp)
+app.register_blueprint(batches_bp, url_prefix='/api/batches')
+app.register_blueprint(ml_bp, url_prefix='/api/ml')
+app.register_blueprint(settings_bp, url_prefix='/api/settings')
+app.register_blueprint(taps_bp, url_prefix='/api/taps')
 
 @app.after_request
 def add_header(response):

@@ -21,7 +21,7 @@ def get_taps() -> Tuple[Response, int]:
         return handle_error(e, "Tap Fetch Error")
 
 
-@taps_bp.route('/api/taps/<tap_id>', methods=['POST'])
+@taps_bp.route('/<tap_id>', methods=['POST'])
 @require_api_token
 def update_tap(tap_id: str) -> Tuple[Response, int]:
     """Update a specific tap."""
@@ -40,3 +40,4 @@ def update_tap(tap_id: str) -> Tuple[Response, int]:
         return api_response(status="updated")
     except Exception as e:
         return handle_error(e, "Tap Update Error")
+
