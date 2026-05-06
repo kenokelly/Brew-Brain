@@ -144,8 +144,8 @@ def peer_comparison_endpoint() -> Tuple[Response, int]:
     Falls back to active batch config if not supplied.
     """
     try:
-        from app.ml.peer_comparison import peer_comparison
-        from app.core.config import get_all_config
+        from ml.peer_comparison import peer_comparison
+        from core.config import get_all_config
 
         config = get_all_config()
 
@@ -165,3 +165,4 @@ def peer_comparison_endpoint() -> Tuple[Response, int]:
         return api_response(data=result)
     except Exception as e:
         return handle_error(e, "Peer Comparison Error")
+r")

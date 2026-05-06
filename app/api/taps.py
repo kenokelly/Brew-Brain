@@ -26,7 +26,7 @@ def get_taps() -> Tuple[Response, int]:
 def update_tap(tap_id: str) -> Tuple[Response, int]:
     """Update a specific tap."""
     try:
-        from app.models.schemas import TapUpdate
+        from models.schemas import TapUpdate
         from pydantic import ValidationError
         
         try:

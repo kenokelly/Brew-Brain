@@ -192,8 +192,8 @@ def batch_features(batch_id: str) -> Tuple[Response, int]:
     Extract features from a batch for ML training.
     """
     try:
-        from app.services.batch_exporter import get_batch_metadata_from_brewfather
-        from app.ml.features import extract_features_from_batch
+        from services.batch_exporter import get_batch_metadata_from_brewfather
+        from ml.features import extract_features_from_batch
         from datetime import datetime
         
         # Get metadata
@@ -242,3 +242,4 @@ def batch_features(batch_id: str) -> Tuple[Response, int]:
         
     except Exception as e:
         return handle_error(e, "Feature Extraction Error")
+r")

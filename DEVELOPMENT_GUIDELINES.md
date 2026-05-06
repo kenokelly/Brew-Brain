@@ -32,3 +32,8 @@ Sanitize user input, avoid hardcoding secrets, apply RBAC. Keep dependencies upd
 
 ## 10. Code Testing & Refactoring
 Write unit, integration, and e2e tests. Periodically refactor code to improve its structure and adhere to the Single Responsibility Principle (SRP).
+
+## 11. Upstream Dependencies & Lineage
+Brew-Brain is an intelligence layer built atop established brewing standards. All development must respect the patterns and port assignments of:
+*   **TILTpi (Baron Brew):** Primary Node-RED driver and sensor interface (Port 1880).
+*   **Tilt-Pi-Monitor-Stack (Stian Josok):** Base Docker container architecture (InfluxDB/Grafana).

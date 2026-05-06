@@ -63,7 +63,7 @@ def calibrate() -> Tuple[Response, int]:
         write_api.write(bucket=INFLUX_BUCKET, org=INFLUX_ORG, record=point)
         
         # Trigger retraining of anomaly ML models
-        from app.ml.learning import model_builder
+        from ml.learning import model_builder
         model_builder.trigger_retraining('anomaly')
         
         return api_response(status="calibrated")

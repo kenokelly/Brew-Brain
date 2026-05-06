@@ -121,7 +121,7 @@ def init_scheduler(app):
     )
     
     # Weekly external recipe ingestion (Sunday 03:00)
-    from app.ml.scraper import ingest_all_sources
+    from ml.scraper import ingest_all_sources
 
     def recipe_ingest_job():
         """Ingest public BeerXML recipes into the external recipe DB."""
