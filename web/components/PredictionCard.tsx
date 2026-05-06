@@ -136,7 +136,7 @@ export function PredictionCard({ className }: PredictionCardProps) {
                                 <TrendingDown className="w-2.5 h-2.5" /> Velocity
                             </div>
                             <div className="text-xs font-mono text-zinc-300">
-                                {features.velocity.toFixed(2)} pts/d
+                                {features.velocity?.toFixed(2) || '--.--'} pts/d
                             </div>
                         </div>
                         <div className="bg-zinc-800/30 rounded-lg p-2 border border-zinc-800/30">
@@ -144,7 +144,7 @@ export function PredictionCard({ className }: PredictionCardProps) {
                                 <Thermometer className="w-2.5 h-2.5" /> Variant
                             </div>
                             <div className="text-xs font-mono text-zinc-300">
-                                {features.temp_variance.toFixed(2)}°
+                                {features.temp_variance?.toFixed(2) || '--.--'}°
                             </div>
                         </div>
                         <div className="bg-zinc-800/30 rounded-lg p-2 border border-zinc-800/30">
@@ -152,7 +152,7 @@ export function PredictionCard({ className }: PredictionCardProps) {
                                 <Database className="w-2.5 h-2.5" /> Data
                             </div>
                             <div className="text-xs font-mono text-zinc-300">
-                                {batch_metadata.data_points} pts
+                                {batch_metadata.data_points ?? '--'} pts
                             </div>
                         </div>
                     </div>

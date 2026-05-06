@@ -94,22 +94,22 @@ export function PeerComparisonWidget({ className }: PeerComparisonProps) {
                     <MetricBox
                         icon={<TrendingUp className="w-2.5 h-2.5" />}
                         label="Avg OG"
-                        value={data.avg_og.toFixed(3)}
+                        value={data.avg_og?.toFixed(3) || '--.---'}
                     />
                     <MetricBox
                         icon={<Droplets className="w-2.5 h-2.5" />}
                         label="Avg FG"
-                        value={data.avg_fg.toFixed(3)}
+                        value={data.avg_fg?.toFixed(3) || '--.---'}
                     />
                     <MetricBox
                         icon={<FlaskConical className="w-2.5 h-2.5" />}
                         label="Avg ABV"
-                        value={`${data.avg_abv}%`}
+                        value={data.avg_abv ? `${data.avg_abv}%` : '--.-%'}
                     />
                     <MetricBox
                         icon={<BarChart2 className="w-2.5 h-2.5" />}
                         label="Avg IBU"
-                        value={Math.round(data.avg_ibu).toString()}
+                        value={data.avg_ibu ? Math.round(data.avg_ibu).toString() : '--'}
                     />
                 </div>
 

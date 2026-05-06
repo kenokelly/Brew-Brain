@@ -107,10 +107,10 @@ services:
       - redis
 
   web:
-    image: ghcr.io/kenokelly/brew-brain-web:latest
+    build: ./web
     container_name: brew-brain-web
     restart: unless-stopped
-    mem_limit: 64m
+    mem_limit: 512m
     logging:
       driver: json-file
       options:

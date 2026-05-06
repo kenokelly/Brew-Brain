@@ -96,7 +96,7 @@ export default function Dashboard() {
   const og = status?.og || 1.050;
   const sg = status?.sg || 1.000;
   const abv = Math.max(0, (og - sg) * 131.25);
-  const att = Math.max(0, ((og - sg) / (og - 1)) * 100);
+  const att = og > 1 ? Math.max(0, ((og - sg) / (og - 1)) * 100) : 0;
 
   if (isLoading) return <DashboardSkeleton />;
 
