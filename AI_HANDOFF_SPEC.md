@@ -38,6 +38,11 @@
 ### Sprint E: Documentation & Release Management
 - [ ] **Enforced Documentation Gate:** Integrate documentation checks into the CI/CD pipeline. 
 
+### Sprint M: Mobile-First Evolution (PWA to Native)
+- [ ] **Phase 1 (PWA):** Refactor web UI with a responsive framework (e.g., Tailwind CSS).
+- [ ] **Phase 2 (Adaptive Mobile):** Use Capacitor/Hybrid bridge to wrap the PWA into installable .apk or .ipa files.
+- [ ] **Phase 3 (Native Optimization):** Implement Native Modules (Biometrics, Camera, Haptics) for platform-specific optimization.
+
 ---
 
 ## 3. QA, Test Plan, & Deployment Strategy

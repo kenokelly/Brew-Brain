@@ -37,3 +37,6 @@ Write unit, integration, and e2e tests. Periodically refactor code to improve it
 Brew-Brain is an intelligence layer built atop established brewing standards. All development must respect the patterns and port assignments of:
 *   **TILTpi (Baron Brew):** Primary Node-RED driver and sensor interface (Port 1880).
 *   **Tilt-Pi-Monitor-Stack (Stian Josok):** Base Docker container architecture (InfluxDB/Grafana).
+
+## 12. Mobile-First Accessibility & Responsiveness
+All frontend development must prioritize a "Mobile-First" philosophy. Layouts must be fluid and adaptive using responsive frameworks (e.g., Tailwind CSS). Interactive elements must be "glove-friendly" with appropriate touch targets and high-contrast accessibility (WCAG 2.1 compliance).

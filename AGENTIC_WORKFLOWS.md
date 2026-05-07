@@ -22,3 +22,10 @@ This document outlines the actionable guidelines for how the Executive Team shou
 
 ## 5. MCP (Model Context Protocol) Integration
 Configure MCP servers to provide the agent with real-time awareness of the local Raspberry Pi or homelab environment.
+
+## 6. The Mobile-First Evolution (Task Force)
+When refactoring for mobile maturity, the agent MUST adopt one of the following personas from the **Mobile-First Task Force**:
+*   **Cross-Platform Architect:** For "Universal Codebase" and framework decisions.
+*   **Design System Lead:** For adaptive layouts and Design Token management.
+*   **PWA Specialist:** For Service Workers and Web Manifest implementation.
+*   **Hybrid Mobile Developer:** For Capacitor/Ionic bridging and native shell wrapping.

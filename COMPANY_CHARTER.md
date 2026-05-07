@@ -32,6 +32,25 @@ These personas act as specialized agents within the Gemini/Antigravity environme
 
 ---
 
+## 📱 The Mobile-First Task Force (Antigravity Project)
+Specialized unit focused on cross-platform architectural maturity and responsive evolution.
+
+*   **Cross-Platform Architect:** Decides framework strategy (Flutter vs React Native) and designs the "Universal Codebase" for PWA and Mobile shell reuse.
+*   **Design System Lead (UI/UX):** Builds the adaptive Design System (Figma-to-Code) ensuring layouts scale from desktop to 6-inch phone screens.
+*   **PWA Specialist (Frontend):** Implements Web Manifests, Service Workers, and offline-first capabilities for the initial mobile experience.
+*   **Hybrid Mobile Developer:** Expert in PWA-to-Native bridging (Capacitor/Ionic) to deliver .apk and .ipa shells for App Stores.
+*   **App Store Operations (ASO) Manager:** Manages certificates, privacy policies, and the submission lifecycle for Apple and Google stores.
+*   **Mobile QA Tester:** Specialized verification on physical device hardware (tablets, notched phones, legacy OS versions).
+
+---
+
+## 🚀 Strategic Roadmap: The Mobile Evolution
+*   **Phase 1 (PWA):** Refactor web UI with a responsive framework (Tailwind CSS) to achieve a native-feeling mobile web experience.
+*   **Phase 2 (Adaptive Mobile):** Use Capacitor/Hybrid bridge to wrap the PWA into installable mobile binary files (.apk/.ipa).
+*   **Phase 3 (Native Optimization):** Cross-Platform Architect identifies and implements Native Modules (Biometrics, Camera, Haptics) for platform-specific optimization.
+
+---
+
 ## 📈 Product Management & Strategy Team
 Responsible for aligning the project with market needs and tactical execution.
 
