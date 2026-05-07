@@ -384,8 +384,8 @@ def get_style_averages(style_name: str) -> Dict[str, Any]:
     cursor.execute('''
     SELECT AVG(og), AVG(fg), AVG(abv), AVG(ibu), COUNT(*) 
     FROM recipes 
-    WHERE style LIKE ?
-    ''', (f'%{style_name}%',))
+    WHERE style LIKE '%' || ? || '%'
+    ''', (style_name,))
 
     row = cursor.fetchone()
     conn.close()

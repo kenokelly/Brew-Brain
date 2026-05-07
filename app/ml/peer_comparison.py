@@ -35,10 +35,10 @@ class PeerComparison:
         cursor.execute("""
             SELECT og, fg, abv, ibu
             FROM recipes
-            WHERE style LIKE ?
+            WHERE style LIKE '%' || ? || '%'
               AND og IS NOT NULL
               AND fg IS NOT NULL
-        """, (f"%{style_name}%",))
+        """, (style_name,))
         rows = [dict(r) for r in cursor.fetchall()]
         conn.close()
         return rows

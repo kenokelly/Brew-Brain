@@ -208,9 +208,9 @@ class StyleIntelligence:
         cursor.execute("""
             SELECT grain_bill, hop_bill, yeast, og, fg, ibu, abv
             FROM recipes
-            WHERE style LIKE ?
+            WHERE style LIKE '%' || ? || '%'
               AND (grain_bill IS NOT NULL OR hop_bill IS NOT NULL)
-        """, (f"%{style_name}%",))
+        """, (style_name,))
         rows = cursor.fetchall()
         conn.close()
 
