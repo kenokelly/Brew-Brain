@@ -33,9 +33,8 @@ scheduler = BackgroundScheduler(
 )
 
 
-def init_scheduler(app):
-    """Initialize and start the scheduler with default jobs."""
-    scheduler.app = app # Attach app for context usage elsewhere
+def _register_system_jobs(sched):
+    """Register system-level jobs on the scheduler."""
     from services.status import get_status_dict
     from extensions import socketio
 
@@ -50,10 +49,9 @@ def init_scheduler(app):
             if "NoneType" not in str(e):
                 logger.error(f"WebSocket Emit Error: {e}")
 
-
     # Add recurring jobs
     # Real-time Status Emit (Every 5s) - Kept in APScheduler for low latency
-    scheduler.add_job(
+    sched.add_job(
         emit_status_update,
         'interval',
         seconds=5,
@@ -61,6 +59,13 @@ def init_scheduler(app):
         name='Real-time Status',
         replace_existing=True
     )
+
+
+def init_scheduler(app):
+    """Initialize and start the scheduler with default jobs."""
+    scheduler.app = app # Attach app for context usage elsewhere
+
+    _register_system_jobs(scheduler)
     
     # Other periodic tasks (Processing, Alerts, ML, Reports) 
     # have been migrated to Celery Beat in extensions.py
