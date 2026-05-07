@@ -163,6 +163,7 @@ def extract_json_ld_products(html):
     products = []
     for script in soup.find_all('script', type='application/ld+json'):
         if not script.string: continue
+        if '"Product"' not in script.string: continue
         try:
             data = json.loads(script.string)
             items = data.get('@graph', data) if isinstance(data, dict) else data
