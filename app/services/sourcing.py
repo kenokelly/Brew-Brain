@@ -342,38 +342,10 @@ def check_price_watch():
         
     return {"status": "no_alerts"}
 
-def compare_recipe_prices(recipe_details, recipe_tag=None, debug_mode=False):
+def parse_recipe_ingredients(recipe_details):
     """
-    Compares prices for a recipe's ingredients.
+    Parses a recipe object and returns a deduplicated list of ingredients to check.
     """
-    if debug_mode:
-        logger.info("DEBUG MODE: Returning mock comparison results.")
-        return {
-            "breakdown": [
-                {"name": "Debug Hop", "tmm_cost": 10.0, "geb_cost": 12.0, "best_vendor": "TMM"}
-            ],
-            "total_tmm": 10.0,
-            "total_geb": 12.0,
-            "winner": "The Malt Miller",
-            "debug": True
-        }
-    """
-    Takes full recipe object (from BF) OR a tag to fetch it, and compares basket cost.
-    Uses Google Organic Search + Snippet Parsing for broader coverage than Google Shopping.
-    """
-    # 1. Resolve Recipe if Tag provided
-    if recipe_tag:
-        from services import alerts
-        logger.info(f"Fetching recipe by tag: {recipe_tag}")
-        recipe = alerts.fetch_recipe_by_tag(recipe_tag)
-        if not recipe or 'error' in recipe:
-            return {"error": f"Could not find recipe with tag '{recipe_tag}': {recipe.get('error')}"}
-        recipe_details = recipe
-
-    # DEBUG: Log incoming recipe structure
-    logger.info(f"DEBUG compare_recipe_prices: Received recipe. Keys: {list(recipe_details.keys()) if isinstance(recipe_details, dict) else 'NOT A DICT'}")
-    
-    # Parse Ingredients
     items_to_check = []
     
     # Hops
@@ -404,274 +376,310 @@ def compare_recipe_prices(recipe_details, recipe_tag=None, debug_mode=False):
             deduped[key]['amount'] += item['amount']
         else:
             deduped[key] = item
-    items_to_check = list(deduped.values())
+    return list(deduped.values())
+
+def search_vendor_direct(ingredient_name, vendor):
+    """
+    Searches vendor site directly via their site search.
+    Returns {"price": float|None, "link": str, "title": str}
+    """
+    from urllib.parse import quote_plus
     
+    try:
+        query = quote_plus(ingredient_name)
+        
+        if vendor == "tmm":
+            # The Malt Miller uses WooCommerce - search via ?s= parameter
+            search_url = f"https://www.themaltmiller.co.uk/?s={query}&post_type=product"
+            source_name = "The Malt Miller"
+        else:
+            # Get Er Brewed uses custom search
+            search_url = f"https://www.geterbrewed.com/?s={query}&post_type=product"
+            source_name = "Get Er Brewed"
+        
+        logger.debug(f"[DIRECT] Searching {source_name}: {search_url}")
+        html = get_page_content(search_url)
+
+        if not html:
+            logger.warning(f"[DIRECT] No response from {source_name}")
+            return None
+            
+        # 1. Try JSON-LD Extraction first
+        products = extract_json_ld_products(html)
+        best_match = None
+        best_confidence = 0.0
+        target_clean = ingredient_name.lower().strip()
+
+        for p in products:
+            p_name = p.get('name', '')
+            if not p_name: continue
+            
+            conf = difflib.SequenceMatcher(None, target_clean, p_name.lower()).ratio()
+            if target_clean in p_name.lower(): conf = max(conf, 0.8)
+            
+            if conf > best_confidence:
+                best_confidence = conf
+                best_match = p
+
+        if best_match and best_confidence >= 0.5:
+            price = None
+            offers = best_match.get('offers', {})
+            if isinstance(offers, dict): offers = [offers]
+            for offer in offers:
+                if offer.get('@type') == 'Offer' and offer.get('price'):
+                    try:
+                        price = float(offer['price'])
+                        break
+                    except ValueError:
+                        pass
+                        
+            if price:
+                title = best_match.get('name')
+                link = best_match.get('url') or search_url
+                if link == search_url and isinstance(offers, list) and len(offers) > 0:
+                    link = offers[0].get('url', search_url)
+
+                return {
+                    "price": price,
+                    "link": link,
+                    "title": title,
+                    "weight_g": extract_weight_in_grams(title),
+                    "confidence": best_confidence
+                }
+
+        # 2. Fallback to HTML/CSS Parsing
+        soup = BeautifulSoup(html, 'html.parser')
+
+        product = soup.select_one('.product, .products .product, li.product, .item, .product-item')
+        if not product:
+            logger.debug(f"[DIRECT] No product found for '{ingredient_name}' on {source_name}")
+            return None
+
+        title_tag = product.select_one('.woocommerce-loop-product__title, h2, .product-title, .product-name')
+        title = title_tag.get_text().strip() if title_tag else ingredient_name
+
+        conf = difflib.SequenceMatcher(None, target_clean, title.lower()).ratio()
+        if target_clean in title.lower(): conf = max(conf, 0.8)
+
+        if conf < 0.4:
+            logger.debug(f"[DIRECT] Rejected '{title}' for '{ingredient_name}'. Low confidence: {conf:.2f}")
+            return None
+
+        price_tag = product.select_one('.price .amount bdi, .price ins .amount bdi, .price .amount, .price ins .amount, .woocommerce-Price-amount, .product-price')
+        price = None
+        if price_tag:
+            price = extract_price(price_tag.get_text())
+
+        link_tag = product.select_one('a[href*="/product/"], a[href*="/item/"], a.woocommerce-LoopProduct-link')
+        link = link_tag.get('href') if link_tag else search_url
+
+        return {
+            "price": price,
+            "link": link,
+            "title": title,
+            "weight_g": extract_weight_in_grams(title),
+            "confidence": conf
+        }
+
+    except Exception as e:
+        logger.warning(f"[DIRECT] Error searching {vendor}: {e}")
+        return None
+
+
+def search_price(query, source_name, api_key):
+    try:
+         params = {
+            "engine": "google",
+            "q": query,
+            "api_key": api_key,
+            "num": 2, # Top 2 organic results
+            "gl": "uk",
+            "hl": "en"
+         }
+         search = GoogleSearch(params)
+         data = search.get_dict()
+         organic = data.get("organic_results", [])
+
+         # Best Candidate
+         for i, res in enumerate(organic):
+             link = res.get("link")
+             title = res.get("title", "")
+             
+             # 1. VISITING PAGE
+             if i == 0:
+                 html = get_page_content(link)
+                 page_data = parse_product_page(html, source_name)
+                 
+                 if page_data and page_data['price']:
+                     # Improvement: If page parse didn't get weight, try title/snippet
+                     w_g = page_data.get('weight_g')
+                     if not w_g:
+                          w_g = extract_weight_in_grams(title) or extract_weight_in_grams(res.get("snippet", ""))
+
+                     return {
+                         "price": page_data['price'],
+                         "weight": page_data.get('weight') or "Unknown",
+                         "weight_g": w_g,
+                         "link": link
+                     }
+
+             # 2. Rich Snippet (Fallback) - Requires extra regex for weight
+             rich = res.get("rich_snippet", {})
+             box = rich.get("top", {}) or rich.get("bottom", {})
+             extensions = box.get("detected_extensions", {})
+
+             if extensions.get("price"):
+                 p = extract_price(f"£{extensions['price']}")
+                 # Try to guess weight from title
+                 w_g = extract_weight_in_grams(title)
+                 if p:
+                     return {"price": p, "weight": "Snippet", "weight_g": w_g, "link": link}
+
+             # 3. Snippet (Fallback)
+             snippet = res.get("snippet", "")
+             p = extract_price(snippet)
+             w_g = extract_weight_in_grams(snippet) or extract_weight_in_grams(title)
+             if p:
+                  return {"price": p, "weight": "Snippet", "weight_g": w_g, "link": link}
+
+    except Exception as e:
+        logger.error(f"Search Error: {e}")
+    return None
+
+
+def process_item(item, use_serp, api_key):
+    row = {
+        "name": item['name'],
+        "type": item['type'],
+        "amount": f"{item['amount']} {item['unit']}",
+        "amount_g": item['amount'] * 1000 if item['unit'] == 'kg' else item['amount'],
+        "tmm_price": "N/A", "tmm_cost": 0.0, "tmm_cost_raw": 0.0, "tmm_link": "#",
+        "geb_price": "N/A", "geb_cost": 0.0, "geb_cost_raw": 0.0, "geb_link": "#",
+        "best_vendor": "None",
+        "in_stock": False,
+        "stock_qty": 0
+    }
+
+    names_to_try = [item['name']]
+    normalized_name = normalize_ingredient_name(item['name'])
+    if normalized_name:
+         names_to_try.append(normalized_name)
+
+    def get_cached_or_fetch(vendor, names):
+        for try_name in names:
+            cache_key = f"{vendor}_{try_name}"
+            with _ingredient_cache_lock:
+                cached = _ingredient_cache.get(cache_key)
+                if cached and (std_time.time() - cached['ts']) < 14400: # 4 hours TTL
+                    return cached['data']
+
+            res = search_vendor_direct(try_name, vendor)
+            if res and res.get('price'):
+                with _ingredient_cache_lock:
+                    _ingredient_cache[cache_key] = {"data": res, "ts": std_time.time()}
+                return res
+        return None
+
+    # --- SEARCH MALT MILLER ---
+    res_tmm = get_cached_or_fetch("tmm", names_to_try)
+    if use_serp and not res_tmm:
+        for try_name in names_to_try:
+             res_tmm = search_price(f"{try_name} site:themaltmiller.co.uk", "The Malt Miller", api_key)
+             if res_tmm: break
+
+    if res_tmm:
+        row['tmm_price'] = res_tmm['price']
+        row['tmm_link'] = res_tmm.get('link', '#')
+        if res_tmm.get('weight_g') and res_tmm['weight_g'] > 0:
+            cost_per_g = res_tmm['price'] / res_tmm['weight_g']
+            item_cost = cost_per_g * row['amount_g']
+            row['tmm_cost_raw'] = item_cost
+            row['tmm_cost'] = round(item_cost, 2)
+        else:
+            row['tmm_cost'] = "?"
+
+    # --- SEARCH GET ER BREWED ---
+    res_geb = get_cached_or_fetch("geb", names_to_try)
+    if use_serp and not res_geb:
+        for try_name in names_to_try:
+             res_geb = search_price(f"{try_name} site:geterbrewed.com", "Get Er Brewed", api_key)
+             if res_geb: break
+        
+    if res_geb:
+        row['geb_price'] = res_geb['price']
+        row['geb_link'] = res_geb.get('link', '#')
+        if res_geb.get('weight_g') and res_geb['weight_g'] > 0:
+            cost_per_g = res_geb['price'] / res_geb['weight_g']
+            item_cost = cost_per_g * row['amount_g']
+            row['geb_cost_raw'] = item_cost
+            row['geb_cost'] = round(item_cost, 2)
+        else:
+            row['geb_cost'] = "?"
+
+    # Determine Winner
+    try:
+        t = float(row['tmm_price']) if row['tmm_price'] != "N/A" else 9999
+        g = float(row['geb_price']) if row['geb_price'] != "N/A" else 9999
+        if t < g and t != 9999: row['best_vendor'] = "TMM"
+        elif g < t and g != 9999: row['best_vendor'] = "GEB"
+        elif t == g and t != 9999: row['best_vendor'] = "Tie"
+    except (ValueError, TypeError): pass
+
+    return row
+
+
+def compare_recipe_prices(recipe_details, recipe_tag=None, debug_mode=False):
+    """
+    Compares prices for a recipe's ingredients.
+    """
+    if debug_mode:
+        logger.info("DEBUG MODE: Returning mock comparison results.")
+        return {
+            "breakdown": [
+                {"name": "Debug Hop", "tmm_cost": 10.0, "geb_cost": 12.0, "best_vendor": "TMM"}
+            ],
+            "total_tmm": 10.0,
+            "total_geb": 12.0,
+            "winner": "The Malt Miller",
+            "debug": True
+        }
+    """
+    Takes full recipe object (from BF) OR a tag to fetch it, and compares basket cost.
+    Uses Google Organic Search + Snippet Parsing for broader coverage than Google Shopping.
+    """
+    # 1. Resolve Recipe if Tag provided
+    if recipe_tag:
+        from services import alerts
+        logger.info(f"Fetching recipe by tag: {recipe_tag}")
+        recipe = alerts.fetch_recipe_by_tag(recipe_tag)
+        if not recipe or 'error' in recipe:
+            return {"error": f"Could not find recipe with tag '{recipe_tag}': {recipe.get('error')}"}
+        recipe_details = recipe
+
+    # DEBUG: Log incoming recipe structure
+    logger.info(f"DEBUG compare_recipe_prices: Received recipe. Keys: {list(recipe_details.keys()) if isinstance(recipe_details, dict) else 'NOT A DICT'}")
+
+    items_to_check = parse_recipe_ingredients(recipe_details)
+
     # Fetch inventory to check stock levels
     inventory = {}
     try:
         inventory = _get_inventory()
     except Exception as e:
         logger.warning(f"Could not fetch inventory: {e}")
-        
+
     results = []
     total_tmm = 0.0
     total_geb = 0.0
-    
+
     api_key = get_config("serp_api_key")
     use_serp = bool(api_key)  # SerpAPI is now OPTIONAL
-    
+
     logger.info(f"[PRICE-CMP] Mode: {'SerpAPI' if use_serp else 'Direct Scraping'}")
-    
-    def search_vendor_direct(ingredient_name, vendor):
-        """
-        Searches vendor site directly via their site search.
-        Returns {"price": float|None, "link": str, "title": str}
-        """
-        from urllib.parse import quote_plus
-        
-        try:
-            query = quote_plus(ingredient_name)
-            
-            if vendor == "tmm":
-                # The Malt Miller uses WooCommerce - search via ?s= parameter
-                search_url = f"https://www.themaltmiller.co.uk/?s={query}&post_type=product"
-                source_name = "The Malt Miller"
-            else:
-                # Get Er Brewed uses custom search
-                search_url = f"https://www.geterbrewed.com/?s={query}&post_type=product"
-                source_name = "Get Er Brewed"
-            
-            logger.debug(f"[DIRECT] Searching {source_name}: {search_url}")
-            html = get_page_content(search_url)
-            
-            if not html:
-                logger.warning(f"[DIRECT] No response from {source_name}")
-                return None
-                
-            # 1. Try JSON-LD Extraction first
-            products = extract_json_ld_products(html)
-            best_match = None
-            best_confidence = 0.0
-            target_clean = ingredient_name.lower().strip()
-            
-            for p in products:
-                p_name = p.get('name', '')
-                if not p_name: continue
-                
-                conf = difflib.SequenceMatcher(None, target_clean, p_name.lower()).ratio()
-                if target_clean in p_name.lower(): conf = max(conf, 0.8)
-                
-                if conf > best_confidence:
-                    best_confidence = conf
-                    best_match = p
-
-            if best_match and best_confidence >= 0.5:
-                price = None
-                offers = best_match.get('offers', {})
-                if isinstance(offers, dict): offers = [offers]
-                for offer in offers:
-                    if offer.get('@type') == 'Offer' and offer.get('price'):
-                        try:
-                            price = float(offer['price'])
-                            break
-                        except ValueError:
-                            pass
-                            
-                if price:
-                    title = best_match.get('name')
-                    link = best_match.get('url') or search_url
-                    if link == search_url and isinstance(offers, list) and len(offers) > 0:
-                        link = offers[0].get('url', search_url)
-                        
-                    return {
-                        "price": price,
-                        "link": link,
-                        "title": title,
-                        "weight_g": extract_weight_in_grams(title),
-                        "confidence": best_confidence
-                    }
-
-            # 2. Fallback to HTML/CSS Parsing
-            soup = BeautifulSoup(html, 'html.parser')
-            
-            product = soup.select_one('.product, .products .product, li.product, .item, .product-item')
-            if not product:
-                logger.debug(f"[DIRECT] No product found for '{ingredient_name}' on {source_name}")
-                return None
-            
-            title_tag = product.select_one('.woocommerce-loop-product__title, h2, .product-title, .product-name')
-            title = title_tag.get_text().strip() if title_tag else ingredient_name
-            
-            conf = difflib.SequenceMatcher(None, target_clean, title.lower()).ratio()
-            if target_clean in title.lower(): conf = max(conf, 0.8)
-            
-            if conf < 0.4:
-                logger.debug(f"[DIRECT] Rejected '{title}' for '{ingredient_name}'. Low confidence: {conf:.2f}")
-                return None
-            
-            price_tag = product.select_one('.price .amount bdi, .price ins .amount bdi, .price .amount, .price ins .amount, .woocommerce-Price-amount, .product-price')
-            price = None
-            if price_tag:
-                price = extract_price(price_tag.get_text())
-            
-            link_tag = product.select_one('a[href*="/product/"], a[href*="/item/"], a.woocommerce-LoopProduct-link')
-            link = link_tag.get('href') if link_tag else search_url
-            
-            return {
-                "price": price,
-                "link": link,
-                "title": title,
-                "weight_g": extract_weight_in_grams(title),
-                "confidence": conf
-            }
-            
-        except Exception as e:
-            logger.warning(f"[DIRECT] Error searching {vendor}: {e}")
-            return None
-    
-    def search_price(query, source_name):
-        try:
-             params = {
-                "engine": "google",
-                "q": query,
-                "api_key": api_key,
-                "num": 2, # Top 2 organic results
-                "gl": "uk",
-                "hl": "en"
-             }
-             search = GoogleSearch(params)
-             data = search.get_dict()
-             organic = data.get("organic_results", [])
-             
-             # Best Candidate
-             for i, res in enumerate(organic):
-                 link = res.get("link")
-                 title = res.get("title", "")
-                 
-                 # 1. VISITING PAGE
-                 if i == 0: 
-                     html = get_page_content(link)
-                     page_data = parse_product_page(html, source_name)
-                     
-                     if page_data and page_data['price']:
-                         # Improvement: If page parse didn't get weight, try title/snippet
-                         w_g = page_data.get('weight_g')
-                         if not w_g:
-                              w_g = extract_weight_in_grams(title) or extract_weight_in_grams(res.get("snippet", ""))
-                              
-                         return {
-                             "price": page_data['price'],
-                             "weight": page_data.get('weight') or "Unknown",
-                             "weight_g": w_g,
-                             "link": link
-                         }
-
-                 # 2. Rich Snippet (Fallback) - Requires extra regex for weight
-                 rich = res.get("rich_snippet", {})
-                 box = rich.get("top", {}) or rich.get("bottom", {})
-                 extensions = box.get("detected_extensions", {})
-                 
-                 if extensions.get("price"):
-                     p = extract_price(f"£{extensions['price']}")
-                     # Try to guess weight from title
-                     w_g = extract_weight_in_grams(title)
-                     if p: 
-                         return {"price": p, "weight": "Snippet", "weight_g": w_g, "link": link}
-                 
-                 # 3. Snippet (Fallback)
-                 snippet = res.get("snippet", "")
-                 p = extract_price(snippet)
-                 w_g = extract_weight_in_grams(snippet) or extract_weight_in_grams(title)
-                 if p:
-                      return {"price": p, "weight": "Snippet", "weight_g": w_g, "link": link}
-                  
-        except Exception as e:
-            logger.error(f"Search Error: {e}")
-        return None
-
-    def process_item(item):
-        row = {
-            "name": item['name'],
-            "type": item['type'],
-            "amount": f"{item['amount']} {item['unit']}",
-            "amount_g": item['amount'] * 1000 if item['unit'] == 'kg' else item['amount'],
-            "tmm_price": "N/A", "tmm_cost": 0.0, "tmm_cost_raw": 0.0, "tmm_link": "#",
-            "geb_price": "N/A", "geb_cost": 0.0, "geb_cost_raw": 0.0, "geb_link": "#",
-            "best_vendor": "None",
-            "in_stock": False,
-            "stock_qty": 0
-        }
-        
-        names_to_try = [item['name']]
-        normalized_name = normalize_ingredient_name(item['name'])
-        if normalized_name:
-             names_to_try.append(normalized_name)
-        
-        def get_cached_or_fetch(vendor, names):
-            for try_name in names:
-                cache_key = f"{vendor}_{try_name}"
-                with _ingredient_cache_lock:
-                    cached = _ingredient_cache.get(cache_key)
-                    if cached and (std_time.time() - cached['ts']) < 14400: # 4 hours TTL
-                        return cached['data']
-                        
-                res = search_vendor_direct(try_name, vendor)
-                if res and res.get('price'):
-                    with _ingredient_cache_lock:
-                        _ingredient_cache[cache_key] = {"data": res, "ts": std_time.time()}
-                    return res
-            return None
-
-        # --- SEARCH MALT MILLER ---
-        res_tmm = get_cached_or_fetch("tmm", names_to_try)
-        if use_serp and not res_tmm:
-            for try_name in names_to_try:
-                 res_tmm = search_price(f"{try_name} site:themaltmiller.co.uk", "The Malt Miller")
-                 if res_tmm: break
-        
-        if res_tmm:
-            row['tmm_price'] = res_tmm['price']
-            row['tmm_link'] = res_tmm.get('link', '#')
-            if res_tmm.get('weight_g') and res_tmm['weight_g'] > 0:
-                cost_per_g = res_tmm['price'] / res_tmm['weight_g']
-                item_cost = cost_per_g * row['amount_g']
-                row['tmm_cost_raw'] = item_cost
-                row['tmm_cost'] = round(item_cost, 2)
-            else:
-                row['tmm_cost'] = "?" 
-
-        # --- SEARCH GET ER BREWED ---
-        res_geb = get_cached_or_fetch("geb", names_to_try)
-        if use_serp and not res_geb:
-            for try_name in names_to_try:
-                 res_geb = search_price(f"{try_name} site:geterbrewed.com", "Get Er Brewed")
-                 if res_geb: break
-            
-        if res_geb:
-            row['geb_price'] = res_geb['price']
-            row['geb_link'] = res_geb.get('link', '#')
-            if res_geb.get('weight_g') and res_geb['weight_g'] > 0:
-                cost_per_g = res_geb['price'] / res_geb['weight_g']
-                item_cost = cost_per_g * row['amount_g']
-                row['geb_cost_raw'] = item_cost
-                row['geb_cost'] = round(item_cost, 2)
-            else:
-                row['geb_cost'] = "?"
-        
-        # Determine Winner
-        try:
-            t = float(row['tmm_price']) if row['tmm_price'] != "N/A" else 9999
-            g = float(row['geb_price']) if row['geb_price'] != "N/A" else 9999
-            if t < g and t != 9999: row['best_vendor'] = "TMM"
-            elif g < t and g != 9999: row['best_vendor'] = "GEB"
-            elif t == g and t != 9999: row['best_vendor'] = "Tie"
-        except (ValueError, TypeError): pass
-        
-        return row
 
     # Process all items concurrently using ThreadPoolExecutor (max 3 workers to prevent overwhelming)
     with ThreadPoolExecutor(max_workers=3) as executor:
-        for row in executor.map(process_item, items_to_check):
+        for row in executor.map(lambda item: process_item(item, use_serp, api_key), items_to_check):
             if row:
                 results.append(row)
                 if isinstance(row.get('tmm_cost_raw'), float) and row['tmm_cost_raw'] > 0:
