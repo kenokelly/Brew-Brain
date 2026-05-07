@@ -16,7 +16,7 @@ with patch('app.services.sourcing.get_config') as mock_config:
     mock_config.return_value = "fake_api_key"
     
     # Import SUT
-    from app.services import sourcing
+    from services import sourcing
 
     def test_integration():
         print("Testing compare_recipe_prices with mocked SerpApi...")
