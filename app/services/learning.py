@@ -461,7 +461,7 @@ def audit_recipe(recipe):
 def _get_external_comparison(recipe: dict, style: str) -> dict:
     """Enrich audit with external recipe DB percentile rankings."""
     try:
-        from app.ml.peer_comparison import peer_comparison
+        from ml.peer_comparison import peer_comparison
         return peer_comparison.compare(recipe, style)
     except Exception as e:
         logger.warning(f"External peer comparison unavailable: {e}")

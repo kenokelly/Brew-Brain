@@ -2,7 +2,7 @@ import os
 import secrets
 from functools import wraps
 from flask import request, jsonify
-from app.core.config import logger
+from core.config import logger
 
 # Initialize the critical API token from environment, or generate a secure random one if missing
 API_TOKEN = os.environ.get("BREW_BRAIN_API_TOKEN")

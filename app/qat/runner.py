@@ -1,7 +1,7 @@
 import logging
 import json
-from app.qat.dataset import generate_golden_dataset
-from app.services import learning, sourcing, calculator
+from qat.dataset import generate_golden_dataset
+from services import learning, sourcing, calculator
 
 logger = logging.getLogger(__name__)
 
@@ -87,7 +87,7 @@ class QATRunner:
         # TELEGRAM INTEGRATION
         if self.report['failed'] > 0:
             try:
-                from app.services.notifications import send_telegram_message
+                from services.notifications import send_telegram_message
                 msg = f"🚨 *SYSTEM FAILURE DETECTED* (QAT)\n\n"
                 msg += f"Failed Tests: {self.report['failed']}\n"
                 for t in self.report['tests']:

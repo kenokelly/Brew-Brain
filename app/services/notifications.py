@@ -2,7 +2,7 @@ import requests
 import logging
 from datetime import datetime
 from typing import Optional
-from app.core.config import get_config
+from core.config import get_config
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +51,7 @@ def broadcast_alert(alert_type: str, message: str, severity: str = "warning", da
         data: Optional additional data
     """
     try:
-        from app.extensions import socketio
+        from extensions import socketio
         
         alert_payload = {
             "type": alert_type,

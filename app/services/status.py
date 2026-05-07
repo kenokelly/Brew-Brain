@@ -1,5 +1,5 @@
-from app.core.config import get_config
-from app.core.influx import query_api, INFLUX_BUCKET
+from core.config import get_config
+from core.influx import query_api, INFLUX_BUCKET
 
 def get_pi_temp():
     try:
@@ -13,7 +13,7 @@ def get_status_dict():
     last_sync = None
     
     try:
-        from app.services.tilt_monitor import get_tilt_state
+        from services.tilt_monitor import get_tilt_state
         tilt_state = get_tilt_state()
         
         # Source measurement depends on mode

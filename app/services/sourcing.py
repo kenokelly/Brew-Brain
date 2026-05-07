@@ -9,7 +9,7 @@ import threading
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, date
 from bs4 import BeautifulSoup
-from app.core.config import get_config
+from core.config import get_config
 from serpapi import GoogleSearch
 
 logger = logging.getLogger(__name__)
@@ -17,10 +17,10 @@ logger = logging.getLogger(__name__)
 # Lazy import to avoid circular dependency
 def _get_inventory():
     """Fetches inventory from Brewfather (cached for duration of request)."""
-    from app.services import alerts
+    from services import alerts
     return alerts.fetch_brewfather_inventory()
-from app.services.hop_math import calculate_hop_freshness
-from app.services.scraper_utils import (
+from services.hop_math import calculate_hop_freshness
+from services.scraper_utils import (
     get_page_content, 
     parse_product_page, 
     extract_weight_in_grams, 
@@ -363,7 +363,7 @@ def compare_recipe_prices(recipe_details, recipe_tag=None, debug_mode=False):
     """
     # 1. Resolve Recipe if Tag provided
     if recipe_tag:
-        from app.services import alerts
+        from services import alerts
         logger.info(f"Fetching recipe by tag: {recipe_tag}")
         recipe = alerts.fetch_recipe_by_tag(recipe_tag)
         if not recipe or 'error' in recipe:
