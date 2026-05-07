@@ -69,7 +69,8 @@ export function DataChecklist({ className, onReady }: DataChecklistProps) {
                     <button
                         onClick={fetchData}
                         disabled={isLoading}
-                        className="p-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 transition-colors disabled:opacity-50"
+                        className="p-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 transition-colors focus-visible:ring-2 focus-visible:ring-primary outline-none disabled:opacity-50"
+                        aria-label="Refresh data checklist"
                     >
                         <RefreshCw className={cn("w-4 h-4 text-zinc-400", isLoading && "animate-spin")} />
                     </button>

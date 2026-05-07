@@ -172,7 +172,8 @@ export function AnomalyWidget({ className }: AnomalyWidgetProps) {
                             <h2 className="text-xl font-bold">Anomaly Detection</h2>
                             <button
                                 onClick={() => setIsExpanded(false)}
-                                className="p-2 rounded-full hover:bg-secondary transition-colors"
+                                className="p-2 rounded-full hover:bg-secondary focus-visible:ring-2 focus-visible:ring-primary outline-none transition-colors"
+                                aria-label="Close anomaly details"
                             >
                                 <X className="w-5 h-5" />
                             </button>

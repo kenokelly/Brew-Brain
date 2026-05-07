@@ -130,7 +130,8 @@ export default function Dashboard() {
           </div>
           <button
             onClick={() => setIsGuideOpen(true)}
-            className="hidden md:flex items-center gap-2 px-6 py-2.5 rounded-full bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-all font-bold text-sm shadow-[0_0_20px_rgba(var(--primary),0.1)] active:scale-95"
+            className="hidden md:flex items-center gap-2 px-6 py-2.5 rounded-full bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 focus-visible:ring-2 focus-visible:ring-primary outline-none transition-all font-bold text-sm shadow-[0_0_20px_rgba(var(--primary),0.1)] active:scale-95"
+            aria-label="Open brew day preparation guide"
           >
             <BookOpen className="w-4 h-4" />
             Brew Day Prep
@@ -186,8 +187,9 @@ export default function Dashboard() {
               <h2 className="text-xl font-bold">{status?.batch_name || '--'}</h2>
               <button
                 onClick={handleSyncBrewfather}
-                className="text-muted-foreground hover:text-blue-400 p-1.5 rounded-full hover:bg-secondary transition-colors"
+                className="text-muted-foreground hover:text-blue-400 p-1.5 rounded-full hover:bg-secondary focus-visible:ring-2 focus-visible:ring-primary outline-none transition-colors"
                 title="Sync from Brewfather"
+                aria-label="Sync batch from Brewfather"
               >
                 <RefreshCcw className="w-4 h-4" />
               </button>
@@ -230,7 +232,11 @@ export default function Dashboard() {
               <Activity className="w-5 h-5 text-primary" /> Fermentation Chart
             </h3>
             <div className="flex flex-wrap gap-2">
-              <button onClick={openTiltPi} className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 hover:bg-indigo-500/20 transition-colors">
+              <button 
+                onClick={openTiltPi} 
+                className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 hover:bg-indigo-500/20 focus-visible:ring-2 focus-visible:ring-indigo-500 outline-none transition-colors"
+                aria-label="Open TiltPi interface in a new window"
+              >
                 <ExternalLink className="w-3 h-3" /> TiltPi
               </button>
               <div className="flex bg-secondary rounded-lg p-1 gap-1">
@@ -239,11 +245,12 @@ export default function Dashboard() {
                     key={range}
                     onClick={() => setTimeRange(range)}
                     className={cn(
-                      "px-3 py-1 text-xs font-medium rounded-md transition-colors",
+                      "px-3 py-1 text-xs font-medium rounded-md focus-visible:ring-2 focus-visible:ring-primary outline-none transition-colors",
                       timeRange === range
                         ? "bg-primary text-primary-foreground shadow-sm"
                         : "text-muted-foreground hover:text-foreground"
                     )}
+                    aria-label={`Show data for last ${range.replace('now-', '')}`}
                   >
                     {range.replace('now-', '')}
                   </button>

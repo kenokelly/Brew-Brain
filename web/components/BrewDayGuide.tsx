@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { BookOpen, X, Info, ChevronRight, CheckCircle2, FlaskConical, Wifi, Calendar } from 'lucide-react';
 import { DataChecklist } from './DataChecklist';
@@ -13,24 +13,43 @@ interface BrewDayGuideProps {
 export function BrewDayGuide({ isOpen, onClose }: BrewDayGuideProps) {
     const [activeTab, setActiveTab] = useState<'checklist' | 'guide'>('checklist');
 
+    useEffect(() => {
+        const handleEsc = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') onClose();
+        };
+        if (isOpen) {
+            window.addEventListener('keydown', handleEsc);
+        }
+        return () => window.removeEventListener('keydown', handleEsc);
+    }, [isOpen, onClose]);
+
     return (
-        <div className={cn(
-            "fixed inset-0 z-50 transition-all duration-500",
-            isOpen ? "visible" : "invisible"
-        )}>
+        <div 
+            className={cn(
+                "fixed inset-0 z-50 transition-all duration-500",
+                isOpen ? "visible" : "invisible"
+            )}
+            role="presentation"
+        >
             {/* Backdrop */}
             <div
                 className={cn("absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-500",
                     isOpen ? "opacity-100" : "opacity-0"
                 )}
                 onClick={onClose}
+                aria-hidden="true"
             />
 
             {/* Sidebar */}
-            <div className={cn(
-                "absolute top-0 right-0 h-full w-full max-w-xl bg-zinc-950 border-l border-white/10 shadow-2xl transition-transform duration-500 transform flex flex-col",
-                isOpen ? "translate-x-0" : "translate-x-full"
-            )}>
+            <div 
+                className={cn(
+                    "absolute top-0 right-0 h-full w-full max-w-xl bg-zinc-950 border-l border-white/10 shadow-2xl transition-transform duration-500 transform flex flex-col",
+                    isOpen ? "translate-x-0" : "translate-x-full"
+                )}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="guide-title"
+            >
                 {/* Header */}
                 <header className="p-6 border-b border-white/5 flex items-center justify-between bg-zinc-900/50">
                     <div className="flex items-center gap-3">
@@ -38,13 +57,14 @@ export function BrewDayGuide({ isOpen, onClose }: BrewDayGuideProps) {
                             <BookOpen className="w-5 h-5" />
                         </div>
                         <div>
-                            <h2 className="text-xl font-bold text-white">Brew Day Command</h2>
+                            <h2 id="guide-title" className="text-xl font-bold text-white">Brew Day Command</h2>
                             <p className="text-xs text-zinc-500">Autonomous Fermentation Setup Guide</p>
                         </div>
                     </div>
                     <button
                         onClick={onClose}
-                        className="p-2 rounded-full hover:bg-zinc-800 transition-colors text-zinc-400 hover:text-white"
+                        className="p-2 rounded-full hover:bg-zinc-800 transition-colors text-zinc-400 hover:text-white focus-visible:ring-2 focus-visible:ring-primary outline-none"
+                        aria-label="Close guide"
                     >
                         <X className="w-5 h-5" />
                     </button>

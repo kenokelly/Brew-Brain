@@ -89,7 +89,8 @@ export function NavBar() {
                 </div>
                 <button
                     onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                    className="p-2 -mr-2 text-muted-foreground hover:text-foreground"
+                    className="p-2 -mr-2 text-muted-foreground hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary outline-none"
+                    aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
                 >
                     {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
                 </button>
