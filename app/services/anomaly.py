@@ -246,7 +246,7 @@ def check_temperature_deviation(
         # Check deviation
         deviation = avg_temp - target_temp_f
         
-        if abs(deviation) > TEMP_DEVIATION_F:
+        if abs(deviation) > TEMP_DEVIATION_C:
             direction = "HIGH" if deviation > 0 else "LOW"
             emoji = "🔥" if deviation > 0 else "❄️"
             
