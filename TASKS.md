@@ -199,6 +199,7 @@ Transform Brew Brain from a monitoring dashboard into an **Intelligent Fermentat
 - [x] **16.5 Restrict Vendor Allowlist** — Ensured `ALLOWED_DOMAINS` strictly limits scraping to only The Malt Miller and Get Er Brewed.
 - [x] **16.6 Robust Sourcing Logic (SRE)** — Implemented JSON-LD (`application/ld+json`) parsing for accurate price/stock extraction.
 - [x] **16.7 Fuzzy Ingredient Matching** — Introduced sequence matching (`difflib`) to analyze vendor product titles.
+- [x] **16.8 Fix UI Timeouts & Sockets (SRE)** — Implemented Redis-backed caching for heavy API calls (/status, /anomaly, /predict). Optimized InfluxDB queries with 1h aggregation. Fixed Nginx WebSocket proxy headers and increased timeouts.
 
 ### Sprint D — Board Operations Scheduler ✅
 - [x] **D.1 Daily Fermentation Reports** — Implemented `get_daily_telemetry` and `send_daily_board_report`.
