@@ -1,9 +1,35 @@
 import logging
 import base64
+import xml.etree.ElementTree as ET
+from xml.dom import minidom
 from github import Github
 from core.config import get_config
 
 logger = logging.getLogger(__name__)
+
+def generate_fallback_beerxml(recipe_data):
+    """Construct minimal valid BeerXML from dict."""
+    recipes = ET.Element("RECIPES")
+    recipe = ET.SubElement(recipes, "RECIPE")
+
+    def add_element(parent, tag, text):
+        elem = ET.SubElement(parent, tag)
+        elem.text = str(text) if text is not None else "None"
+
+    add_element(recipe, "NAME", recipe_data.get("name"))
+    add_element(recipe, "OG", recipe_data.get("og"))
+    add_element(recipe, "IBU", recipe_data.get("ibu"))
+    add_element(recipe, "EST_ABV", recipe_data.get("abv"))
+    add_element(recipe, "SOURCE", recipe_data.get("source_url"))
+
+    notes_text = f"Imported via Brew-Brain from {recipe_data.get('source_url')}"
+    add_element(recipe, "NOTES", notes_text)
+
+    xml_bytes = ET.tostring(recipes, encoding="ISO-8859-1")
+    dom = minidom.parseString(xml_bytes)
+
+    pretty_xml = dom.toprettyxml(indent="  ", encoding="ISO-8859-1").decode("ISO-8859-1")
+    return pretty_xml
 
 def push_recipe_to_repo(recipe_data, token, repo_name):
     """
@@ -29,18 +55,7 @@ def push_recipe_to_repo(recipe_data, token, repo_name):
             return {"error": "No XML content provided to save."}
         else:
             # Construct minimal valid XML from dict (fallback)
-            # This is a bit hacky but ensures we save *something* useful.
-            content = f"""<?xml version="1.0" encoding="ISO-8859-1"?>
-<RECIPES>
-  <RECIPE>
-    <NAME>{recipe_data.get('name')}</NAME>
-    <OG>{recipe_data.get('og')}</OG>
-    <IBU>{recipe_data.get('ibu')}</IBU>
-    <EST_ABV>{recipe_data.get('abv')}</EST_ABV>
-    <SOURCE>{recipe_data.get('source_url')}</SOURCE>
-    <NOTES>Imported via Brew-Brain from {recipe_data.get('source_url')}</NOTES>
-  </RECIPE>
-</RECIPES>"""
+            content = generate_fallback_beerxml(recipe_data)
 
         file_path = f"recipes/{name}.xml"
         
