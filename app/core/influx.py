@@ -3,7 +3,9 @@ from influxdb_client import InfluxDBClient
 from influxdb_client.client.write_api import SYNCHRONOUS
 
 INFLUX_URL = os.getenv("INFLUX_URL", "http://influxdb:8086")
-INFLUX_TOKEN = os.getenv("INFLUX_TOKEN", "my-token")
+INFLUX_TOKEN = os.getenv("INFLUX_TOKEN")
+if not INFLUX_TOKEN:
+    raise ValueError("INFLUX_TOKEN environment variable is required")
 INFLUX_ORG = os.getenv("INFLUX_ORG", "homebrew")
 INFLUX_BUCKET = os.getenv("INFLUX_BUCKET", "fermentation")
 
