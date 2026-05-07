@@ -17,7 +17,7 @@ import pyarrow.parquet as pq
 from datetime import datetime, timezone
 from collections import defaultdict
 from typing import Dict, List, Optional, Any
-from ml.features import calculate_sg_velocity, calculate_temp_variance, calculate_time_in_phase
+from ml.features import calculate_sg_velocity, calculate_temp_variance, calculate_time_in_phase, normalize_features
 from core.influx import write_api, INFLUX_BUCKET, INFLUX_ORG
 from influxdb_client import Point
 
@@ -27,6 +27,16 @@ MODEL_DIR = "data/models"
 FG_MODEL_PATH = os.path.join(MODEL_DIR, "fg_predictor.joblib")
 TIME_MODEL_PATH = os.path.join(MODEL_DIR, "time_predictor.joblib")
 EXPORT_DIR = "data/exports"
+
+# Encoding constants for categorical features
+STYLE_MAPPING = {"IPA": 1, "Stout": 2, "Lager": 3, "Pale Ale": 4, "Wheat": 5, "Saison": 6}
+YEAST_MAPPING = {"US-05": 1, "S-04": 2, "W-34/70": 3, "Nottingham": 4, "Voss Kveik": 5}
+
+def encode_category(value: str, mapping: Dict[str, int]) -> int:
+    """Encode a string value using a mapping, with fallback to 0."""
+    if not value:
+        return 0
+    return mapping.get(value, 0)
 
 
 def ensure_model_dir():
@@ -88,6 +98,8 @@ def prepare_features(data: List[Dict[str, Any]]) -> tuple:
             first = rows[0]
             og = first.get('og')
             fg = first.get('fg')
+            yeast = first.get('yeast', 'Unknown')
+            style = first.get('style', 'Unknown')
             
             if og is None or fg is None:
                 continue
@@ -111,6 +123,18 @@ def prepare_features(data: List[Dict[str, Any]]) -> tuple:
             variance = calculate_temp_variance(temp_readings)
             avg_temp = float(np.mean(temp_readings))
             
+            # Normalization
+            feat_dict = {
+                "og": og,
+                "avg_temp": avg_temp,
+                "sg_velocity": velocity
+            }
+            norm_feat = normalize_features(feat_dict)
+            
+            # Categorical encoding
+            style_code = encode_category(style, STYLE_MAPPING)
+            yeast_code = encode_category(yeast, YEAST_MAPPING)
+            
             # Calculate days to FG (time from pitch to when SG reaches FG +/- 0.001)
             pitch_time = timestamps[0]
             fg_time = None
@@ -125,10 +149,12 @@ def prepare_features(data: List[Dict[str, Any]]) -> tuple:
                 days_to_fg = calculate_time_in_phase(pitch_time, fg_time)
 
             features = [
-                float(og),
-                float(velocity),
+                float(norm_feat.get("og_normalized", 0)),
+                float(norm_feat.get("velocity_normalized", 0)),
+                float(norm_feat.get("temp_normalized", 0)),
                 float(variance),
-                float(avg_temp),
+                float(style_code),
+                float(yeast_code)
             ]
             
             X.append(features)
@@ -220,21 +246,10 @@ def train_models() -> Dict[str, Any]:
     }
 
 
-def predict_fg(og: float, velocity: float = 0.0, variance: float = 0.0, avg_temp: float = 20.0) -> Dict[str, Any]:
+def predict_fg(og: float, velocity: float = 0.0, variance: float = 0.0, avg_temp: float = 20.0, style: str = "Unknown", yeast: str = "Unknown") -> Dict[str, Any]:
     """
     Predict Final Gravity for a batch.
-    
-    Args:
-        og: Original Gravity (e.g., 1.055)
-        velocity: Current SG velocity (points/day)
-        variance: Temperature variance
-        avg_temp: Average fermentation temp in °C
-        
-    Returns:
-        Dict with predicted_fg, predicted_abv, confidence
     """
-
-    
     # Check if model exists
     if not os.path.exists(FG_MODEL_PATH):
         # Fallback to simple calculation (assuming 75% attenuation)
@@ -249,10 +264,23 @@ def predict_fg(og: float, velocity: float = 0.0, variance: float = 0.0, avg_temp
     
     try:
         model = joblib.load(FG_MODEL_PATH)
-        features = np.array([[og, velocity, variance, avg_temp]])
-        predicted_fg = model.predict(features)[0]
         
-        # Sanity bounds
+        # Consistent feature engineering
+        feat_dict = {"og": og, "avg_temp": avg_temp, "sg_velocity": velocity}
+        norm_feat = normalize_features(feat_dict)
+        style_code = encode_category(style, STYLE_MAPPING)
+        yeast_code = encode_category(yeast, YEAST_MAPPING)
+        
+        features = np.array([[
+            float(norm_feat.get("og_normalized", 0)),
+            float(norm_feat.get("velocity_normalized", 0)),
+            float(norm_feat.get("temp_normalized", 0)),
+            float(variance),
+            float(style_code),
+            float(yeast_code)
+        ]])
+        
+        predicted_fg = model.predict(features)[0]
         predicted_fg = max(0.990, min(predicted_fg, og - 0.005))
         
         return {
@@ -266,33 +294,13 @@ def predict_fg(og: float, velocity: float = 0.0, variance: float = 0.0, avg_temp
         return {"error": str(e)}
 
 
-def predict_time_to_fg(og: float, velocity: float = 0.0, variance: float = 0.0, avg_temp: float = 20.0, days_elapsed: float = 0) -> Dict[str, Any]:
+def predict_time_to_fg(og: float, velocity: float = 0.0, variance: float = 0.0, avg_temp: float = 20.0, days_elapsed: float = 0, style: str = "Unknown", yeast: str = "Unknown") -> Dict[str, Any]:
     """
     Predict days remaining until Final Gravity is reached.
-    
-    Args:
-        og: Original Gravity
-        velocity: Current SG velocity (points/day)
-        variance: Temperature variance
-        avg_temp: Average fermentation temp
-        days_elapsed: Days since pitch
-        
-    Returns:
-        Dict with days_remaining, estimated_completion
     """
-
-    
     if not os.path.exists(TIME_MODEL_PATH):
-        # Fallback: estimate based on velocity
-        if velocity > 0:
-            # Assuming typical target is 75% attenuation
-            predicted_fg = og - (0.75 * (og - 1.0))
-            points_to_go = (og - 1.0) * 1000 * 0.75 - (og - 1.0) * 1000 * (1 - (og - 1.0) / (og - 1.0)) # Needs better logic
-            # Simpler: assume 7 days total if no velocity
-            days_remaining = max(1, 7 - days_elapsed)
-        else:
-            days_remaining = 7
-            
+        # Fallback
+        days_remaining = max(1, 7 - days_elapsed)
         return {
             "days_remaining": round(float(days_remaining), 1),
             "method": "formula",
@@ -301,7 +309,22 @@ def predict_time_to_fg(og: float, velocity: float = 0.0, variance: float = 0.0, 
     
     try:
         model = joblib.load(TIME_MODEL_PATH)
-        features = np.array([[og, velocity, variance, avg_temp]])
+        
+        # Consistent feature engineering
+        feat_dict = {"og": og, "avg_temp": avg_temp, "sg_velocity": velocity}
+        norm_feat = normalize_features(feat_dict)
+        style_code = encode_category(style, STYLE_MAPPING)
+        yeast_code = encode_category(yeast, YEAST_MAPPING)
+        
+        features = np.array([[
+            float(norm_feat.get("og_normalized", 0)),
+            float(norm_feat.get("velocity_normalized", 0)),
+            float(norm_feat.get("temp_normalized", 0)),
+            float(variance),
+            float(style_code),
+            float(yeast_code)
+        ]])
+        
         total_days = model.predict(features)[0]
         days_remaining = max(0.5, total_days - days_elapsed)
         

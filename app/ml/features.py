@@ -13,13 +13,14 @@ from core.influx import query_api, INFLUX_BUCKET
 logger = logging.getLogger(__name__)
 
 
-def calculate_sg_velocity(sg_readings: List[float], timestamps: List[datetime]) -> float:
+def calculate_sg_velocity(sg_readings: List[float], timestamps: List[datetime], window_hours: int = 24) -> float:
     """
-    Calculate SG velocity (points dropped per day).
+    Calculate SG velocity (points dropped per day) over a sliding window.
     
     Args:
         sg_readings: List of SG values
         timestamps: Corresponding timestamps
+        window_hours: Window size in hours (default 24)
         
     Returns:
         Average points per day (positive = fermenting)
@@ -28,13 +29,25 @@ def calculate_sg_velocity(sg_readings: List[float], timestamps: List[datetime]) 
         return 0.0
     
     try:
-        # Calculate time span in days
-        time_span = (timestamps[-1] - timestamps[0]).total_seconds() / 86400.0
+        # Filter for data within the window
+        latest_time = timestamps[-1]
+        threshold_time = latest_time - timedelta(hours=window_hours)
+        
+        window_indices = [i for i, t in enumerate(timestamps) if t >= threshold_time]
+        
+        if len(window_indices) < 2:
+            # Fallback to the whole available range if window is too small
+            start_idx = 0
+            end_idx = len(sg_readings) - 1
+        else:
+            start_idx = window_indices[0]
+            end_idx = window_indices[-1]
+            
+        time_span = (timestamps[end_idx] - timestamps[start_idx]).total_seconds() / 86400.0
         if time_span <= 0:
             return 0.0
         
-        # Calculate SG drop in points (1 point = 0.001)
-        sg_drop = (sg_readings[0] - sg_readings[-1]) * 1000
+        sg_drop = (sg_readings[start_idx] - sg_readings[end_idx]) * 1000
         velocity = sg_drop / time_span
         
         return round(velocity, 2)

@@ -7,7 +7,7 @@
 
 set -euo pipefail
 
-LOG_FILE="/home/pi/Brew-Brain/brain_data/maintenance.log"
+LOG_FILE="$(dirname "$0")/../data/maintenance.log"
 TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
 
 echo "" >> "$LOG_FILE"

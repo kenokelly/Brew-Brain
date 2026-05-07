@@ -57,11 +57,14 @@ def predict_active_batch() -> Tuple[Response, int]:
         avg_temp = np.mean(data["temp_readings"]) if data["temp_readings"] else 20.0
         days_elapsed = calculate_time_in_phase(pitch_time, now)
         
-        prediction_fg = predict_fg(og, velocity, variance, avg_temp)
-        prediction_time = predict_time_to_fg(og, velocity, variance, avg_temp, days_elapsed)
+        style = config.get("style", "Unknown")
+        yeast = config.get("yeast_strain", "Unknown")
+        
+        prediction_fg = predict_fg(og, velocity, variance, avg_temp, style, yeast)
+        prediction_time = predict_time_to_fg(og, velocity, variance, avg_temp, days_elapsed, style, yeast)
         
         return api_response(data={
-            "batch_metadata": {"og": og, "days_elapsed": days_elapsed, "data_points": data["data_points"]},
+            "batch_metadata": {"og": og, "days_elapsed": days_elapsed, "data_points": data["data_points"], "style": style, "yeast": yeast},
             "features": {"velocity": velocity, "temp_variance": variance, "avg_temp": round(float(avg_temp), 1)},
             "prediction_fg": prediction_fg,
             "prediction_time": prediction_time

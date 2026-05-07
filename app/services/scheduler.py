@@ -36,9 +36,6 @@ scheduler = BackgroundScheduler(
 def init_scheduler(app):
     """Initialize and start the scheduler with default jobs."""
     scheduler.app = app # Attach app for context usage elsewhere
-    # Import the run-once versions of the tasks
-    from services.worker import process_data_once, check_alerts_once
-    from services.telegram import telegram_poll_once
     from services.status import get_status_dict
     from extensions import socketio
 
@@ -55,7 +52,7 @@ def init_scheduler(app):
 
 
     # Add recurring jobs
-    # Real-time Status Emit (Every 5s)
+    # Real-time Status Emit (Every 5s) - Kept in APScheduler for low latency
     scheduler.add_job(
         emit_status_update,
         'interval',
@@ -65,155 +62,12 @@ def init_scheduler(app):
         replace_existing=True
     )
     
-    # Data processing every 60 seconds (matches the sleep in the original loop)
-    scheduler.add_job(
-        process_data_once,
-        'interval',
-        seconds=60,
-        id='process_data',
-        name='Process Sensor Data',
-        replace_existing=True
-    )
-    
-    # Alert checking every 300 seconds (5 min, matches original)
-    scheduler.add_job(
-        check_alerts_once,
-        'interval',
-        seconds=300,
-        id='check_alerts',
-        name='Check Fermentation Alerts',
-        replace_existing=True
-    )
-    
-    # Telegram polling every 35 seconds (long poll timeout + buffer)
-    scheduler.add_job(
-        telegram_poll_once,
-        'interval',
-        seconds=35,
-        id='telegram_poller',
-        name='Telegram Poller',
-        replace_existing=True
-    )
-    
-    # Anomaly detection every 5 minutes
-    from app.services.anomaly import run_all_anomaly_checks
-    from app.core.config import get_config
-    
-    def anomaly_check_job():
-        """Run anomaly detection with current batch name."""
-        try:
-            batch_name = get_config("batch_name") or "Current Batch"
-            result = run_all_anomaly_checks(batch_name)
-            if result.get("alerts_sent", 0) > 0:
-                logger.warning(f"Anomaly detection sent {result['alerts_sent']} alerts")
-        except Exception as e:
-            logger.error(f"Anomaly check error: {e}")
-    
-    # Real-time TiltPi Polling (Every 15s)
-    from services.tilt_monitor import poll_tilt_api
-    scheduler.add_job(
-        poll_tilt_api,
-        'interval',
-        seconds=15,
-        id='poll_tilt',
-        name='Real-time Tilt Monitoring',
-        replace_existing=True
-    )
-    
-    # Weekly external recipe ingestion (Sunday 03:00)
-    from ml.scraper import ingest_all_sources
-
-    def recipe_ingest_job():
-        """Ingest public BeerXML recipes into the external recipe DB."""
-        try:
-            result = ingest_all_sources()
-            logger.info(f"Recipe ingestion: {result['total_inserted']} new, {result['db_total']} total")
-        except Exception as e:
-            logger.error(f"Recipe ingestion error: {e}")
-
-    scheduler.add_job(
-        recipe_ingest_job,
-        'cron',
-        day_of_week='sun',
-        hour=3,
-        minute=0,
-        id='recipe_ingest',
-        name='Weekly Recipe Ingestion',
-        replace_existing=True
-    )
-
-    # Daily Telemetry Report (Weekdays 08:30, Weekends 11:00)
-    from services.telemetry import send_daily_board_report
-    
-    scheduler.add_job(
-        send_daily_board_report,
-        'cron',
-        day_of_week='mon,tue,wed,thu,fri',
-        hour=8,
-        minute=30,
-        id='daily_report_weekday',
-        name='Daily Board Report (Weekday)',
-        replace_existing=True
-    )
-    
-    scheduler.add_job(
-        send_daily_board_report,
-        'cron',
-        day_of_week='sat,sun',
-        hour=11,
-        minute=0,
-        id='daily_report_weekend',
-        name='Daily Board Report (Weekend)',
-        replace_existing=True
-    )
-
-    # Weekly maintenance summary (Monday 08:00)
-    def maintenance_summary_job():
-        """Send weekly system health summary via Telegram."""
-        try:
-            from services.status import get_maintenance_summary
-            from services.notifications import send_telegram_message
-
-            summary = get_maintenance_summary()
-            disk = summary.get("disk", {})
-            data_vol = summary.get("data_volume", {})
-            pi_temp = summary.get("pi_temp", 0.0)
-
-            msg = (
-                "📊 *Brew Brain Weekly Maintenance*\n\n"
-                f"💾 *Root Disk:* {disk.get('used_percent', '?')}% used "
-                f"({disk.get('free_gb', '?')} GB free)\n"
-                f"📂 *Data Volume:* {data_vol.get('used_percent', '?')}% used "
-                f"({data_vol.get('free_gb', '?')} GB free)\n"
-                f"🌡️ *Pi Temp:* {pi_temp}°C\n"
-            )
-
-            if disk.get("warning"):
-                msg += "\n⚠️ *DISK WARNING:* Usage above 80%!"
-
-            send_telegram_message(msg, force=True)
-            logger.info("Weekly maintenance summary sent")
-        except Exception as e:
-            logger.error(f"Maintenance summary error: {e}")
-
-    scheduler.add_job(
-        maintenance_summary_job,
-        'cron',
-        day_of_week='mon',
-        hour=8,
-        minute=0,
-        id='maintenance_summary',
-        name='Weekly Maintenance Summary',
-        replace_existing=True
-    )
+    # Other periodic tasks (Processing, Alerts, ML, Reports) 
+    # have been migrated to Celery Beat in extensions.py
     
     # Start the scheduler
     scheduler.start()
-    logger.info("APScheduler started with %d jobs", len(scheduler.get_jobs()))
-    
-    # Log registered jobs
-    for job in scheduler.get_jobs():
-        logger.info(f"  - {job.name} ({job.id}): {job.trigger}")
+    logger.info("APScheduler started with status emission job")
 
 
 def get_scheduler():

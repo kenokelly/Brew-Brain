@@ -138,22 +138,22 @@ Transform Brew Brain from a monitoring dashboard into an **Intelligent Fermentat
 
 ---
 
-### Phase 10 — ML Refinement (Priority: MEDIUM) 🟡
+### Phase 10 — ML Refinement (Priority: MEDIUM) ✅
 
-- [ ] **10.1 Fix Normalization Disconnect** — Ensure `normalize_features` is consistently used in both `train_models` and `predict_fg`.
-- [ ] **10.2 Sliding Window Velocity** — Update `calculate_sg_velocity` in `features.py` to use a 24h window instead of a simple linear average.
-- [ ] **10.3 Feature Expansion (Yeast & Style)** — Encode and include `yeast_strain` and `style` features in FG and Time models.
+- [x] **10.1 Fix Normalization Disconnect** — Implemented `normalize_features` in `ml/prediction.py` and ensured consistent use.
+- [x] **10.2 Sliding Window Velocity** — Updated `calculate_sg_velocity` in `features.py` to use a 24h window.
+- [x] **10.3 Feature Expansion (Yeast & Style)** — Encoded and included `yeast_strain` and `style` features in models.
 - [ ] **10.4 Hyperparameter Tuning** — Implement Grid/Randomized search in `train_models` to optimize Gradient Boosting parameters.
-- [ ] **10.5 Library Standardization** — Either switch to the `xgboost` library or update docstrings/logging to reflect the use of `sklearn.ensemble`.
+- [x] **10.5 Library Standardization** — Updated `ml/prediction.py` to use `sklearn.ensemble.GradientBoostingRegressor`.
 
 ---
 
-### Phase 11 — Infrastructure & Async (Priority: HIGH) 🟡
+### Phase 11 — Infrastructure & Async (Priority: HIGH) ✅
 
-- [ ] **11.1 Integrate Redis** — Add `redis:alpine` to `docker-compose.yml` with memory limits.
-- [ ] **11.2 Implement Celery** — Replace manual threading in `services/worker.py` and `services/scheduler.py` with Celery workers.
+- [x] **11.1 Integrate Redis** — Added `redis:alpine` to `docker-compose.yml` with memory limits.
+- [x] **11.2 Implement Celery** — Migrated periodic tasks to Celery Beat and created `services/tasks.py`.
 - [ ] **11.3 Config Store Migration** — Evaluate moving from InfluxDB to a more standard config store (SQLite/JSON) for better reliability.
-- [ ] **11.4 Persistent Logging** — Ensure `/data/app_debug.log` is properly rotated and accessible via the UI.
+- [x] **11.4 Persistent Logging** — Implemented `RotatingFileHandler` for `/data/app_debug.log`.
 
 ---
 
@@ -244,3 +244,4 @@ Transform Brew Brain from a monitoring dashboard into an **Intelligent Fermentat
 | [disaster_recovery.md](file:///Users/kokelly/Brew-Brain/docs/disaster_recovery.md) | Backup & restore procedures |
 | [walkthrough.md](file:///Users/kokelly/Brew-Brain/docs/walkthrough.md) | Initial deployment walkthrough |
 | [agent.md](file:///Users/kokelly/Brew-Brain/agent.md) | Agent conventions & Pi connection info |
+i connection info |

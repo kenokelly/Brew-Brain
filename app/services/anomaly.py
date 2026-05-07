@@ -207,9 +207,9 @@ def check_stalled_fermentation(batch_name: str = "Current Batch") -> Dict[str, A
 
 
 def check_temperature_deviation(
-    target_temp_f: Optional[float] = None,
-    yeast_min_f: Optional[float] = None,
-    yeast_max_f: Optional[float] = None,
+    target_temp: Optional[float] = None,
+    yeast_min: Optional[float] = None,
+    yeast_max: Optional[float] = None,
     batch_name: str = "Current Batch"
 ) -> Dict[str, Any]:
     """
@@ -218,11 +218,18 @@ def check_temperature_deviation(
     """
     try:
         # Get target from config if not provided
-        if target_temp_f is None:
+        if target_temp is None:
             # Try to get from yeast metadata in config
-            yeast_min_f = yeast_min_f or float(get_config("yeast_min_temp") or 60)
-            yeast_max_f = yeast_max_f or float(get_config("yeast_max_temp") or 75)
-            target_temp_f = (yeast_min_f + yeast_max_f) / 2
+            yeast_min = yeast_min or float(get_config("yeast_min_temp") or 60)
+            yeast_max = yeast_max or float(get_config("yeast_max_temp") or 75)
+            # If yeast_min/max > 40, they are likely Fahrenheit
+            if yeast_min > 40:
+                yeast_min_c = (yeast_min - 32) * 5/9
+                yeast_max_c = (yeast_max - 32) * 5/9
+            else:
+                yeast_min_c = yeast_min
+                yeast_max_c = yeast_max
+            target_temp = (yeast_min_c + yeast_max_c) / 2
         
         # Query last 30 minutes of temperature
         query = f'''
@@ -244,7 +251,7 @@ def check_temperature_deviation(
             return {"status": "no_data"}
         
         # Check deviation
-        deviation = avg_temp - target_temp_f
+        deviation = avg_temp - target_temp
         
         if abs(deviation) > TEMP_DEVIATION_C:
             direction = "HIGH" if deviation > 0 else "LOW"
@@ -253,7 +260,7 @@ def check_temperature_deviation(
             alert_msg = (
                 f"{emoji} *TEMP DEVIATION: {batch_name}*\n\n"
                 f"Current Temp: {avg_temp:.1f}°C\n"
-                f"Target: {target_temp_f:.1f}°C (±{TEMP_DEVIATION_C}°C)\n"
+                f"Target: {target_temp:.1f}°C (±{TEMP_DEVIATION_C}°C)\n"
                 f"Deviation: {abs(deviation):.1f}°C {direction}\n\n"
                 f"*Action:* Check glycol chiller / heating wrap"
             )
@@ -263,14 +270,14 @@ def check_temperature_deviation(
                 "status": "deviation",
                 "alert_sent": True,
                 "current_temp": round(avg_temp, 1),
-                "target_temp": round(target_temp_f, 1),
+                "target_temp": round(target_temp, 1),
                 "deviation": round(deviation, 1)
             }
         
         return {
             "status": "normal",
             "current_temp": round(avg_temp, 1),
-            "target_temp": round(target_temp_f, 1),
+            "target_temp": round(target_temp, 1),
             "deviation": round(deviation, 1)
         }
         

@@ -130,7 +130,7 @@ services:
   celery-worker:
     build: ./app
     container_name: celery-worker
-    command: celery -A app.extensions.celery worker --loglevel=info
+    command: celery -A extensions.celery worker --loglevel=info
     working_dir: /app
     restart: unless-stopped
     environment:
@@ -140,7 +140,29 @@ services:
       - INFLUX_BUCKET=fermentation
       - REDIS_URL=redis://redis:6379/0
       - BREW_BRAIN_DATA=/data
-      - PYTHONPATH=/
+      - PYTHONPATH=/app
+    volumes:
+      - ./brain_data:/data
+    networks:
+      - brewery-net
+    depends_on:
+      - redis
+      - influxdb
+
+  celery-beat:
+    build: ./app
+    container_name: celery-beat
+    command: celery -A extensions.celery beat --loglevel=info
+    working_dir: /app
+    restart: unless-stopped
+    environment:
+      - INFLUX_URL=http://influxdb:8086
+      - INFLUX_TOKEN=${INFLUX_TOKEN}
+      - INFLUX_ORG=homebrew
+      - INFLUX_BUCKET=fermentation
+      - REDIS_URL=redis://redis:6379/0
+      - BREW_BRAIN_DATA=/data
+      - PYTHONPATH=/app
     volumes:
       - ./brain_data:/data
     networks:
