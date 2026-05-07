@@ -467,7 +467,7 @@ def _get_external_comparison(recipe: dict, style: str) -> dict:
         logger.warning(f"External peer comparison unavailable: {e}")
         return {"error": str(e)}
 
-def check_batch_health(current_sg, original_gravity, yeast_name, days_in, temp=None, style=None, batch_name="Batch", current_stability=None):
+def check_batch_health(current_sg, original_gravity, yeast_name, days_in, current_stability=None, style=None, batch_name="Batch", temp=None):
     """
     Checks if current fermentation is tracking with historical average.
     Triggers Telegram alert if deviation > 10%.
@@ -498,23 +498,6 @@ def check_batch_health(current_sg, original_gravity, yeast_name, days_in, temp=N
     
     # 2. Calculate Current Attenuation
     # Att = (OG - Current) / (OG - 1)
-    # Also Check Current Temp Stability if provided (passed as list of last N temps ideally, or pre-calc)
-    # For now, we only have 'temp' (current scalar). We can't calc stability from single point.
-    # However, if 'current_sg' represents the LATEST reading, we assume 'temp' is LATEST.
-    # To check stability here, we'd need the FULL log or the variance passed in 'data'.
-    # Updated: Let's assume 'temp' passed to this function is just scalar current temp.
-    # Health Check for Temp Stability requires the LOG analysis endpoint generally.
-    # BUT, if the user manually passes a 'stability' metric (e.g. from the frontend chart analysis), we use it.
-    
-    # Let's check if 'temp' is actually a stability metric or scalar? user said "analyze Tilt Logs"
-    # To keep this "live" check simple without re-uploading full CSV every 15 mins:
-    # We'll rely on the alerting system to assume the 'monitoring' client calculates and sends 'stability'.
-    # If not present, we skip.
-    
-    current_stability = 0.5 # Default 'good'
-    # Hack: Using 'temp' arg as is, but if we want stability we need a new arg.
-    # Let's add 'current_stability' to args in next iteration if needed.
-    # For now, let's just use the attenuation checks which are robust.
     
     try:
         current_sg = float(current_sg)
