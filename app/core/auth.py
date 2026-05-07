@@ -24,7 +24,6 @@ def require_api_token(f):
     Flask decorator that enforces API token authentication.
     The token can be passed via:
     1. HTTP Header: 'Authorization: Bearer <token>'
-    2. Query Parameter: '?token=<token>'
     """
     @wraps(f)
     def decorated(*args, **kwargs):
@@ -35,11 +34,7 @@ def require_api_token(f):
         if auth_header and auth_header.startswith('Bearer '):
             supplied_token = auth_header.split(' ')[1]
             
-        # 2. Check Query String Token (useful for simple web UI initial integrations)
-        if not supplied_token:
-            supplied_token = request.args.get('token')
-            
-        # 3. Validate
+        # 2. Validate
         if not supplied_token or supplied_token != API_TOKEN:
             logger.warning(f"Unauthorized API access attempt from {request.remote_addr} to {request.path}")
             return jsonify({"status": "error", "message": "Unauthorized: Invalid or missing API token."}), 401
