@@ -3,7 +3,7 @@ import time
 from influxdb_client import InfluxDBClient
 
 url = os.environ.get("INFLUX_URL", "http://influxdb:8086")
-token = os.environ.get("INFLUX_TOKEN", "my-super-secret-auth-token")
+token = os.environ.get("INFLUX_TOKEN")
 org = os.environ.get("INFLUX_ORG", "homebrew")
 bucket = os.environ.get("INFLUX_BUCKET", "fermentation")
 
