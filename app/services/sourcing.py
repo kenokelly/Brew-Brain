@@ -1,5 +1,4 @@
 import logging
-import requests
 import json
 import difflib
 import math
