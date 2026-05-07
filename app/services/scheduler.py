@@ -33,34 +33,39 @@ scheduler = BackgroundScheduler(
 )
 
 
-def init_scheduler(app):
-    """Initialize and start the scheduler with default jobs."""
-    scheduler.app = app # Attach app for context usage elsewhere
+def _emit_status_update():
+    """Fetch and broadcast system status via WebSocket."""
     from services.status import get_status_dict
     from extensions import socketio
-
-    def emit_status_update():
-        """Fetch and broadcast system status via WebSocket."""
-        try:
-            status = get_status_dict()
-            # Use global socketio instance directly
-            socketio.emit('status_update', status)
-        except Exception as e:
-            # Silence this error during early startup as it's expected until server is fully ready
-            if "NoneType" not in str(e):
-                logger.error(f"WebSocket Emit Error: {e}")
+    try:
+        status = get_status_dict()
+        # Use global socketio instance directly
+        socketio.emit('status_update', status)
+    except Exception as e:
+        # Silence this error during early startup as it's expected until server is fully ready
+        if "NoneType" not in str(e):
+            logger.error(f"WebSocket Emit Error: {e}")
 
 
-    # Add recurring jobs
+def register_status_jobs(scheduler_instance):
+    """Register jobs related to system status."""
     # Real-time Status Emit (Every 5s) - Kept in APScheduler for low latency
-    scheduler.add_job(
-        emit_status_update,
+    scheduler_instance.add_job(
+        _emit_status_update,
         'interval',
         seconds=5,
         id='emit_status',
         name='Real-time Status',
         replace_existing=True
     )
+
+
+def init_scheduler(app):
+    """Initialize and start the scheduler with default jobs."""
+    scheduler.app = app # Attach app for context usage elsewhere
+
+    # Register different job types
+    register_status_jobs(scheduler)
     
     # Other periodic tasks (Processing, Alerts, ML, Reports) 
     # have been migrated to Celery Beat in extensions.py
