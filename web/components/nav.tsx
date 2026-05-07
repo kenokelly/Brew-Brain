@@ -83,9 +83,15 @@ export function NavBar() {
 
             {/* Mobile Header */}
             <header className="md:hidden fixed top-0 left-0 right-0 h-[calc(4rem+env(safe-area-inset-top))] bg-card/80 backdrop-blur-md border-b border-border/50 z-50 px-4 pt-safe flex items-center justify-between">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
                     <Beer className="w-6 h-6 text-primary" />
-                    <span className="font-bold text-lg">Brew Brain</span>
+                    <div className="flex flex-col">
+                        <span className="font-bold text-lg leading-none">Brew Brain</span>
+                        <div className="flex items-center gap-1.5 mt-1">
+                            <div className={cn("w-1.5 h-1.5 rounded-full animate-pulse", statusColor)} />
+                            <span className="text-[10px] text-muted-foreground uppercase tracking-tight font-semibold">Live</span>
+                        </div>
+                    </div>
                 </div>
                 <button
                     onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -118,8 +124,8 @@ export function NavBar() {
                 </div>
             )}
             {/* Mobile Bottom Navigation (New) */}
-            <nav className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-card/90 backdrop-blur-lg border-t border-border/50 z-50 pb-safe">
-                <div className="flex justify-around items-center h-full">
+            <nav className="md:hidden fixed bottom-0 left-0 right-0 h-[calc(4rem+env(safe-area-inset-bottom))] bg-card/90 backdrop-blur-lg border-t border-border/50 z-50 pb-safe">
+                <div className="flex justify-around items-center h-16">
                     <Link href="/" className={cn("flex items-center justify-center w-full h-full gap-1 flex-col focus-visible:ring-2 focus-visible:ring-primary outline-none", pathname === '/' ? "text-primary" : "text-muted-foreground")}>
                         <LayoutDashboard className="w-5 h-5" />
                         <span className="text-[10px] font-medium">Dashboard</span>
@@ -144,7 +150,7 @@ export function NavBar() {
 
 export function PageContainer({ children }: { children: React.ReactNode }) {
     return (
-        <div className="md:pl-20 lg:pl-64 min-h-screen pt-16 md:pt-0 pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-0">
+        <div className="md:pl-20 lg:pl-64 min-h-screen pt-[calc(4rem+env(safe-area-inset-top))] md:pt-0 pb-[calc(4rem+env(safe-area-inset-bottom)+env(safe-area-inset-bottom))] md:pb-0">
             {children}
         </div>
     );
