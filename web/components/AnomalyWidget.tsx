@@ -70,6 +70,17 @@ export function AnomalyWidget({ className }: AnomalyWidgetProps) {
         return () => clearInterval(interval);
     }, []);
 
+    // Escape key support for expanded view
+    useEffect(() => {
+        const handleEsc = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') setIsExpanded(false);
+        };
+        if (isExpanded) {
+            window.addEventListener('keydown', handleEsc);
+        }
+        return () => window.removeEventListener('keydown', handleEsc);
+    }, [isExpanded]);
+
     // Listen for real-time anomaly alerts via WebSocket
     useEffect(() => {
         if (!socket) return;
@@ -122,9 +133,18 @@ export function AnomalyWidget({ className }: AnomalyWidgetProps) {
             {/* Widget Card */}
             <div
                 onClick={() => setIsExpanded(true)}
+                onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        setIsExpanded(true);
+                    }
+                }}
+                role="button"
+                tabIndex={0}
+                aria-label={`Anomaly Status: ${config.label}. Click for details.`}
                 className={cn(
                     "group relative overflow-hidden rounded-2xl p-6 shadow-md border transition-all duration-300 cursor-pointer",
-                    "hover:shadow-lg hover:-translate-y-1",
+                    "hover:shadow-lg hover:-translate-y-1 focus-visible:ring-2 focus-visible:ring-primary outline-none",
                     config.bg,
                     config.border,
                     className
@@ -163,13 +183,17 @@ export function AnomalyWidget({ className }: AnomalyWidgetProps) {
                 <div
                     className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
                     onClick={() => setIsExpanded(false)}
+                    role="presentation"
                 >
                     <div
                         className="bg-card rounded-3xl p-6 max-w-lg w-full mx-4 shadow-2xl border border-border/50"
                         onClick={e => e.stopPropagation()}
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="anomaly-title"
                     >
                         <div className="flex items-center justify-between mb-6">
-                            <h2 className="text-xl font-bold">Anomaly Detection</h2>
+                            <h2 id="anomaly-title" className="text-xl font-bold">Anomaly Detection</h2>
                             <button
                                 onClick={() => setIsExpanded(false)}
                                 className="p-2 rounded-full hover:bg-secondary focus-visible:ring-2 focus-visible:ring-primary outline-none transition-colors"

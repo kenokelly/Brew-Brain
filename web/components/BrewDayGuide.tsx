@@ -138,7 +138,7 @@ function TabButton({ active, onClick, label }: { active: boolean, onClick: () =>
         <button
             onClick={onClick}
             className={cn(
-                "flex-1 py-4 text-xs font-bold uppercase tracking-widest transition-all relative",
+                "flex-1 py-4 text-xs font-bold uppercase tracking-widest transition-all relative focus-visible:ring-2 focus-visible:ring-primary outline-none",
                 active ? "text-primary" : "text-zinc-500 hover:text-zinc-300"
             )}
         >

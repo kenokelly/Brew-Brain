@@ -59,7 +59,7 @@ export function NavBar() {
                                 key={item.href}
                                 href={item.href}
                                 className={cn(
-                                    "flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 group relative overflow-hidden",
+                                    "flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 group relative overflow-hidden focus-visible:ring-2 focus-visible:ring-primary outline-none",
                                     active
                                         ? "bg-primary/10 text-primary font-medium shadow-sm"
                                         : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
@@ -105,7 +105,7 @@ export function NavBar() {
                             href={item.href}
                             onClick={() => setMobileMenuOpen(false)}
                             className={cn(
-                                "flex items-center gap-4 p-4 rounded-2xl text-lg font-medium border border-transparent",
+                                "flex items-center gap-4 p-4 rounded-2xl text-lg font-medium border border-transparent focus-visible:ring-2 focus-visible:ring-primary outline-none",
                                 pathname === item.href
                                     ? "bg-primary/10 text-primary border-primary/20"
                                     : "bg-secondary/30 text-foreground"
@@ -120,19 +120,19 @@ export function NavBar() {
             {/* Mobile Bottom Navigation (New) */}
             <nav className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-card/90 backdrop-blur-lg border-t border-border/50 z-50 pb-safe">
                 <div className="flex justify-around items-center h-full">
-                    <Link href="/" className={cn("flex flex-col items-center justify-center w-full h-full gap-1", pathname === '/' ? "text-primary" : "text-muted-foreground")}>
+                    <Link href="/" className={cn("flex items-center justify-center w-full h-full gap-1 flex-col focus-visible:ring-2 focus-visible:ring-primary outline-none", pathname === '/' ? "text-primary" : "text-muted-foreground")}>
                         <LayoutDashboard className="w-5 h-5" />
                         <span className="text-[10px] font-medium">Dashboard</span>
                     </Link>
-                    <Link href="/taplist" className={cn("flex flex-col items-center justify-center w-full h-full gap-1", pathname === '/taplist' ? "text-primary" : "text-muted-foreground")}>
+                    <Link href="/taplist" className={cn("flex items-center justify-center w-full h-full gap-1 flex-col focus-visible:ring-2 focus-visible:ring-primary outline-none", pathname === '/taplist' ? "text-primary" : "text-muted-foreground")}>
                         <Beer className="w-5 h-5" />
                         <span className="text-[10px] font-medium">Taps</span>
                     </Link>
-                    <Link href="/settings" className={cn("flex flex-col items-center justify-center w-full h-full gap-1", pathname === '/settings' ? "text-primary" : "text-muted-foreground")}>
+                    <Link href="/settings" className={cn("flex items-center justify-center w-full h-full gap-1 flex-col focus-visible:ring-2 focus-visible:ring-primary outline-none", pathname === '/settings' ? "text-primary" : "text-muted-foreground")}>
                         <Menu className="w-5 h-5" />
                         <span className="text-[10px] font-medium">Settings</span>
                     </Link>
-                    <Link href="/kiosk" className={cn("flex flex-col items-center justify-center w-full h-full gap-1", pathname === '/kiosk' ? "text-primary" : "text-muted-foreground")}>
+                    <Link href="/kiosk" className={cn("flex items-center justify-center w-full h-full gap-1 flex-col focus-visible:ring-2 focus-visible:ring-primary outline-none", pathname === '/kiosk' ? "text-primary" : "text-muted-foreground")}>
                         <Monitor className="w-5 h-5" />
                         <span className="text-[10px] font-medium">Kiosk</span>
                     </Link>
