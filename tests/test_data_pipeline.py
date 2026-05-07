@@ -181,5 +181,20 @@ class TestDataPipeline(unittest.TestCase):
             mock_write_table.assert_called_once()
 
 
+
+    @patch('app.services.batch_exporter.os.listdir')
+    @patch('app.services.batch_exporter.os.makedirs')
+    def test_aggregate_training_data_empty(self, mock_makedirs, mock_listdir):
+        from app.services.batch_exporter import aggregate_training_data
+
+        # Mock listdir to return empty list
+        mock_listdir.return_value = []
+
+        result = aggregate_training_data()
+
+        self.assertEqual(result["status"], "error")
+        self.assertEqual(result["error"], "No batch exports found. Export batches first.")
+        mock_makedirs.assert_called_once()
+
 if __name__ == '__main__':
     unittest.main()
