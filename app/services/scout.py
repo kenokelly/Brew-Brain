@@ -86,74 +86,50 @@ def search_recipes(query):
         logger.error(f"Recipe Search Error: {e}")
         return [{"title": "Search Error", "link": "#", "snippet": str(e)}]
 
-def analyze_xml_recipes(query):
-    """
-    Searches for BeerXML recipes and analyzes them against G40 specs.
-    Calculates Brewer's Percentages and Est. Final pH.
-    """
-    import requests
-    from services.calculator import validate_equipment
+def _calc_breakdown_and_ph(ingredients, style_type="ale"):
+    total_g = sum(i['amount'] for i in ingredients)
+    base_ph = 4.45 # Standard finished beer pH
     
-    # Mocking for demo purposes
-    # Ideally this parses real XMLs found via Google Search
+    # pH Modifiers
+    if "roast" in str(ingredients).lower() or "chocolate" in str(ingredients).lower():
+        base_ph -= 0.15
+    if style_type == "neipa" or "citra" in str(ingredients).lower(): # Heavy hop buffering
+        base_ph += 0.1
+    if "sour" in  style_type or "acid" in str(ingredients).lower():
+        base_ph = 3.5
+        
+    breakdown = []
+    for i in ingredients:
+        pct = (i['amount'] / total_g) * 100
+        breakdown.append(f"{round(pct)}% {i['name']}")
+
+    return breakdown, round(base_ph, 2)
+
+
+def _get_style_wisdom(name, ingredients):
+    n = name.lower()
+    i = str(ingredients).lower()
     
+    if "neipa" in n or "hazy" in n or "juicy" in n:
+        return {"style": "NEIPA", "ph_range": "4.4-4.6", "desc": "Soft/Juicy Finish"}
+    elif "stout" in n or "porter" in n:
+         return {"style": "Stout", "ph_range": "4.1-4.3", "desc": "Acidic Cut for Roast"}
+    elif "sour" in n or "gose" in n or "berliner" in n:
+         return {"style": "Sour", "ph_range": "3.2-3.4", "desc": "Tart/Acidic"}
+    elif "lager" in n or "pilsner" in n:
+         return {"style": "Lager", "ph_range": "4.2-4.4", "desc": "Crisp Finish"}
+    else:
+         return {"style": "Ale", "ph_range": "4.3-4.5", "desc": "Standard Balance"}
+
+
+def _parse_recipe_notes_for_ph(name):
+    if "julius" in name.lower():
+        return 4.55 # Julius typically finishes high
+    return None
+
+
+def _generate_mock_recipes(query):
     mock_recipes = []
-    
-    # helper
-    def calc_breakdown_and_ph(ingredients, style_type="ale"):
-        total_g = sum(i['amount'] for i in ingredients)
-        base_ph = 4.45 # Standard finished beer pH
-        
-        # pH Modifiers
-        if "roast" in str(ingredients).lower() or "chocolate" in str(ingredients).lower():
-            base_ph -= 0.15
-        if style_type == "neipa" or "citra" in str(ingredients).lower(): # Heavy hop buffering
-            base_ph += 0.1
-        if "sour" in  style_type or "acid" in str(ingredients).lower():
-            base_ph = 3.5
-            
-        breakdown = []
-        for i in ingredients:
-            pct = (i['amount'] / total_g) * 100
-            breakdown.append(f"{round(pct)}% {i['name']}")
-            
-        return breakdown, round(base_ph, 2)
-
-
-        
-    consensus = {
-        "count": len(mock_recipes),
-        "recipes": []
-    }
-    
-    for r in mock_recipes:
-        hw = validate_equipment(r['batch_size_l'], r['total_grain_kg'])
-        r['hardware_valid'] = hw['valid']
-        r['hardware_warnings'] = hw['warnings']
-        consensus['recipes'].append(r)
-        
-    # helper
-    def get_style_wisdom(name, ingredients):
-        n = name.lower()
-        i = str(ingredients).lower()
-        
-        if "neipa" in n or "hazy" in n or "juicy" in n:
-            return {"style": "NEIPA", "ph_range": "4.4-4.6", "desc": "Soft/Juicy Finish"}
-        elif "stout" in n or "porter" in n:
-             return {"style": "Stout", "ph_range": "4.1-4.3", "desc": "Acidic Cut for Roast"}
-        elif "sour" in n or "gose" in n or "berliner" in n:
-             return {"style": "Sour", "ph_range": "3.2-3.4", "desc": "Tart/Acidic"}
-        elif "lager" in n or "pilsner" in n:
-             return {"style": "Lager", "ph_range": "4.2-4.4", "desc": "Crisp Finish"}
-        else:
-             return {"style": "Ale", "ph_range": "4.3-4.5", "desc": "Standard Balance"}
-             
-    # Helper to 'parse' notes (Mocking the finding)
-    def parse_recipe_notes_for_ph(name):
-        if "julius" in name.lower():
-            return 4.55 # Julius typically finishes high
-        return None
-
     if "julius" in query.lower():
         # High Adjunct, Heavy Hop
         grains = [
@@ -161,9 +137,9 @@ def analyze_xml_recipes(query):
             {"name": "Flaked Oats", "amount": 1.5},
             {"name": "Honey Malt", "amount": 1.0}
         ]
-        breakdown, ph = calc_breakdown_and_ph(grains, "neipa")
-        wisdom = get_style_wisdom("NEIPA", grains)
-        target = parse_recipe_notes_for_ph("julius")
+        breakdown, ph = _calc_breakdown_and_ph(grains, "neipa")
+        wisdom = _get_style_wisdom("NEIPA", grains)
+        target = _parse_recipe_notes_for_ph("julius")
         
         mock_recipes.append({
             "name": "Treehouse Julius Clone_V2",
@@ -185,8 +161,8 @@ def analyze_xml_recipes(query):
             {"name": "Maris Otter", "amount": 4.5},
             {"name": "Crystal 60", "amount": 0.5}
         ]
-        breakdown, ph = calc_breakdown_and_ph(grains, "ale")
-        wisdom = get_style_wisdom("Ale", grains)
+        breakdown, ph = _calc_breakdown_and_ph(grains, "ale")
+        wisdom = _get_style_wisdom("Ale", grains)
         
         mock_recipes.append({
             "name": f"{query.title()} Standard",
@@ -202,9 +178,14 @@ def analyze_xml_recipes(query):
             "target_ph": None, # No explicit target in this mock
             "wisdom": wisdom
         })
-        
+    return mock_recipes
+
+
+def _aggregate_recipe_stats(recipes, query):
+    from services.calculator import validate_equipment
+
     consensus = {
-        "count": len(mock_recipes),
+        "count": len(recipes),
         "recipes": [],
         "avg_og": 0,
         "avg_ibu": 0,
@@ -217,7 +198,7 @@ def analyze_xml_recipes(query):
     total_og, total_ibu, total_abv = 0, 0, 0
     all_hops, all_malts = [], []
 
-    for r in mock_recipes:
+    for r in recipes:
         hw = validate_equipment(r['batch_size_l'], r['total_grain_kg'])
         r['hardware_valid'] = hw['valid']
         r['hardware_warnings'] = hw['warnings']
@@ -246,5 +227,19 @@ def analyze_xml_recipes(query):
         consensus['common_malts'] = dict(Counter(all_malts).most_common(5))
         # Adding dummy dry hops for now
         consensus['common_dry_hops'] = {"Citra": 2, "Mosaic": 1} if "neipa" in query.lower() else {}
+
+    return consensus
+
+
+def analyze_xml_recipes(query):
+    """
+    Searches for BeerXML recipes and analyzes them against G40 specs.
+    Calculates Brewer's Percentages and Est. Final pH.
+    """
+    # Mocking for demo purposes
+    # Ideally this parses real XMLs found via Google Search
+
+    mock_recipes = _generate_mock_recipes(query)
+    consensus = _aggregate_recipe_stats(mock_recipes, query)
 
     return consensus
