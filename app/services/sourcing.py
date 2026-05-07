@@ -608,7 +608,7 @@ def compare_recipe_prices(recipe_details, recipe_tag=None, debug_mode=False):
              names_to_try.append(normalized_name)
         
         def get_cached_or_fetch(vendor, names):
-            for try_name in names:
+            def fetch_one(try_name):
                 cache_key = f"{vendor}_{try_name}"
                 with _ingredient_cache_lock:
                     cached = _ingredient_cache.get(cache_key)
@@ -620,14 +620,24 @@ def compare_recipe_prices(recipe_details, recipe_tag=None, debug_mode=False):
                     with _ingredient_cache_lock:
                         _ingredient_cache[cache_key] = {"data": res, "ts": std_time.time()}
                     return res
+                return None
+
+            with ThreadPoolExecutor(max_workers=len(names) or 1) as search_executor:
+                results = list(search_executor.map(fetch_one, names))
+            for res in results:
+                if res:
+                    return res
             return None
 
         # --- SEARCH MALT MILLER ---
         res_tmm = get_cached_or_fetch("tmm", names_to_try)
         if use_serp and not res_tmm:
-            for try_name in names_to_try:
-                 res_tmm = search_price(f"{try_name} site:themaltmiller.co.uk", "The Malt Miller")
-                 if res_tmm: break
+            with ThreadPoolExecutor(max_workers=len(names_to_try) or 1) as search_executor:
+                tmm_results = list(search_executor.map(lambda name: search_price(f"{name} site:themaltmiller.co.uk", "The Malt Miller"), names_to_try))
+            for res in tmm_results:
+                if res:
+                    res_tmm = res
+                    break
         
         if res_tmm:
             row['tmm_price'] = res_tmm['price']
@@ -643,9 +653,12 @@ def compare_recipe_prices(recipe_details, recipe_tag=None, debug_mode=False):
         # --- SEARCH GET ER BREWED ---
         res_geb = get_cached_or_fetch("geb", names_to_try)
         if use_serp and not res_geb:
-            for try_name in names_to_try:
-                 res_geb = search_price(f"{try_name} site:geterbrewed.com", "Get Er Brewed")
-                 if res_geb: break
+            with ThreadPoolExecutor(max_workers=len(names_to_try) or 1) as search_executor:
+                geb_results = list(search_executor.map(lambda name: search_price(f"{name} site:geterbrewed.com", "Get Er Brewed"), names_to_try))
+            for res in geb_results:
+                if res:
+                    res_geb = res
+                    break
             
         if res_geb:
             row['geb_price'] = res_geb['price']
