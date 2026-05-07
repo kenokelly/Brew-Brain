@@ -622,13 +622,28 @@ def compare_recipe_prices(recipe_details, recipe_tag=None, debug_mode=False):
                     return res
             return None
 
-        # --- SEARCH MALT MILLER ---
-        res_tmm = get_cached_or_fetch("tmm", names_to_try)
-        if use_serp and not res_tmm:
-            for try_name in names_to_try:
-                 res_tmm = search_price(f"{try_name} site:themaltmiller.co.uk", "The Malt Miller")
-                 if res_tmm: break
-        
+        def fetch_tmm_price():
+            res = get_cached_or_fetch("tmm", names_to_try)
+            if use_serp and not res:
+                for try_name in names_to_try:
+                     res = search_price(f"{try_name} site:themaltmiller.co.uk", "The Malt Miller")
+                     if res: break
+            return res
+
+        def fetch_geb_price():
+            res = get_cached_or_fetch("geb", names_to_try)
+            if use_serp and not res:
+                for try_name in names_to_try:
+                     res = search_price(f"{try_name} site:geterbrewed.com", "Get Er Brewed")
+                     if res: break
+            return res
+
+        with ThreadPoolExecutor(max_workers=2) as inner_executor:
+            f_tmm = inner_executor.submit(fetch_tmm_price)
+            f_geb = inner_executor.submit(fetch_geb_price)
+            res_tmm = f_tmm.result()
+            res_geb = f_geb.result()
+
         if res_tmm:
             row['tmm_price'] = res_tmm['price']
             row['tmm_link'] = res_tmm.get('link', '#')
@@ -640,13 +655,6 @@ def compare_recipe_prices(recipe_details, recipe_tag=None, debug_mode=False):
             else:
                 row['tmm_cost'] = "?" 
 
-        # --- SEARCH GET ER BREWED ---
-        res_geb = get_cached_or_fetch("geb", names_to_try)
-        if use_serp and not res_geb:
-            for try_name in names_to_try:
-                 res_geb = search_price(f"{try_name} site:geterbrewed.com", "Get Er Brewed")
-                 if res_geb: break
-            
         if res_geb:
             row['geb_price'] = res_geb['price']
             row['geb_link'] = res_geb.get('link', '#')
