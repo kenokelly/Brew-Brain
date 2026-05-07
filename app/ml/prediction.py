@@ -339,6 +339,31 @@ def predict_time_to_fg(og: float, velocity: float = 0.0, variance: float = 0.0, 
         return {"error": str(e)}
 
 
+def get_predicted_fg() -> Dict[str, Any]:
+    """
+    Convenience function for status dashboard to get current batch prediction.
+    """
+    from core.config import get_all_config
+    from core.cache import cache
+    
+    # Try cache first
+    cached = cache.get("ml_predictions")
+    if cached:
+        return {
+            "fg": cached.get("prediction_fg", {}).get("predicted_fg"),
+            "date": cached.get("updated_at")
+        }
+        
+    # Fallback to simple formula if no model/cache
+    config = get_all_config()
+    og = float(config.get("og", 1.050))
+    target_fg = float(config.get("target_fg", 1.010))
+    
+    return {
+        "fg": target_fg,
+        "date": "Calculating..."
+    }
+
 def get_model_info() -> Dict[str, Any]:
     """Get information about trained models."""
 

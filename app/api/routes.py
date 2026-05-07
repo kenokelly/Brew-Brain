@@ -26,8 +26,15 @@ def handle_error(e: Exception, context: str = "Error") -> Tuple[Response, int]:
 @api_bp.route('/status')
 def status():
     try:
+        from core.cache import cache
+        cached_status = cache.get("system_status")
+        if cached_status:
+            return jsonify(cached_status)
+            
         from services.status import get_status_dict
-        return jsonify(get_status_dict())
+        status_data = get_status_dict()
+        cache.set("system_status", status_data, ttl=300)
+        return jsonify(status_data)
     except Exception as e:
         return handle_error(e, "Status Error")
 
@@ -38,8 +45,15 @@ def health():
 @api_bp.route('/health/maintenance')
 def health_maintenance():
     try:
+        from core.cache import cache
+        cached_maint = cache.get("maintenance_summary")
+        if cached_maint:
+            return jsonify({"status": "success", "data": cached_maint})
+            
         from services.status import get_maintenance_summary
-        return jsonify({"status": "success", "data": get_maintenance_summary()})
+        maint_data = get_maintenance_summary()
+        cache.set("maintenance_summary", maint_data, ttl=3600)
+        return jsonify({"status": "success", "data": maint_data})
     except Exception as e:
         return handle_error(e, "Maintenance Error")
 
@@ -58,9 +72,16 @@ def brew_day_check():
 @api_bp.route('/anomaly')
 def anomaly_status():
     try:
+        from core.cache import cache
+        cached_anomaly = cache.get("anomaly_status")
+        if cached_anomaly:
+            return jsonify({"status": "success", "data": cached_anomaly})
+            
         from services.anomaly import run_all_anomaly_checks
         batch_name = get_config("batch_name") or "Current Batch"
-        return jsonify({"status": "success", "data": run_all_anomaly_checks(batch_name)})
+        anomaly_data = run_all_anomaly_checks(batch_name)
+        cache.set("anomaly_status", anomaly_data, ttl=600)
+        return jsonify({"status": "success", "data": anomaly_data})
     except Exception as e:
         return handle_error(e, "Anomaly Error")
 

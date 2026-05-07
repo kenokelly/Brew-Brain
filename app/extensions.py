@@ -28,6 +28,10 @@ def make_celery(app_name=__name__):
             'task': 'services.tasks.run_anomaly_detection',
             'schedule': 300.0,
         },
+        'predict-batch-stats': {
+            'task': 'ml.tasks.predict_batch_stats',
+            'schedule': 300.0,
+        },
         'daily-report-weekday': {
             'task': 'services.tasks.daily_board_report',
             'schedule': crontab(day_of_week='1-5', hour=8, minute=30),

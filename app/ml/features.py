@@ -101,50 +101,42 @@ def calculate_time_in_phase(start_time: datetime, end_time: Optional[datetime] =
 def query_batch_data(start_time: datetime, end_time: datetime) -> Dict[str, Any]:
     """
     Query InfluxDB for batch sensor data within a time range.
-    
-    Args:
-        start_time: Start of batch
-        end_time: End of batch
-        
-    Returns:
-        Dict with temp_readings, sg_readings, timestamps
+    Uses 1-hour aggregation to prevent loading massive datasets into memory.
     """
     try:
         # Format times for Flux query
         start_str = start_time.strftime("%Y-%m-%dT%H:%M:%SZ")
         end_str = end_time.strftime("%Y-%m-%dT%H:%M:%SZ")
         
-        # Query temperature data
-        temp_query = f'''
-        from(bucket: "{INFLUX_BUCKET}")
+        # Use aggregateWindow to reduce points returned
+        # 1 hour is plenty for SG/Temp trends and velocity calculation
+        common_flux = f'''
             |> range(start: {start_str}, stop: {end_str})
             |> filter(fn: (r) => r["_measurement"] == "sensor_data")
-            |> filter(fn: (r) => r["_field"] == "Temp")
+            |> aggregateWindow(every: 1h, fn: mean, createEmpty: false)
         '''
+        
+        temp_query = f'from(bucket: "{INFLUX_BUCKET}") {common_flux} |> filter(fn: (r) => r["_field"] == "Temp")'
         temp_tables = query_api.query(temp_query)
         
         temp_readings = []
         temp_times = []
         for table in temp_tables:
             for record in table.records:
-                temp_readings.append(record.get_value())
-                temp_times.append(record.get_time())
+                if record.get_value() is not None:
+                    temp_readings.append(record.get_value())
+                    temp_times.append(record.get_time())
         
-        # Query SG data
-        sg_query = f'''
-        from(bucket: "{INFLUX_BUCKET}")
-            |> range(start: {start_str}, stop: {end_str})
-            |> filter(fn: (r) => r["_measurement"] == "sensor_data")
-            |> filter(fn: (r) => r["_field"] == "SG")
-        '''
+        sg_query = f'from(bucket: "{INFLUX_BUCKET}") {common_flux} |> filter(fn: (r) => r["_field"] == "SG")'
         sg_tables = query_api.query(sg_query)
         
         sg_readings = []
         sg_times = []
         for table in sg_tables:
             for record in table.records:
-                sg_readings.append(record.get_value())
-                sg_times.append(record.get_time())
+                if record.get_value() is not None:
+                    sg_readings.append(record.get_value())
+                    sg_times.append(record.get_time())
         
         return {
             "temp_readings": temp_readings,
