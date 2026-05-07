@@ -30,11 +30,13 @@ def status():
         cached_status = cache.get("system_status")
         if cached_status:
             return jsonify(cached_status)
-            
-        from services.status import get_status_dict
-        status_data = get_status_dict()
-        cache.set("system_status", status_data, ttl=300)
-        return jsonify(status_data)
+        
+        # If cache empty, return stale/empty status instead of blocking
+        return jsonify({
+            "status": "Starting Up...",
+            "message": "Telemetry is being calculated in the background",
+            "batch_name": get_config("batch_name") or "Loading..."
+        }), 202
     except Exception as e:
         return handle_error(e, "Status Error")
 
@@ -50,10 +52,7 @@ def health_maintenance():
         if cached_maint:
             return jsonify({"status": "success", "data": cached_maint})
             
-        from services.status import get_maintenance_summary
-        maint_data = get_maintenance_summary()
-        cache.set("maintenance_summary", maint_data, ttl=3600)
-        return jsonify({"status": "success", "data": maint_data})
+        return jsonify({"status": "processing", "message": "Gathering maintenance stats"}), 202
     except Exception as e:
         return handle_error(e, "Maintenance Error")
 
@@ -77,11 +76,7 @@ def anomaly_status():
         if cached_anomaly:
             return jsonify({"status": "success", "data": cached_anomaly})
             
-        from services.anomaly import run_all_anomaly_checks
-        batch_name = get_config("batch_name") or "Current Batch"
-        anomaly_data = run_all_anomaly_checks(batch_name)
-        cache.set("anomaly_status", anomaly_data, ttl=600)
-        return jsonify({"status": "success", "data": anomaly_data})
+        return jsonify({"status": "processing", "message": "Running anomaly detection"}), 202
     except Exception as e:
         return handle_error(e, "Anomaly Error")
 

@@ -29,7 +29,13 @@ class ResultCache:
         expiry = ttl or self.ttl
         if self.redis_client:
             try:
+                # Use a simple string serialization for speed
                 self.redis_client.setex(key, expiry, json.dumps(value))
+                # Trigger a backup to local cache for resilience
+                self._local_cache[key] = {
+                    "value": value,
+                    "expiry": time.time() + expiry
+                }
                 return
             except Exception as e:
                 logger.error(f"Redis set error: {e}")

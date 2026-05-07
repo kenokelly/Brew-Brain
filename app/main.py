@@ -16,7 +16,13 @@ from api.ml import ml_bp
 
 app = Flask(__name__, static_folder='static')
 CORS(app)
-socketio.init_app(app)
+socketio.init_app(app, 
+    cors_allowed_origins="*", 
+    async_mode='eventlet',
+    ping_timeout=60,
+    ping_interval=25,
+    engineio_logger=True # Enable for debugging connection issues
+)
 
 # Register Blueprints
 app.register_blueprint(api_bp, url_prefix='/api')

@@ -7,6 +7,6 @@ INFLUX_TOKEN = os.getenv("INFLUX_TOKEN", "my-token")
 INFLUX_ORG = os.getenv("INFLUX_ORG", "homebrew")
 INFLUX_BUCKET = os.getenv("INFLUX_BUCKET", "fermentation")
 
-client = InfluxDBClient(url=INFLUX_URL, token=INFLUX_TOKEN, org=INFLUX_ORG)
+client = InfluxDBClient(url=INFLUX_URL, token=INFLUX_TOKEN, org=INFLUX_ORG, timeout=10000) # 10s timeout
 write_api = client.write_api(write_options=SYNCHRONOUS)
 query_api = client.query_api()

@@ -30,30 +30,19 @@ def get_ml_models_info() -> Tuple[Response, int]:
 
 @ml_bp.route('/predict', methods=['GET'])
 def predict_active_batch() -> Tuple[Response, int]:
-    """Get ML predictions for the active batch, serving from cache if available."""
+    """Get ML predictions for the active batch, serving from cache ONLY."""
     try:
         from core.cache import cache
         cached_predictions = cache.get("ml_predictions")
         if cached_predictions:
             return api_response(data=cached_predictions)
             
-        from ml.prediction import predict_fg, predict_time_to_fg
-        from ml.features import query_batch_data, calculate_sg_velocity, calculate_temp_variance, calculate_time_in_phase
-        from core.config import get_all_config
-        
-        config = get_all_config()
-... rest of the function ...
-        prediction_time = predict_time_to_fg(og, velocity, variance, avg_temp, days_elapsed, style, yeast)
-        
-        result = {
-            "batch_metadata": {"og": og, "days_elapsed": days_elapsed, "data_points": data["data_points"], "style": style, "yeast": yeast},
-            "features": {"velocity": velocity, "temp_variance": variance, "avg_temp": round(float(avg_temp), 1)},
-            "prediction_fg": prediction_fg,
-            "prediction_time": prediction_time
-        }
-        
-        cache.set("ml_predictions", result, ttl=900)
-        return api_response(data=result)
+        # Return 202 to indicate processing started/pending in background
+        return api_response(
+            status="accepted", 
+            data={"status": "Calculating", "message": "ML model is processing batch data in the background"}, 
+            code=202
+        )
     except Exception as e:
         return handle_error(e, "Prediction Error")
 

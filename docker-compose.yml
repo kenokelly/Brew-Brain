@@ -91,13 +91,13 @@ services:
       - BREW_BRAIN_DATA=/data
       - BREW_BRAIN_API_TOKEN=${BREW_BRAIN_API_TOKEN:-secure_default_token}
       - REDIS_URL=redis://redis:6379/0
-      - PYTHONPATH=/
+      - PYTHONPATH=/app
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:5000/api/status" ]
-      interval: 10s
-      timeout: 5s
+      interval: 15s
+      timeout: 10s
       retries: 5
-      start_period: 15s
+      start_period: 20s
     volumes:
       - ./brain_data:/data
     networks:
