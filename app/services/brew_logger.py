@@ -1,6 +1,5 @@
 import logging
 import datetime
-from services.github_integration import push_recipe_to_repo
 
 # We re-use github_integration but maybe we need a specialized function for simple file push
 # The existing one expects a recipe dict and builds XML.
