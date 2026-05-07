@@ -1,5 +1,7 @@
 import logging
 import base64
+import xml.etree.ElementTree as ET
+from xml.dom import minidom
 from github import Github
 from core.config import get_config
 
@@ -29,18 +31,24 @@ def push_recipe_to_repo(recipe_data, token, repo_name):
             return {"error": "No XML content provided to save."}
         else:
             # Construct minimal valid XML from dict (fallback)
-            # This is a bit hacky but ensures we save *something* useful.
-            content = f"""<?xml version="1.0" encoding="ISO-8859-1"?>
-<RECIPES>
-  <RECIPE>
-    <NAME>{recipe_data.get('name')}</NAME>
-    <OG>{recipe_data.get('og')}</OG>
-    <IBU>{recipe_data.get('ibu')}</IBU>
-    <EST_ABV>{recipe_data.get('abv')}</EST_ABV>
-    <SOURCE>{recipe_data.get('source_url')}</SOURCE>
-    <NOTES>Imported via Brew-Brain from {recipe_data.get('source_url')}</NOTES>
-  </RECIPE>
-</RECIPES>"""
+            recipes_elem = ET.Element("RECIPES")
+            recipe_elem = ET.SubElement(recipes_elem, "RECIPE")
+
+            def add_child(parent, tag, text):
+                child = ET.SubElement(parent, tag)
+                child.text = str(text) if text is not None else ""
+
+            add_child(recipe_elem, "NAME", recipe_data.get("name"))
+            add_child(recipe_elem, "OG", recipe_data.get("og"))
+            add_child(recipe_elem, "IBU", recipe_data.get("ibu"))
+            add_child(recipe_elem, "EST_ABV", recipe_data.get("abv"))
+            add_child(recipe_elem, "SOURCE", recipe_data.get("source_url"))
+            add_child(recipe_elem, "NOTES", f"Imported via Brew-Brain from {recipe_data.get('source_url')}")
+
+            # Pretty print XML using minidom
+            raw_xml = ET.tostring(recipes_elem)
+            parsed_xml = minidom.parseString(raw_xml)
+            content = parsed_xml.toprettyxml(indent="  ", encoding="ISO-8859-1").decode("ISO-8859-1")
 
         file_path = f"recipes/{name}.xml"
         
