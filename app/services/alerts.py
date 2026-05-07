@@ -403,14 +403,14 @@ def monitor_active_batches():
         
         # 3. Run Health Check
         health_res = learning.check_batch_health(
-            current_sg,
-            og,
-            yeast_name,
-            days_in,
-            current_temp,
-            style,
-            name,
-            stability
+            current_sg=current_sg,
+            original_gravity=og,
+            yeast_name=yeast_name,
+            days_in=days_in,
+            current_stability=stability,
+            style=style,
+            batch_name=name,
+            temp=current_temp
         )
         
         # Check deviation against PROFILE target
