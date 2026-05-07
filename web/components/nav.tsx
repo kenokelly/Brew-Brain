@@ -82,7 +82,7 @@ export function NavBar() {
             </aside>
 
             {/* Mobile Header */}
-            <header className="md:hidden fixed top-0 left-0 right-0 h-16 bg-card/80 backdrop-blur-md border-b border-border/50 z-50 px-4 flex items-center justify-between">
+            <header className="md:hidden fixed top-0 left-0 right-0 h-[calc(4rem+env(safe-area-inset-top))] bg-card/80 backdrop-blur-md border-b border-border/50 z-50 px-4 pt-safe flex items-center justify-between">
                 <div className="flex items-center gap-2">
                     <Beer className="w-6 h-6 text-primary" />
                     <span className="font-bold text-lg">Brew Brain</span>
@@ -98,7 +98,7 @@ export function NavBar() {
 
             {/* Mobile Menu Overlay */}
             {mobileMenuOpen && (
-                <div className="md:hidden fixed inset-0 z-40 bg-background/95 backdrop-blur-sm animate-in fade-in slide-in-from-top-10 pt-20 px-6 pb-6 flex flex-col gap-4">
+                <div className="md:hidden fixed inset-0 z-40 bg-background/95 backdrop-blur-sm animate-in fade-in slide-in-from-top-10 pt-[calc(5rem+env(safe-area-inset-top))] px-6 pb-6 flex flex-col gap-4">
                     {NAV_ITEMS.map((item) => (
                         <Link
                             key={item.href}
@@ -144,7 +144,7 @@ export function NavBar() {
 
 export function PageContainer({ children }: { children: React.ReactNode }) {
     return (
-        <div className="md:pl-20 lg:pl-64 min-h-screen pt-16 md:pt-0 pb-20 md:pb-0">
+        <div className="md:pl-20 lg:pl-64 min-h-screen pt-16 md:pt-0 pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-0">
             {children}
         </div>
     );
