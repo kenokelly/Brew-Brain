@@ -1,15 +1,16 @@
 import base64
 import requests
 from datetime import datetime, timezone
-from typing import Tuple, Response
+from typing import Tuple
+from flask import Response
 from flask import Blueprint, request, send_file
-from app.core.config import get_config, set_config, logger
-from app.core.auth import require_api_token
-from app.api.routes import api_response, handle_error
+from core.config import get_config, set_config, logger
+from core.auth import require_api_token
+from api.routes import api_response, handle_error
 
 batches_bp = Blueprint('batches', __name__)
 
-@batches_bp.route('/api/sync_brewfather', methods=['POST'])
+@batches_bp.route('/sync_brewfather', methods=['POST'])
 @require_api_token
 def sync_brewfather() -> Tuple[Response, int]:
     u, k = get_config("bf_user"), get_config("bf_key")
@@ -64,14 +65,14 @@ def sync_brewfather() -> Tuple[Response, int]:
     except Exception as e:
         return handle_error(e, "Sync Error")
 
-@batches_bp.route('/api/export/batch/<batch_id>', methods=['GET'])
+@batches_bp.route('/export/batch/<batch_id>', methods=['GET'])
 def export_batch(batch_id: str) -> Tuple[Response, int]:
     """
     Export a batch to Parquet format for ML training.
     Requires batch metadata in query params or fetches from Brewfather.
     """
     try:
-        from app.services.batch_exporter import export_batch_to_parquet, get_batch_metadata_from_brewfather
+        from services.batch_exporter import export_batch_to_parquet, get_batch_metadata_from_brewfather
         from datetime import datetime
         
         # Try to get metadata from Brewfather
@@ -136,13 +137,13 @@ def export_batch(batch_id: str) -> Tuple[Response, int]:
     except Exception as e:
         return handle_error(e, "Batch Export Error")
 
-@batches_bp.route('/api/batches/history', methods=['GET'])
+@batches_bp.route('/batches/history', methods=['GET'])
 def batches_history() -> Tuple[Response, int]:
     """
     List all completed batches from Brewfather.
     """
     try:
-        from app.services.batch_exporter import get_completed_batches
+        from services.batch_exporter import get_completed_batches
         
         batches = get_completed_batches()
         
@@ -162,7 +163,7 @@ def batches_history() -> Tuple[Response, int]:
     except Exception as e:
         return handle_error(e, "Batch History Error")
 
-@batches_bp.route('/api/batches/aggregate', methods=['POST'])
+@batches_bp.route('/batches/aggregate', methods=['POST'])
 def aggregate_batches() -> Tuple[Response, int]:
     """
     Aggregate multiple batches into a single training dataset.
@@ -171,7 +172,7 @@ def aggregate_batches() -> Tuple[Response, int]:
         {"batch_ids": ["id1", "id2", ...]}
     """
     try:
-        from app.services.batch_exporter import aggregate_training_data
+        from services.batch_exporter import aggregate_training_data
         
         data = request.json or {}
         batch_ids = data.get('batch_ids')
@@ -242,6 +243,3 @@ def batch_features(batch_id: str) -> Tuple[Response, int]:
         
     except Exception as e:
         return handle_error(e, "Feature Extraction Error")
-r")
-)
-r")

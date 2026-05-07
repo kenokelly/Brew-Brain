@@ -1,6 +1,7 @@
 import numpy as np
 from datetime import datetime, timezone, timedelta
-from typing import Tuple, Response
+from typing import Tuple
+from flask import Response
 from flask import Blueprint, request
 from core.config import get_all_config, logger
 from core.auth import require_api_token

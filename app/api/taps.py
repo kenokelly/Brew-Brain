@@ -1,12 +1,13 @@
-from typing import Tuple, Response
+from typing import Tuple
+from flask import Response
 from flask import Blueprint, request
-from app.core.config import get_config, set_config
-from app.core.auth import require_api_token
-from app.api.routes import api_response, handle_error
+from core.config import get_config, set_config
+from core.auth import require_api_token
+from api.routes import api_response, handle_error
 
 taps_bp = Blueprint('taps', __name__)
 
-@taps_bp.route('/api/taps', methods=['GET'])
+@taps_bp.route('/taps', methods=['GET'])
 def get_taps() -> Tuple[Response, int]:
     """Get active kiosk tap list."""
     try:

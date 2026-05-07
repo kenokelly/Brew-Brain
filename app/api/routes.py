@@ -64,28 +64,3 @@ def anomaly_status():
     except Exception as e:
         return handle_error(e, "Anomaly Error")
 
-@api_bp.route('/ml/predict')
-def predict_active_batch():
-    return api_response(data={"prediction_fg": 1.010, "prediction_time": 2.0})
-
-@api_bp.route('/ml/peers')
-def get_style_peers():
-    return api_response(data={"avg_og": 1.050, "avg_fg": 1.010, "avg_abv": 5.5, "avg_ibu": 40})
-
-@api_bp.route('/ml/models')
-def get_ml_models_info():
-    try:
-        from ml.prediction import get_model_info
-        return api_response(data=get_model_info())
-    except Exception as e:
-        return handle_error(e, "Model Info Error")
-
-@api_bp.route('/ml/train', methods=['POST'])
-@require_api_token
-def train_ml_models():
-    try:
-        from ml.tasks import train_prediction_models
-        task = train_prediction_models.delay()
-        return api_response(data={"task_id": task.id})
-    except Exception as e:
-        return handle_error(e, "Train Error")

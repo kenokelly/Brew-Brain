@@ -1,15 +1,16 @@
 import os
 import json
 from datetime import datetime, timezone
-from typing import Tuple, Response
+from typing import Tuple
+from flask import Response
 from flask import Blueprint, request, jsonify
-from app.core.config import get_config, set_config, get_all_config, BACKUP_DIR, logger
-from app.core.auth import require_api_token
-from app.api.routes import api_response, handle_error
+from core.config import get_config, set_config, get_all_config, BACKUP_DIR, logger
+from core.auth import require_api_token
+from api.routes import api_response, handle_error
 
 settings_bp = Blueprint('settings', __name__)
 
-@settings_bp.route('/api/settings', methods=['GET', 'POST'])
+@settings_bp.route('/settings', methods=['GET', 'POST'])
 @require_api_token
 def settings() -> Tuple[Response, int]:
     """Get or update Brew Brain settings."""
@@ -21,7 +22,7 @@ def settings() -> Tuple[Response, int]:
         return api_response(data=safe_config)
     
     try:
-        from app.models.schemas import SettingsUpdate
+        from models.schemas import SettingsUpdate
         from pydantic import ValidationError
         
         try:
@@ -42,7 +43,7 @@ def settings() -> Tuple[Response, int]:
 def calibrate() -> Tuple[Response, int]:
     """Store explicit SG/Temp points for model calibration."""
     try:
-        from app.models.schemas import CalibrationData
+        from models.schemas import CalibrationData
         from pydantic import ValidationError
         
         try:
@@ -50,7 +51,7 @@ def calibrate() -> Tuple[Response, int]:
         except ValidationError as ve:
             return api_response(status="error", error=f"Validation Error: {str(ve)}", code=400)
             
-        from app.core.influx import write_api, INFLUX_BUCKET, INFLUX_ORG, Point
+        from core.influx import write_api, INFLUX_BUCKET, INFLUX_ORG, Point
         
         point = (Point("sensor_calibration")
             .tag("sensor_type", data.sensor_type)
@@ -71,7 +72,7 @@ def calibrate() -> Tuple[Response, int]:
         return handle_error(e, "Calibration Error")
 
 
-@settings_bp.route('/api/backup', methods=['POST'])
+@settings_bp.route('/backup', methods=['POST'])
 @require_api_token
 def backup():
     """Create a backup of current configuration."""
@@ -88,7 +89,7 @@ def backup():
         return handle_error(e, "Backup Error")
 
 
-@settings_bp.route('/api/restore', methods=['POST'])
+@settings_bp.route('/restore', methods=['POST'])
 @require_api_token
 def restore():
     """Restore configuration from a backup file."""
@@ -111,7 +112,7 @@ def restore():
         return handle_error(e, "Restore Error")
 
 
-@settings_bp.route('/api/debug/logs')
+@settings_bp.route('/debug/logs')
 def get_debug_logs():
     """Retrieves the last 100 lines of the debug log."""
     try:

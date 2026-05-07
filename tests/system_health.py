@@ -4,6 +4,7 @@ import sys
 import time
 
 API_URL = "http://localhost:5000"
+PROXY_URL = "http://localhost:3001"
 TOKEN = "secure_default_token"
 HEADERS = {"Authorization": f"Bearer {TOKEN}"}
 
@@ -18,17 +19,28 @@ def run_audit():
     
     overall_success = True
 
-    # 1. API Basic Connectivity
+    # 1. API Basic Connectivity (Direct)
     try:
         r = requests.get(f"{API_URL}/api/health", timeout=5)
         is_healthy = r.status_code == 200 and r.json().get("status") == "healthy"
-        if not check_step("API Baseline", is_healthy, f"Status: {r.status_code}"):
+        if not check_step("API Direct (5000)", is_healthy, f"Status: {r.status_code}"):
             overall_success = False
     except Exception as e:
-        check_step("API Baseline", False, str(e))
+        check_step("API Direct (5000)", False, str(e))
         overall_success = False
 
-    # 2. InfluxDB Round-Trip (via Status API)
+    # 2. Frontend Proxy Integrity (Port 3001)
+    try:
+        # This checks if Nginx is correctly forwarding /api requests to the backend
+        r = requests.get(f"{PROXY_URL}/api/health", timeout=5)
+        is_proxied = r.status_code == 200 and r.json().get("status") == "healthy"
+        if not check_step("Frontend Proxy (3001)", is_proxied, f"Status: {r.status_code}"):
+            overall_success = False
+    except Exception as e:
+        check_step("Frontend Proxy (3001)", False, str(e))
+        overall_success = False
+
+    # 3. InfluxDB Round-Trip (via Status API)
     try:
         r = requests.get(f"{API_URL}/api/status", timeout=5)
         data = r.json()
@@ -39,7 +51,7 @@ def run_audit():
         check_step("InfluxDB Connectivity", False, str(e))
         overall_success = False
 
-    # 3. Redis/Celery Task Flow
+    # 4. Redis/Celery Task Flow
     try:
         r = requests.post(f"{API_URL}/api/ml/train", headers=HEADERS, timeout=5)
         task_queued = r.status_code == 200 and "task_id" in r.json().get("data", {})
@@ -49,10 +61,8 @@ def run_audit():
         check_step("Async Task Queue (Redis)", False, str(e))
         overall_success = False
 
-    # 4. Node-RED (TILTpi) Heartbeat
+    # 5. Node-RED (TILTpi) Heartbeat
     try:
-        # Checking if backend can reach Node-RED on port 1880
-        # Since we are running on the Pi, we check localhost:1880
         r = requests.get("http://localhost:1880", timeout=3)
         if not check_step("Node-RED Driver Pulse", r.status_code == 200, "Port 1880 reachable"):
             overall_success = False
