@@ -459,19 +459,25 @@ def check_alerts():
             STALL_COOLDOWN = 43200 # 12 hours
             
             if (now - alert_state.get("last_stall_alert", 0)) > STALL_COOLDOWN:
-                # 1. Get Current SG
-                q_curr = f'from(bucket: "{INFLUX_BUCKET}") |> range(start: -1h) |> filter(fn: (r) => r["_measurement"] == "sensor_data") |> filter(fn: (r) => r["_field"] == "SG") |> last()'
-                res_curr = query_api.query(q_curr)
-                sg_current = None
-                for t in res_curr:
-                    for r in t.records: sg_current = r.get_value()
+                # Batch Queries to avoid N+1 query pattern latency
+                q_combined = f'''
+                from(bucket: "{INFLUX_BUCKET}") |> range(start: -1h) |> filter(fn: (r) => r["_measurement"] == "sensor_data") |> filter(fn: (r) => r["_field"] == "SG") |> last() |> yield(name: "current")
+                from(bucket: "{INFLUX_BUCKET}") |> range(start: -25h, stop: -24h) |> filter(fn: (r) => r["_measurement"] == "sensor_data") |> filter(fn: (r) => r["_field"] == "SG") |> last() |> yield(name: "previous")
+                '''
+                res_combined = query_api.query(q_combined)
 
-                # 2. Get SG from 24h ago
-                q_prev = f'from(bucket: "{INFLUX_BUCKET}") |> range(start: -25h, stop: -24h) |> filter(fn: (r) => r["_measurement"] == "sensor_data") |> filter(fn: (r) => r["_field"] == "SG") |> last()'
-                res_prev = query_api.query(q_prev)
+                sg_current = None
                 sg_yesterday = None
-                for t in res_prev:
-                    for r in t.records: sg_yesterday = r.get_value()
+
+                for t in res_combined:
+                    for r in t.records:
+                        val = r.get_value()
+                        if val is not None:
+                            res_name = r.values.get("result") if hasattr(r, "values") else r["result"]
+                            if res_name == "current":
+                                sg_current = val
+                            elif res_name == "previous":
+                                sg_yesterday = val
 
                 if sg_current and sg_yesterday:
                     daily_drop = sg_yesterday - sg_current
@@ -588,17 +594,25 @@ def check_alerts_once():
         STALL_COOLDOWN = 43200
         
         if (now - alert_state.get("last_stall_alert", 0)) > STALL_COOLDOWN:
-            q_curr = f'from(bucket: "{INFLUX_BUCKET}") |> range(start: -1h) |> filter(fn: (r) => r["_measurement"] == "sensor_data") |> filter(fn: (r) => r["_field"] == "SG") |> last()'
-            res_curr = query_api.query(q_curr)
-            sg_current = None
-            for t in res_curr:
-                for r in t.records: sg_current = r.get_value()
+            # Batch Queries to avoid N+1 query pattern latency
+            q_combined = f'''
+            from(bucket: "{INFLUX_BUCKET}") |> range(start: -1h) |> filter(fn: (r) => r["_measurement"] == "sensor_data") |> filter(fn: (r) => r["_field"] == "SG") |> last() |> yield(name: "current")
+            from(bucket: "{INFLUX_BUCKET}") |> range(start: -25h, stop: -24h) |> filter(fn: (r) => r["_measurement"] == "sensor_data") |> filter(fn: (r) => r["_field"] == "SG") |> last() |> yield(name: "previous")
+            '''
+            res_combined = query_api.query(q_combined)
 
-            q_prev = f'from(bucket: "{INFLUX_BUCKET}") |> range(start: -25h, stop: -24h) |> filter(fn: (r) => r["_measurement"] == "sensor_data") |> filter(fn: (r) => r["_field"] == "SG") |> last()'
-            res_prev = query_api.query(q_prev)
+            sg_current = None
             sg_yesterday = None
-            for t in res_prev:
-                for r in t.records: sg_yesterday = r.get_value()
+
+            for t in res_combined:
+                for r in t.records:
+                    val = r.get_value()
+                    if val is not None:
+                        res_name = r.values.get("result") if hasattr(r, "values") else r["result"]
+                        if res_name == "current":
+                            sg_current = val
+                        elif res_name == "previous":
+                            sg_yesterday = val
 
             if sg_current and sg_yesterday:
                 daily_drop = sg_yesterday - sg_current
