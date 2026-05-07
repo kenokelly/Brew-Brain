@@ -1,39 +1,16 @@
 # 🚀 Brew Brain Inc. - Company Charter & Organizational Structure
 
 ## 🌟 The Vision
-To build the definitive, pro-grade operating system for Intelligent Fermentation. We bring Silicon Valley engineering to Passive Fermentation Monitoring, turning data into predictive intelligence.
+To build the definitive, pro-grade operating system for Intelligent Fermentation. We bring Silicon Valley engineering to Passive Fermentation Monitoring, transforming simple sensor data into actionable, ML-driven production intelligence.
 
 ---
 
-## 🏛️ Executive Leadership Team
+## 🏛 The Executive Team
+*   **CEO:** Ken O'Kelly
+*   **CTO:** The Gemini/Claude AI Board
+*   **CISO:** Chris Krebs, Alex Stamos, Patrick Gray
 
-### **CEO — Ken O’Kelly**
-*   **Mandate:** Final decision-making, company culture, and overarching strategy.
-*   **Focus:** Capital allocation, securing high-impact partnerships (e.g., Brewfather, Tilt), and setting the North Star for the company.
-
-### **COO — The "Tim Cook" Operator**
-*   **Mandate:** Calm, ruthless execution and supply chain/process mastery.
-*   **Focus:** Building the operational machine, hiring systems, and B2B enterprise onboarding processes.
-
-### **CTO — The "Elon Musk" Technologist**
-*   **Mandate:** Aggressive product velocity and technical dominance.
-*   **Focus:** Shipping code relentlessly. The CTO acts as the principal architect, directing the AI coding agent during the unfunded phase, driving rapid prototyping, and enforcing first-principles engineering.
-
-### **CFO — The "Warren Buffett" Capital Allocator**
-*   **Mandate:** Disciplined finances and risk control.
-*   **Focus:** Long-term thinking, zero-burn startup credit strategies, SaaS pricing models, and building a fortress balance sheet.
-
-### **CGO — The "Sam Altman" Growth Officer**
-*   **Mandate:** Distribution, network effects, and fundraising narrative.
-*   **Focus:** Fast scaling, platform strategy, securing ecosystem partnerships, and driving aggressive B2B user acquisition.
-
-### **CAIO — The "Jensen Huang" AI Officer**
-*   **Mandate:** AI infrastructure and technical advantage.
-*   **Focus:** Model strategy, predictive analytics (FG prediction, anomaly detection), AI integration, and the compute roadmap to make the platform highly intelligent.
-
-### **CDO — The "Jony Ive" Design Officer**
-*   **Mandate:** Brand, product feel, and elegance.
-*   **Focus:** Simplicity. Ensuring the UX is frictionless and every touchpoint (from PWA to Grafana) feels undeniably premium.
+---
 
 ### **The Cyber & Information Operations Team (CISO/CIO)**
 *   **Team:** Chris Krebs, Alex Stamos, Patrick Gray.
@@ -55,6 +32,23 @@ These personas act as specialized agents within the Gemini/Antigravity environme
 
 ---
 
+## 📈 Product Management & Strategy Team
+Responsible for aligning the project with market needs and tactical execution.
+
+*   **Product Manager (Strategy):** Responsible for the long-term roadmap and market alignment.
+*   **Product Owner (Tactical):** Manages the backlog and ensures sprint-level user value.
+*   **Business Analyst (BA):** Translates business needs into detailed technical requirements.
+
+---
+
+## 🎨 Design & User Experience (UX) Squad
+Defines the intuitive workflow and visual aesthetic of the platform.
+
+*   **UX Designer (Architect):** Researches user behavior to create intuitive workflows and wireframes.
+*   **UI Designer (Visuals):** Handles the design system, typography, and interactive elements.
+
+---
+
 ## 🛡️ The Quality & Assurance (QA) Squad (The "Gatekeepers")
 This team sits between "Code Complete" and "Build." They act as the Audit Layer.
 
@@ -70,6 +64,30 @@ This team focuses on the Release Pipeline and the Stability Loop.
 *   **The Release Manager (Deploy):** Manages environments (Staging vs. Production) and executes deployment scripts.
 *   **The SRE (Monitor/Verify):** Executes "Smoke Tests" and health checks on the live service after deployment.
 *   **The Feedback Loop Coordinator:** Detects failures (5xx, latency) and automatically creates "Failure Reports," re-assigning tasks back to QA or Dev with logs attached.
+
+---
+
+## 🤝 Support & Success Teams
+Ensures product adoption and handles daily user operational requirements.
+
+*   **Customer Support (L1/L2):** Initial filter for bug reports and daily user queries.
+*   **Customer Success Manager:** Focuses on product adoption and stakeholder outcomes.
+
+---
+
+## 🏗️ Specialist Infrastructure & Security Units
+Hardens the internal platform and ensures global regulatory compliance.
+
+*   **Platform Engineering:** Builds internal tools, APIs, and frameworks to accelerate development.
+*   **Security & Compliance:** Audits code for regulatory compliance (GDPR, HIPAA) and data protection.
+
+---
+
+## 🚀 Growth & Commercial Engine
+Manages the go-to-market strategy and commercial expansion.
+
+*   **Product Marketing:** Manages messaging, positioning, and release communication.
+*   **Sales & Business Development:** Identifies customer segments and monitors competitors.
 
 ---
 
