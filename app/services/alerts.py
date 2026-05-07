@@ -59,38 +59,40 @@ def fetch_brewfather_recipes(limit=50):
     all_recipes = []
     start_after = None
     
-    while True:
-        url = f"https://api.brewfather.app/v2/recipes?limit={limit}&order_by=name"
-        if start_after:
-            url += f"&start_after={start_after}"
-            
-        try:
-            r = requests.get(url, headers=headers, timeout=10)
-            if r.status_code != 200:
+    with requests.Session() as session:
+        session.headers.update(headers)
+        while True:
+            url = f"https://api.brewfather.app/v2/recipes?limit={limit}&order_by=name"
+            if start_after:
+                url += f"&start_after={start_after}"
+                
+            try:
+                r = session.get(url, timeout=10)
+                if r.status_code != 200:
+                    if all_recipes:
+                        break # Return what we have
+                    return {"error": f"API Error {r.status_code}"}
+                
+                recipes = r.json()
+                if not recipes:
+                    break
+
+                all_recipes.extend(recipes)
+                
+                # If we got fewer than the limit, we're at the end
+                if len(recipes) < limit:
+                    break
+
+                # Get the ID of the last recipe for the next page
+                start_after = recipes[-1].get('_id')
+                if not start_after:
+                    break
+
+            except Exception as e:
+                logger.error(f"Error fetching recipes page: {e}")
                 if all_recipes:
-                    break # Return what we have
-                return {"error": f"API Error {r.status_code}"}
-            
-            recipes = r.json()
-            if not recipes:
-                break
-                
-            all_recipes.extend(recipes)
-            
-            # If we got fewer than the limit, we're at the end
-            if len(recipes) < limit:
-                break
-                
-            # Get the ID of the last recipe for the next page
-            start_after = recipes[-1].get('_id')
-            if not start_after:
-                break
-                
-        except Exception as e:
-            logger.error(f"Error fetching recipes page: {e}")
-            if all_recipes:
-                break
-            return {"error": str(e)}
+                    break
+                return {"error": str(e)}
             
     # Post-process: Add fallback name for recipes with empty names
     for recipe in all_recipes:
