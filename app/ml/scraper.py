@@ -31,6 +31,9 @@ def _compute_hash(recipe: Dict[str, Any]) -> str:
     return hashlib.sha256(key.encode("utf-8")).hexdigest()
 
 
+MIGRATION_COLUMNS = [("grain_bill", "TEXT"), ("hop_bill", "TEXT"),
+                      ("description", "TEXT"), ("source_hash", "TEXT")]
+
 def init_db():
     """Initialize the external recipes database with latest schema."""
     os.makedirs(os.path.dirname(DB_PATH) or ".", exist_ok=True)
@@ -60,8 +63,18 @@ def init_db():
 
     # --- Schema migration: add columns if missing on older DBs ---
     existing_cols = {row[1] for row in cursor.execute("PRAGMA table_info(recipes)").fetchall()}
-    for col, col_type in [("grain_bill", "TEXT"), ("hop_bill", "TEXT"),
-                          ("description", "TEXT"), ("source_hash", "TEXT")]:
+
+    ALLOWED_COLUMNS = {
+        "grain_bill": "TEXT",
+        "hop_bill": "TEXT",
+        "description": "TEXT",
+        "source_hash": "TEXT"
+    }
+
+    for col, col_type in MIGRATION_COLUMNS:
+        if col not in ALLOWED_COLUMNS or ALLOWED_COLUMNS[col] != col_type:
+            raise ValueError(f"Invalid column or type: {col} {col_type}")
+
         if col not in existing_cols:
             cursor.execute(f"ALTER TABLE recipes ADD COLUMN {col} {col_type}")
             logger.info(f"Migrated: added column '{col}' to recipes table")
