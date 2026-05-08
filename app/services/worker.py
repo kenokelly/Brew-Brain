@@ -459,19 +459,21 @@ def check_alerts():
             STALL_COOLDOWN = 43200 # 12 hours
             
             if (now - alert_state.get("last_stall_alert", 0)) > STALL_COOLDOWN:
-                # 1. Get Current SG
-                q_curr = f'from(bucket: "{INFLUX_BUCKET}") |> range(start: -1h) |> filter(fn: (r) => r["_measurement"] == "sensor_data") |> filter(fn: (r) => r["_field"] == "SG") |> last()'
-                res_curr = query_api.query(q_curr)
-                sg_current = None
-                for t in res_curr:
-                    for r in t.records: sg_current = r.get_value()
+                q_combined = f'''
+                from(bucket: "{INFLUX_BUCKET}") |> range(start: -1h) |> filter(fn: (r) => r["_measurement"] == "sensor_data") |> filter(fn: (r) => r["_field"] == "SG") |> last() |> yield(name: "current")
+                from(bucket: "{INFLUX_BUCKET}") |> range(start: -25h, stop: -24h) |> filter(fn: (r) => r["_measurement"] == "sensor_data") |> filter(fn: (r) => r["_field"] == "SG") |> last() |> yield(name: "previous")
+                '''
+                res = query_api.query(q_combined)
 
-                # 2. Get SG from 24h ago
-                q_prev = f'from(bucket: "{INFLUX_BUCKET}") |> range(start: -25h, stop: -24h) |> filter(fn: (r) => r["_measurement"] == "sensor_data") |> filter(fn: (r) => r["_field"] == "SG") |> last()'
-                res_prev = query_api.query(q_prev)
+                sg_current = None
                 sg_yesterday = None
-                for t in res_prev:
-                    for r in t.records: sg_yesterday = r.get_value()
+                for t in res:
+                    for r in t.records:
+                        res_name = r.values.get("result", "")
+                        if "current" in res_name:
+                            sg_current = r.get_value()
+                        elif "previous" in res_name:
+                            sg_yesterday = r.get_value()
 
                 if sg_current and sg_yesterday:
                     daily_drop = sg_yesterday - sg_current
@@ -501,19 +503,22 @@ def check_alerts():
                         # Calculate Current Rate (last 24h)
                         # Re-use queries from Stall Check for efficiency if possible
                         # But simpler to just run logic:
-                        q_now = f'from(bucket: "{INFLUX_BUCKET}") |> range(start: -1h) |> filter(fn: (r) => r["_measurement"] == "calibrated_readings") |> filter(fn: (r) => r["_field"] == "sg") |> last()'
-                        q_24h = f'from(bucket: "{INFLUX_BUCKET}") |> range(start: -25h, stop: -24h) |> filter(fn: (r) => r["_measurement"] == "calibrated_readings") |> filter(fn: (r) => r["_field"] == "sg") |> last()'
+                        q_combined_anomaly = f'''
+                        from(bucket: "{INFLUX_BUCKET}") |> range(start: -1h) |> filter(fn: (r) => r["_measurement"] == "calibrated_readings") |> filter(fn: (r) => r["_field"] == "sg") |> last() |> yield(name: "current")
+                        from(bucket: "{INFLUX_BUCKET}") |> range(start: -25h, stop: -24h) |> filter(fn: (r) => r["_measurement"] == "calibrated_readings") |> filter(fn: (r) => r["_field"] == "sg") |> last() |> yield(name: "previous")
+                        '''
                         
                         curr_sg = None
                         prev_sg = None
                         
-                        r1 = query_api.query(q_now)
-                        for t in r1: 
-                            for r in t.records: curr_sg = r.get_value()
-                            
-                        r2 = query_api.query(q_24h)
-                        for t in r2:
-                            for r in t.records: prev_sg = r.get_value()
+                        res = query_api.query(q_combined_anomaly)
+                        for t in res:
+                            for r in t.records:
+                                res_name = r.values.get("result", "")
+                                if "current" in res_name:
+                                    curr_sg = r.get_value()
+                                elif "previous" in res_name:
+                                    prev_sg = r.get_value()
                             
                         if curr_sg and prev_sg:
                             drop_24h = prev_sg - curr_sg
@@ -588,17 +593,21 @@ def check_alerts_once():
         STALL_COOLDOWN = 43200
         
         if (now - alert_state.get("last_stall_alert", 0)) > STALL_COOLDOWN:
-            q_curr = f'from(bucket: "{INFLUX_BUCKET}") |> range(start: -1h) |> filter(fn: (r) => r["_measurement"] == "sensor_data") |> filter(fn: (r) => r["_field"] == "SG") |> last()'
-            res_curr = query_api.query(q_curr)
-            sg_current = None
-            for t in res_curr:
-                for r in t.records: sg_current = r.get_value()
+            q_combined = f'''
+            from(bucket: "{INFLUX_BUCKET}") |> range(start: -1h) |> filter(fn: (r) => r["_measurement"] == "sensor_data") |> filter(fn: (r) => r["_field"] == "SG") |> last() |> yield(name: "current")
+            from(bucket: "{INFLUX_BUCKET}") |> range(start: -25h, stop: -24h) |> filter(fn: (r) => r["_measurement"] == "sensor_data") |> filter(fn: (r) => r["_field"] == "SG") |> last() |> yield(name: "previous")
+            '''
+            res = query_api.query(q_combined)
 
-            q_prev = f'from(bucket: "{INFLUX_BUCKET}") |> range(start: -25h, stop: -24h) |> filter(fn: (r) => r["_measurement"] == "sensor_data") |> filter(fn: (r) => r["_field"] == "SG") |> last()'
-            res_prev = query_api.query(q_prev)
+            sg_current = None
             sg_yesterday = None
-            for t in res_prev:
-                for r in t.records: sg_yesterday = r.get_value()
+            for t in res:
+                for r in t.records:
+                    res_name = r.values.get("result", "")
+                    if "current" in res_name:
+                        sg_current = r.get_value()
+                    elif "previous" in res_name:
+                        sg_yesterday = r.get_value()
 
             if sg_current and sg_yesterday:
                 daily_drop = sg_yesterday - sg_current
