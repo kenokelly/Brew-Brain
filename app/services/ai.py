@@ -1,6 +1,7 @@
 import numpy as np
 from datetime import datetime, timezone, timedelta
 from core.influx import query_api, INFLUX_BUCKET
+from core.cache import cache
 
 def analyze_yeast_history(yeast_name):
     """
@@ -13,6 +14,12 @@ def analyze_yeast_history(yeast_name):
     """
     if not yeast_name or yeast_name == "Unknown":
         return None
+
+    # 0. Check Cache
+    cache_key = f"yeast_history_{yeast_name}"
+    cached_result = cache.get(cache_key)
+    if cached_result:
+        return cached_result
 
     # 1. Query Data (Last 90 days)
     # We want ALL calibrated readings for this yeast
@@ -102,11 +109,16 @@ def analyze_yeast_history(yeast_name):
         if not rates:
             return None
             
-        return {
+        result = {
             "avg_rate": float(np.mean(rates)),
             "avg_attenuation": float(np.mean(attenuations)) if attenuations else 0.75,
             "samples": len(historic_batches)
         }
+
+        # Cache result for 1 hour
+        cache.set(cache_key, result, ttl=3600)
+
+        return result
 
     except Exception as e:
         print(f"AI Error: {e}")
