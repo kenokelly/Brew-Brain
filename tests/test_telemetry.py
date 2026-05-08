@@ -1,18 +1,23 @@
 import unittest
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 import sys
+import os
 
 # Safely mock missing modules only if they aren't installed to avoid test pollution
 def _mock_missing_imports():
-    from unittest.mock import MagicMock
     mock = MagicMock()
-    for mod in ['influxdb_client', 'influxdb_client.client', 'influxdb_client.client.write_api', 'requests']:
+    for mod in ['influxdb_client', 'influxdb_client.client', 'influxdb_client.client.write_api', 'requests', 'scipy', 'scipy.stats', 'numpy']:
         try:
             __import__(mod)
         except ImportError:
             sys.modules[mod] = mock
 
 _mock_missing_imports()
+
+# Ensure app is in path
+app_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../app'))
+if app_dir not in sys.path:
+    sys.path.insert(0, app_dir)
 
 from app.services.telemetry import send_daily_board_report, std_status, format_diff
 
@@ -71,9 +76,25 @@ class TestTelemetry(unittest.TestCase):
         self.assertEqual(std_status(0.0015), "⏸️ Idle / Equilibrium") # between 0.001 and 0.002
 
     def test_format_diff(self):
+        # Positive values
         self.assertEqual(format_diff(0.005), "-0.005")
+        self.assertEqual(format_diff(1.234), "-1.234")
+
+        # Negative values
+        self.assertEqual(format_diff(-0.005), "+0.005")
+        self.assertEqual(format_diff(-1.234), "+1.234")
         self.assertEqual(format_diff(-0.003), "+0.003")
+
+        # Zero
         self.assertEqual(format_diff(0), "0.000")
+        self.assertEqual(format_diff(0.0), "0.000")
+        self.assertEqual(format_diff(-0.0), "0.000")
+
+        # Edge cases
+        self.assertEqual(format_diff(1e-10), "-0.000")
+        self.assertEqual(format_diff(-1e-10), "+0.000")
+        self.assertEqual(format_diff(0.0001), "-0.000")
+        self.assertEqual(format_diff(-0.0001), "+0.000")
 
 if __name__ == '__main__':
     unittest.main()
