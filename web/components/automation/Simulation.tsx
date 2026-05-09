@@ -148,8 +148,10 @@ export function Simulation() {
                                     onClick={() => removeGrain(grain.id)}
                                     disabled={grains.length === 1}
                                     className="p-2 text-red-400 hover:bg-red-500/20 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed"
+                                    aria-label="Remove grain"
+                                    title="Remove grain"
                                 >
-                                    <Trash2 className="w-4 h-4" />
+                                    <Trash2 className="w-4 h-4" aria-hidden="true" />
                                 </button>
                             </div>
                         ))}
@@ -225,7 +227,7 @@ export function Simulation() {
 
                     {config.yeast && !result.yeast_found && (
                         <div className="mt-4 text-sm text-muted-foreground text-center">
-                            ⚠️ Yeast "{config.yeast}" not found in history. Using default attenuation.
+                            ⚠️ Yeast &quot;{config.yeast}&quot; not found in history. Using default attenuation.
                         </div>
                     )}
                 </div>
