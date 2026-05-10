@@ -215,7 +215,9 @@ export default function SettingsPage() {
                     <div className="flex items-center gap-4">
                         <button
                             onClick={() => router.push('/')}
-                            className="p-2 rounded-full hover:bg-secondary/80 transition-colors"
+                            className="p-2 rounded-full hover:bg-secondary/80 transition-colors focus-visible:ring-2 focus-visible:ring-primary outline-none"
+                            aria-label="Go back to dashboard"
+                            title="Go back"
                         >
                             <ChevronLeft className="w-6 h-6" />
                         </button>
