@@ -68,7 +68,9 @@ export default function TapListPage() {
                 </div>
                 <button
                     onClick={fetchTaps}
-                    className="p-2 rounded-full bg-secondary/50 hover:bg-secondary text-foreground transition-colors"
+                    className="p-2 rounded-full bg-secondary/50 hover:bg-secondary text-foreground transition-colors focus-visible:ring-2 focus-visible:ring-primary outline-none"
+                    aria-label="Refresh tap list"
+                    title="Refresh tap list"
                 >
                     <RefreshCw className="w-5 h-5" />
                 </button>
