@@ -143,7 +143,7 @@ Transform Brew Brain from a monitoring dashboard into an **Intelligent Fermentat
 - [x] **10.1 Fix Normalization Disconnect** — Implemented `normalize_features` in `ml/prediction.py` and ensured consistent use.
 - [x] **10.2 Sliding Window Velocity** — Updated `calculate_sg_velocity` in `features.py` to use a 24h window.
 - [x] **10.3 Feature Expansion (Yeast & Style)** — Encoded and included `yeast_strain` and `style` features in models.
-- [ ] **10.4 Hyperparameter Tuning** — Implement Grid/Randomized search in `train_models` to optimize Gradient Boosting parameters.
+- [x] **10.4 Hyperparameter Tuning** — Implement GridSearchCV in `train_models` to optimize Gradient Boosting parameters.
 - [x] **10.5 Library Standardization** — Updated `ml/prediction.py` to use `sklearn.ensemble.GradientBoostingRegressor`.
 
 ---
@@ -152,8 +152,9 @@ Transform Brew Brain from a monitoring dashboard into an **Intelligent Fermentat
 
 - [x] **11.1 Integrate Redis** — Added `redis:alpine` to `docker-compose.yml` with memory limits.
 - [x] **11.2 Implement Celery** — Migrated periodic tasks to Celery Beat and created `services/tasks.py`.
-- [ ] **11.3 Config Store Migration** — Evaluate moving from InfluxDB to a more standard config store (SQLite/JSON) for better reliability.
+- [x] **11.3 Config Store Migration** — Migrated from InfluxDB to a local `config.json` as the primary store for better reliability.
 - [x] **11.4 Persistent Logging** — Implemented `RotatingFileHandler` for `/data/app_debug.log`.
+
 
 ---
 
@@ -166,10 +167,10 @@ Transform Brew Brain from a monitoring dashboard into an **Intelligent Fermentat
 
 ---
 
-### Phase 13 — Testing & Quality (Priority: LOW) ⚪
+### Phase 13 — Testing & Quality (Priority: LOW) 🟡
 
-- [ ] **13.1 Increase Coverage** — Add unit tests for `worker.py`, `scheduler.py`, and `alerting.py`.
-- [ ] **13.2 Automate Verifications** — Convert `verify_*.py` scripts into proper `pytest` integration tests.
+- [x] **13.1 Increase Coverage** — Added unit tests for `worker.py` and `notifications.py` (alerting logic).
+- [x] **13.2 Automate Verifications** — Converted `verify_*.py` scripts into proper `unittest` tests (e.g., `test_sourcing.py`).
 - [ ] **13.3 Linting & Type Checking** — Add `mypy` and `ruff` to the CI pipeline for stricter code quality.
 
 ---
@@ -182,12 +183,12 @@ Transform Brew Brain from a monitoring dashboard into an **Intelligent Fermentat
 
 ---
 
-### Phase 15 — Edge AI (Experimental) ⚪
+### Phase 15 — Edge AI (Experimental) 🟡
 
 - [ ] **15.1 Ollama Deployment** — Add `ollama/ollama` to `docker-compose.yml` and pull a quantized 3B/8B model (e.g., Llama-3 or Phi-4).
-- [ ] **15.2 Narrative Brew Logs** — Create `services/ai.py` to feed InfluxDB trends to the SLM and generate automated Markdown brew summaries.
-- [ ] **15.3 Natural Language "Brewmaster"** — Implement a chat interface to query fermentation state (e.g., "How is my IPA doing?").
-- [ ] **15.4 Smart Troubleshooting** — Use the SLM to analyze anomalies and provide actionable advice (e.g., "Increase temp to finish fermentation").
+- [x] **15.2 Narrative Brew Logs** — Created `services/ai.py` and `/api/ai/narrative` to generate automated fermentation summaries (with template fallback).
+- [ ] **15.3 Natural Language "Brewmaster"** — Initial `/api/ai/chat` endpoint created (placeholder).
+- [ ] **15.4 Smart Troubleshooting** — Use the SLM to analyze anomalies and provide actionable advice.
 
 ---
 

@@ -170,12 +170,12 @@ def prepare_features(data: List[Dict[str, Any]]) -> tuple:
 
 def train_models() -> Dict[str, Any]:
     """
-    Train FG and time-to-FG prediction models using Gradient Boosting.
+    Train FG and time-to-FG prediction models using Gradient Boosting with Hyperparameter Tuning.
     
-    Returns dict with training metrics.
+    Returns dict with training metrics and best parameters.
     """
     from sklearn.ensemble import GradientBoostingRegressor
-    from sklearn.model_selection import cross_val_score
+    from sklearn.model_selection import GridSearchCV
     
     ensure_model_dir()
     
@@ -189,29 +189,32 @@ def train_models() -> Dict[str, Any]:
     if len(X) < 5:
         return {"error": f"Need at least 5 valid batches, got {len(X)}"}
     
-    # Train FG model
-    fg_model = GradientBoostingRegressor(
-        n_estimators=50,
-        max_depth=3,
-        learning_rate=0.1,
-        random_state=42
-    )
-    fg_model.fit(X, y_fg)
+    # Define hyperparameter grid
+    param_grid = {
+        'n_estimators': [50, 100, 150],
+        'max_depth': [3, 4, 5],
+        'learning_rate': [0.05, 0.1, 0.2]
+    }
     
-    # Cross-validation score
-    fg_cv = cross_val_score(fg_model, X, y_fg, cv=min(3, len(X)), scoring='neg_mean_absolute_error')
-    fg_mae = -fg_cv.mean()
+    cv_folds = min(3, len(X))
     
-    # Train time model
-    time_model = GradientBoostingRegressor(
-        n_estimators=50,
-        max_depth=3,
-        learning_rate=0.1,
-        random_state=42
-    )
-    time_model.fit(X, y_time)
-    time_cv = cross_val_score(time_model, X, y_time, cv=min(3, len(X)), scoring='neg_mean_absolute_error')
-    time_mae = -time_cv.mean()
+    # Train FG model with Grid Search
+    fg_base = GradientBoostingRegressor(random_state=42)
+    fg_grid = GridSearchCV(fg_base, param_grid, cv=cv_folds, scoring='neg_mean_absolute_error', n_jobs=-1)
+    fg_grid.fit(X, y_fg)
+    
+    fg_model = fg_grid.best_estimator_
+    fg_mae = -fg_grid.best_score_
+    fg_params = fg_grid.best_params_
+    
+    # Train time model with Grid Search
+    time_base = GradientBoostingRegressor(random_state=42)
+    time_grid = GridSearchCV(time_base, param_grid, cv=cv_folds, scoring='neg_mean_absolute_error', n_jobs=-1)
+    time_grid.fit(X, y_time)
+    
+    time_model = time_grid.best_estimator_
+    time_mae = -time_grid.best_score_
+    time_params = time_grid.best_params_
     
     # Save models
     joblib.dump(fg_model, FG_MODEL_PATH)
@@ -230,17 +233,21 @@ def train_models() -> Dict[str, Any]:
         logger.error(f"Failed to log ML metrics: {e}")
 
     logger.info(f"Models trained on {len(X)} batches. FG MAE: {fg_mae:.4f}, Time MAE: {time_mae:.1f} days")
+    logger.info(f"Best FG Params: {fg_params}")
+    logger.info(f"Best Time Params: {time_params}")
     
     return {
         "status": "success",
         "batches_used": len(X),
         "fg_model": {
             "path": FG_MODEL_PATH,
-            "mae": round(fg_mae, 4)
+            "mae": round(fg_mae, 4),
+            "best_params": fg_params
         },
         "time_model": {
             "path": TIME_MODEL_PATH,
-            "mae": round(time_mae, 2)
+            "mae": round(time_mae, 2),
+            "best_params": time_params
         },
         "trained_at": datetime.now().isoformat()
     }

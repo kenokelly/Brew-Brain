@@ -1,6 +1,10 @@
 import os
 from flask_socketio import SocketIO
 from celery import Celery
+from core.config import load_initial_config
+
+# Ensure config is loaded (crucial for workers)
+load_initial_config()
 
 socketio = SocketIO(cors_allowed_origins="*", async_mode='eventlet')
 

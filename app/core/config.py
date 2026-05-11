@@ -37,53 +37,47 @@ DEFAULTS: Dict[str, str] = {
 # Config Cache
 _config_cache: Dict[str, str] = DEFAULTS.copy()
 
-# Local backup path
-CONFIG_BACKUP_PATH = os.path.join(DATA_DIR, "config_backup.json")
+# Config Paths
+CONFIG_PATH = os.path.join(DATA_DIR, "config.json")
 
-def _load_local_backup() -> bool:
-    """Load config from local JSON backup."""
+def _save_config_to_file():
+    """Save in-memory cache to local JSON file."""
     global _config_cache
     try:
-        if os.path.exists(CONFIG_BACKUP_PATH):
-            with open(CONFIG_BACKUP_PATH, 'r') as f:
+        os.makedirs(os.path.dirname(CONFIG_PATH), exist_ok=True)
+        with open(CONFIG_PATH, 'w') as f:
+            json.dump(_config_cache, f, indent=2)
+    except Exception as e:
+        logger.error(f"Failed to save config to local file: {e}")
+
+def _load_config_from_file() -> bool:
+    """Load config from local JSON file."""
+    global _config_cache
+    try:
+        if os.path.exists(CONFIG_PATH):
+            with open(CONFIG_PATH, 'r') as f:
                 loaded = json.load(f)
                 if isinstance(loaded, dict):
                     _config_cache.update(loaded)
-            logger.info("Loaded config from local backup file")
-            return True
+                    return True
     except Exception as e:
-        logger.warning(f"Failed to load local config backup: {e}")
+        logger.warning(f"Failed to load config file: {e}")
     return False
 
-def _save_local_backup():
-    """Save in-memory cache to local JSON backup."""
-    global _config_cache
-    try:
-        os.makedirs(os.path.dirname(CONFIG_BACKUP_PATH), exist_ok=True)
-        with open(CONFIG_BACKUP_PATH, 'w') as f:
-            json.dump(_config_cache, f, indent=2)
-    except Exception as e:
-        logger.warning(f"Failed to save local config backup: {e}")
-
 def load_initial_config():
     """Initialize config on startup."""
     global _config_cache
     _config_cache.update(DEFAULTS)
     
-    # Try InfluxDB first, then local backup if failure or defaults
-    refresh_config_from_influx()
-    if _config_cache.get('target_fg') == DEFAULTS['target_fg']:
-        _load_local_backup()
-
-def load_initial_config():
-    """Initialize config on startup."""
-    global _config_cache
-    _config_cache.update(DEFAULTS)
-    
-    # Try InfluxDB first, then local backup if failure or defaults
-    refresh_config_from_influx()
-    if _config_cache.get('target_fg') == DEFAULTS['target_fg']:
-        _load_local_backup()
+    # Try loading from local file first (Primary)
+    if _load_config_from_file():
+        logger.info("Config initialized from local file")
+    else:
+        # Fallback to InfluxDB for migration/initial setup
+        logger.info("Local config not found, attempting to refresh from InfluxDB")
+        refresh_config_from_influx()
+        if any(_config_cache[k] != DEFAULTS[k] for k in DEFAULTS):
+            _save_config_to_file()
 
 def refresh_config_from_influx() -> None:
     """Reads the latest config from InfluxDB into memory."""
@@ -93,6 +87,7 @@ def refresh_config_from_influx() -> None:
         q = f'from(bucket: "{INFLUX_BUCKET}") |> range(start: -365d) |> filter(fn: (r) => r["_measurement"] == "app_config") |> last()'
         tables = query_api.query(q)
         
+        found = False
         # Update cache with values found in DB
         for table in tables:
             for record in table.records:
@@ -100,11 +95,13 @@ def refresh_config_from_influx() -> None:
                 val = record.get_value()
                 if key and val is not None:
                     _config_cache[key] = str(val)
+                    found = True
         
-        logger.info("Config refreshed from InfluxDB")
-        _save_local_backup()
+        if found:
+            logger.info("Config refreshed from InfluxDB")
+            _save_config_to_file()
             
-    except (ConnectionError, OSError) as e:
+    except Exception as e:
         logger.error(f"Failed to refresh config from InfluxDB: {e}")
 
 def get_config(key: str) -> Optional[str]:
@@ -114,17 +111,18 @@ def get_all_config() -> Dict[str, str]:
     return _config_cache
 
 def set_config(key: str, value: Any) -> None:
-    """Writes config to InfluxDB and updates memory cache."""
+    """Updates config in memory, saves to local file, and mirrors to InfluxDB."""
     global _config_cache
     str_val = str(value)
     
-    # Opti-lock: Update cache immediately for responsiveness
+    # Update cache and local file (Primary)
     _config_cache[key] = str_val
-    _save_local_backup()
+    _save_config_to_file()
     
     try:
-        # Persist to InfluxDB
+        # Mirror to InfluxDB for historical tracking
         p = Point("app_config").field(key, str_val).time(datetime.now(timezone.utc))
         write_api.write(bucket=INFLUX_BUCKET, org=INFLUX_ORG, record=p)
-    except (ConnectionError, OSError) as e:
-        logger.error(f"Failed to save config '{key}' to InfluxDB: {e}")
+    except Exception as e:
+        # Don't block on InfluxDB failure anymore
+        logger.debug(f"Failed to mirror config '{key}' to InfluxDB (non-critical): {e}")

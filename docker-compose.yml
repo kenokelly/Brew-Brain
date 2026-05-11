@@ -91,6 +91,7 @@ services:
       - BREW_BRAIN_DATA=/data
       - BREW_BRAIN_API_TOKEN=${BREW_BRAIN_API_TOKEN:-secure_default_token}
       - REDIS_URL=redis://redis:6379/0
+      - OLLAMA_HOST=ollama
       - PYTHONPATH=/app
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:5000/api/status" ]
@@ -178,6 +179,17 @@ services:
     restart: unless-stopped
     ports:
       - "6379:6379"
+    networks:
+      - brewery-net
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    restart: unless-stopped
+    volumes:
+      - ./ollama_data:/root/.ollama
+    ports:
+      - "11434:11434"
     networks:
       - brewery-net
 

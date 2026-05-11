@@ -1,7 +1,65 @@
+import os
+import requests
+import json
 import numpy as np
 from datetime import datetime, timezone, timedelta
 from core.influx import query_api, INFLUX_BUCKET
 from core.cache import cache
+from core.config import get_config, logger
+
+def generate_narrative(batch_data: dict) -> dict:
+    """
+    Generates a creative narrative log for a fermentation batch using AI.
+    Tries local Ollama first, then falls back to configured API.
+    """
+    try:
+        # 1. Prepare Prompt
+        style = batch_data.get("style", "Beer")
+        name = batch_data.get("name", "Unknown Batch")
+        og = batch_data.get("og", 1.050)
+        fg = batch_data.get("fg", 1.010)
+        temp_avg = batch_data.get("temp_avg", 20.0)
+        status = batch_data.get("status", "fermenting")
+        
+        prompt = (
+            f"Write a short, engaging 2-3 sentence 'Brewmaster Log' for a {style} named '{name}'. "
+            f"Initial Gravity: {og:.3f}, Current Gravity: {fg:.3f}, Average Temp: {temp_avg:.1f}C. "
+            f"The fermentation is {status}. Be creative but professional."
+        )
+
+        # 2. Try Local Ollama (Edge AI)
+        ollama_host = os.environ.get("OLLAMA_HOST", get_config("ollama_host") or "localhost")
+        ollama_url = f"http://{ollama_host}:11434/api/generate"
+        
+        try:
+            payload = {
+                "model": get_config("ollama_model") or "llama3",
+                "prompt": prompt,
+                "stream": False
+            }
+            res = requests.post(ollama_url, json=payload, timeout=15)
+            if res.status_code == 200:
+                text = res.json().get("response")
+                if text:
+                    return {"status": "success", "narrative": text.strip(), "source": "ollama"}
+        except Exception as e:
+            logger.debug(f"Ollama not available at {ollama_url}, falling back. Error: {e}")
+
+        # 3. Fallback to Cloud (Gemini via Proxy or direct if key available)
+        # For now, we'll return a template-based narrative if AI fails
+        logger.warning("AI Narrative generation failed or not configured, using template")
+        
+        templates = [
+            f"The {style} '{name}' is making steady progress at {temp_avg:.1f}C. Gravity has dropped to {fg:.3f}, showing healthy yeast activity.",
+            f"Monitoring the {style} fermenting in the lab. Current SG is {fg:.3f}. The yeast seems happy with the stable {temp_avg:.1f}C environment.",
+            f"Log entry for {name}: Fermentation is {status}. Moving from {og:.3f} towards the target. Everything is looking nominal."
+        ]
+        import random
+        return {"status": "fallback", "narrative": random.choice(templates), "source": "template"}
+
+    except Exception as e:
+        logger.error(f"Narrative Error: {e}")
+        return {"error": str(e)}
 
 def analyze_yeast_history(yeast_name):
     """

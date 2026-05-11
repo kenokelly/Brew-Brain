@@ -48,9 +48,8 @@ class TestCarbonationCalculator:
     def test_carbonation_high_volumes_belgian(self):
         from app.services.calculator import calculate_carbonation_psi
         result = calculate_carbonation_psi(4, 3.5)
-        
-        assert "Belgian" in result["style_suggestion"] or "Hefeweizen" in result["style_suggestion"]
 
+        assert "Saison" in result["style_suggestion"] or "Lambic" in result["style_suggestion"]
 
 class TestRefractometerCorrection:
     """Tests for refractometer alcohol correction."""

@@ -1,11 +1,12 @@
 import eventlet
 eventlet.monkey_patch()
 
+import os
 import logging
 from flask import Flask
 from flask_cors import CORS
 from flask_socketio import SocketIO
-from core.config import refresh_config_from_influx, logger
+from core.config import load_initial_config, logger
 from extensions import socketio
 from api.routes import api_bp
 from api.automation import automation_bp
@@ -13,6 +14,7 @@ from api.settings import settings_bp
 from api.batches import batches_bp
 from api.taps import taps_bp
 from api.ml import ml_bp
+from api.ai import ai_bp
 
 app = Flask(__name__, static_folder='static')
 CORS(app)
@@ -31,6 +33,7 @@ app.register_blueprint(settings_bp, url_prefix='/api')
 app.register_blueprint(batches_bp, url_prefix='/api')
 app.register_blueprint(taps_bp, url_prefix='/api')
 app.register_blueprint(ml_bp, url_prefix='/api/ml')
+app.register_blueprint(ai_bp, url_prefix='/api/ai')
 
 @app.after_request
 def add_header(response):
@@ -41,8 +44,8 @@ def add_header(response):
     return response
 
 if __name__ == '__main__':
-    # Initialize Config from InfluxDB
-    refresh_config_from_influx()
+    # Initialize Config (Local File with InfluxDB fallback)
+    load_initial_config()
     
     # DEBUG: Add Rotating File Handler to Logger
     try:
