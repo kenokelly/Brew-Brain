@@ -184,7 +184,7 @@ def check_stalled_fermentation(batch_name: str = "Current Batch") -> Dict[str, A
                 f"• Gently rouse yeast\n"
                 f"• Consider yeast nutrient"
             )
-            send_telegram_message(alert_msg)
+            send_telegram_message(alert_msg, current_values={"sg": last_sg})
             broadcast_alert("stalled", f"Stalled fermentation: {batch_name}", "critical", {"sg": last_sg})
             return {
                 "status": "stalled",
@@ -394,21 +394,23 @@ def check_signal_loss(batch_name: str = "Current Batch") -> Dict[str, Any]:
         now = datetime.now(timezone.utc)
         minutes_since = (now - last_reading_time).total_seconds() / 60
         
-        if minutes_since > SIGNAL_LOSS_MINUTES:
+        timeout_min = int(get_config("tilt_timeout_min") or 60)
+        
+        if minutes_since > timeout_min:
+            # TRIGGER AUTO-TROUBLESHOOTING FIRST
+            logger.info(f"Signal loss detected ({int(minutes_since)} min). Running automated diagnostics...")
+            troubleshoot_result = troubleshoot_tiltpi()
+            
             alert_msg = (
                 f"📡 *TILT SIGNAL LOSS: {batch_name}*\n\n"
                 f"Last reading: {int(minutes_since)} minutes ago\n"
-                f"Threshold: {SIGNAL_LOSS_MINUTES} minutes\n\n"
-                f"*Check:*\n"
-                f"• Tilt battery\n"
-                f"• TiltPi service status\n"
-                f"• Bluetooth connectivity"
+                f"Threshold: {timeout_min} minutes\n\n"
+                f"*Automated Diagnostics:* {troubleshoot_result.get('status', 'unknown')}\n"
+                f"*Action:* Check Tilt battery and Bluetooth bridge."
             )
-            send_telegram_message(alert_msg)
+            # Signal loss is ALWAYS immediate (force=True)
+            send_telegram_message(alert_msg, force=True)
             broadcast_alert("signal_loss", f"Tilt offline: {int(minutes_since)} min", "error")
-            
-            # Auto-troubleshoot TiltPi
-            troubleshoot_result = troubleshoot_tiltpi()
             
             return {
                 "status": "signal_loss",
@@ -474,5 +476,8 @@ def run_all_anomaly_checks(batch_name: str = "Current Batch") -> Dict[str, Any]:
     else:
         results["anomaly_status"] = "ok"
         results["status"] = "ok"
+    
+    return results
+
     
     return results

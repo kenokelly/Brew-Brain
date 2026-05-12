@@ -131,7 +131,7 @@ def maintenance_summary():
             f"💾 *Root Disk:* {disk.get('used_percent', '?')}% used\n"
             f"🌡️ *Pi Temp:* {summary.get('pi_temp', 0.0)}°C\n"
         )
-        send_telegram_message(msg, force=True)
+        send_telegram_message(msg, category="report", force=False)
         return {"status": "success"}
     except Exception as e:
         logger.error(f"Maintenance summary failed: {e}")

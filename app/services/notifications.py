@@ -147,45 +147,79 @@ def troubleshoot_tiltpi() -> dict:
     return results
 
 
-def send_telegram_message(message: str, force: bool = False) -> dict:
+def send_telegram_message(message: str, force: bool = False, category: str = "alert", current_values: Optional[dict] = None) -> dict:
     """
-    Send a message via Telegram.
+    Send a message via Telegram with configurable verbosity and major-change bypass.
     
     Args:
-        message: The message text (supports Markdown)
-        force: If True, ignore quiet hours and brew_active gates and send anyway
+        message: The message text
+        force: If True, bypass all gates (verbosity, quiet hours, brew_active)
+        category: 'alert' or 'report' (different verbosity timers)
+        current_values: Optional dict {'temp': float, 'sg': float} to check for bypass
         
     Returns:
         Dict with status or error
     """
+    from core.cache import cache
+    
     if not force:
         brew_active_val = get_config("brew_active")
         if str(brew_active_val).lower() == 'false':
-            logger.info("Telegram message skipped: brew_active is false")
             return {"status": "skipped", "reason": "brew_inactive"}
             
-    # Check quiet hours
-    if not force and is_quiet_hours():
-        logger.info("Telegram message skipped: quiet hours active")
-        return {"status": "skipped", "reason": "quiet_hours"}
-    
+        # Check quiet hours
+        if is_quiet_hours():
+            return {"status": "skipped", "reason": "quiet_hours"}
+
+        # --- VERBOSITY RATE LIMITING ---
+        verbosity_key = f"last_notified_{category}"
+        last_notified_ts = cache.get(verbosity_key)
+        
+        verbosity_min = int(get_config("alert_verbosity_min" if category == "alert" else "report_verbosity_min") or 0)
+        
+        if last_notified_ts and verbosity_min > 0:
+            elapsed = (datetime.now().timestamp() - last_notified_ts) / 60
+            
+            if elapsed < verbosity_min:
+                # Check for "Major Change" Bypass (Alerts only)
+                if category == "alert" and current_values:
+                    last_vals = cache.get("last_notified_values") or {}
+                    
+                    t_bypass = float(get_config("bypass_temp_threshold") or 0.5)
+                    sg_bypass = float(get_config("bypass_sg_threshold") or 0.005)
+                    
+                    major_change = False
+                    if "temp" in current_values and "temp" in last_vals:
+                        if abs(current_values["temp"] - last_vals["temp"]) >= t_bypass:
+                            major_change = True
+                    if "sg" in current_values and "sg" in last_vals:
+                        if abs(current_values["sg"] - last_vals["sg"]) >= sg_bypass:
+                            major_change = True
+                            
+                    if not major_change:
+                        return {"status": "skipped", "reason": "verbosity_limit", "elapsed_min": round(elapsed, 1)}
+                    else:
+                        logger.info(f"Bypassing verbosity limit due to major change: {current_values}")
+                else:
+                    return {"status": "skipped", "reason": "verbosity_limit", "elapsed_min": round(elapsed, 1)}
+
     token = get_config("alert_telegram_token")
     chat_id = get_config("alert_telegram_chat")
     
     if not token or not chat_id:
-        logger.warning("Telegram credentials not set. Message skipped.")
         return {"error": "Telegram credentials not set"}
         
     url = f"https://api.telegram.org/bot{token}/sendMessage"
-    payload = {
-        "chat_id": chat_id,
-        "text": message,
-        "parse_mode": "Markdown"
-    }
+    payload = {"chat_id": chat_id, "text": message, "parse_mode": "Markdown"}
     
     try:
         res = requests.post(url, json=payload, timeout=5)
         if res.status_code == 200:
+            # Update last notified state
+            now_ts = datetime.now().timestamp()
+            cache.set(verbosity_key, now_ts, ttl=86400)
+            if current_values:
+                cache.set("last_notified_values", current_values, ttl=86400)
             return {"status": "success"}
         else:
             logger.error(f"Telegram Error: {res.text}")

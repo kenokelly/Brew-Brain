@@ -31,7 +31,9 @@ DEFAULTS: Dict[str, str] = {
     "bf_user": "", "bf_key": "", "alert_telegram_token": "", "alert_telegram_chat": "",
     "temp_max": "28.0", "tilt_timeout_min": "60",
     "test_sg_start": "1.060", "test_temp_base": "20.0",
-    "alert_start_time": "08:00", "alert_end_time": "22:00"
+    "alert_start_time": "08:00", "alert_end_time": "22:00",
+    "alert_verbosity_min": "0", "report_verbosity_min": "60",
+    "bypass_temp_threshold": "0.5", "bypass_sg_threshold": "0.005"
 }
 
 # Config Cache
