@@ -33,12 +33,15 @@ The following issues were identified during the hardening phase and require futu
 | **BB-001** | WebSocket | LOW | `WebSocket broadcast failed: 'NoneType' object has no attribute 'emit'` errors in worker logs. | Celery workers attempt to emit Socket.io events but don't have a valid socket context. Fix via Redis-backed message queue. |
 | **BB-002** | ML Sync | MEDIUM | `No sensor data found for this batch` during export. | Batch start/end timestamps from Brewfather often don't perfectly overlap with InfluxDB data. Need fuzzy matching or manual date-range override. |
 | **BB-003** | UI Tests | LOW | `test_ui_improvements.py` fails collection due to missing Playwright. | Environment-specific dependency. Move UI tests to a separate job or container. |
-| **BB-004** | Anomaly Det. | HIGH | `division by zero` in anomaly score calculation when data is sparse. | Add guard clauses to `app/services/anomaly.py` for empty dataframes or zero variance. |
+| **BB-004** | Anomaly Det. | HIGH | `division by zero` in anomaly score calculation when data is sparse. | **RESOLVED:** Added guard clauses and min-variance checks to `calculate_anomaly_score`. |
 | **BB-005** | Recipe Ingest | MEDIUM | 404 errors for external recipe URLs. | Sources like 'BeerXML-Standard' are outdated. Update URLs in `app/services/tasks.py`. |
 
 ---
 
 ## 3. Deployment Summary
+*   **Alert Verbosity:** Implemented dual-tier rate limiting (Alerts vs Reports) with persistent Redis-backed cooldowns.
+*   **Major Change Bypass:** Configurable thresholds (default 0.5°C, 0.005 SG) now trigger immediate notifications regardless of verbosity settings.
+*   **Smart Recovery:** Signal loss detection now triggers an automated diagnostic sequence (`troubleshoot_tiltpi`) before notifying the user.
 *   **Edge AI Infrastructure:** Ollama container deployed and ready. 
 *   **ML Pipeline:** Hydrated with 5 synthetic batches and trained successfully. 
 *   **Alerting:** Telegram restored and verified with live system alerts.
