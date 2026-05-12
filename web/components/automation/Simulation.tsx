@@ -147,7 +147,9 @@ export function Simulation() {
                                 <button
                                     onClick={() => removeGrain(grain.id)}
                                     disabled={grains.length === 1}
-                                    className="p-2 text-red-400 hover:bg-red-500/20 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed"
+                                    aria-label="Remove grain"
+                                    title={grains.length === 1 ? "Cannot remove the last grain" : "Remove grain"}
+                                    className="p-2 text-red-400 hover:bg-red-500/20 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-red-400 outline-none"
                                 >
                                     <Trash2 className="w-4 h-4" />
                                 </button>
