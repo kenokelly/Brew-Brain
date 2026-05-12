@@ -26,8 +26,8 @@ class SettingsUpdate(BaseModel):
     bf_user: Optional[str] = None
     bf_key: Optional[str] = None
     serp_api_key: Optional[str] = None
-    telegram_token: Optional[str] = None
-    chat_id: Optional[str] = None
+    alert_telegram_token: Optional[str] = None
+    alert_telegram_chat: Optional[str] = None
     batch_name: Optional[str] = None
     og: Optional[float] = None
     target_fg: Optional[float] = None

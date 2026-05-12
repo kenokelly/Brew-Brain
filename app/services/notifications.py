@@ -162,6 +162,9 @@ def send_telegram_message(message: str, force: bool = False, category: str = "al
     """
     from core.cache import cache
     
+    # Always define the key so we can update it after sending, even if forced
+    verbosity_key = f"last_notified_{category}"
+
     if not force:
         brew_active_val = get_config("brew_active")
         if str(brew_active_val).lower() == 'false':
@@ -172,7 +175,6 @@ def send_telegram_message(message: str, force: bool = False, category: str = "al
             return {"status": "skipped", "reason": "quiet_hours"}
 
         # --- VERBOSITY RATE LIMITING ---
-        verbosity_key = f"last_notified_{category}"
         last_notified_ts = cache.get(verbosity_key)
         
         verbosity_min = int(get_config("alert_verbosity_min" if category == "alert" else "report_verbosity_min") or 0)

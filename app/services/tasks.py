@@ -136,3 +136,46 @@ def maintenance_summary():
     except Exception as e:
         logger.error(f"Maintenance summary failed: {e}")
         return {"status": "error", "message": str(e)}
+
+@celery.task(name="services.tasks.sync_brewfather")
+def sync_brewfather():
+    """Daily sync of completed batches from Brewfather."""
+    try:
+        from services.batch_exporter import get_completed_batches, export_batch_to_parquet, aggregate_training_data
+        from datetime import datetime, timezone, timedelta
+        
+        batches = get_completed_batches()
+        if not isinstance(batches, list):
+            return {"status": "error", "message": str(batches)}
+            
+        count = 0
+        for b in batches:
+            try:
+                # Basic extraction logic
+                bid = b.get('_id')
+                name = b.get('name', 'Unknown')
+                start_ms = b.get('brewDate', 0)
+                start_dt = datetime.fromtimestamp(start_ms / 1000.0, tz=timezone.utc)
+                # Estimate 14 days for fermentation if not defined
+                end_dt = start_dt + timedelta(days=14)
+                
+                recipe = b.get('recipe', {})
+                og = recipe.get('og', 1.050)
+                fg = recipe.get('fg', 1.010)
+                style = recipe.get('style', {}).get('name', 'Unknown')
+                yeasts = recipe.get('yeasts', [])
+                yeast_name = yeasts[0].get('name', 'Unknown') if yeasts else 'Unknown'
+                
+                res = export_batch_to_parquet(bid, name, start_dt, end_dt, og, fg, yeast_name, style)
+                if res.get("status") == "success":
+                    count += 1
+            except Exception as inner_e:
+                logger.warning(f"Failed to export batch {b.get('_id')}: {inner_e}")
+        
+        if count > 0:
+            aggregate_training_data()
+            
+        return {"status": "success", "synced_batches": count}
+    except Exception as e:
+        logger.error(f"Brewfather sync failed: {e}")
+        return {"status": "error", "message": str(e)}

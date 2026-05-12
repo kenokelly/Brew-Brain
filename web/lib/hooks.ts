@@ -16,7 +16,19 @@ import type {
 
 // Default fetcher with error handling
 export const fetcher = async <T>(url: string): Promise<T> => {
-    const res = await fetch(url);
+    const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+    };
+
+    // Try to get API token from localStorage
+    if (typeof window !== "undefined") {
+        const token = localStorage.getItem("brew_brain_token");
+        if (token) {
+            headers["Authorization"] = `Bearer ${token}`;
+        }
+    }
+
+    const res = await fetch(url, { headers });
 
     // Check Content-Type
     const contentType = res.headers.get("content-type");

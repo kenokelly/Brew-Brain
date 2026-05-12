@@ -55,6 +55,10 @@ def make_celery(app_name=__name__):
         'train-prediction-models': {
             'task': 'ml.tasks.train_prediction_models',
             'schedule': 86400.0,
+        },
+        'brewfather-sync-daily': {
+            'task': 'services.tasks.sync_brewfather',
+            'schedule': 86400.0,
         }
     }
     

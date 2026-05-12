@@ -70,14 +70,24 @@ class TestNotifications(unittest.TestCase):
     @patch("app.services.notifications.requests.post")
     @patch("app.services.notifications.get_config")
     def test_send_telegram_force(self, mock_get_config, mock_post):
-        mock_get_config.side_effect = lambda k: "fake"
+        # Use a more realistic side effect
+        mock_get_config.side_effect = lambda k: {
+            "alert_telegram_token": "fake",
+            "alert_telegram_chat": "fake",
+            "brew_active": "false", # Gate should be bypassed
+            "alert_verbosity_min": "0"
+        }.get(k)
+        
         mock_resp = MagicMock()
         mock_resp.status_code = 200
         mock_post.return_value = mock_resp
         self.cache.get.return_value = None
         
         with patch("app.services.notifications.is_quiet_hours", return_value=True):
+            # force=True should bypass both brew_active=false and is_quiet_hours=True
             result = notifications.send_telegram_message("Force message", force=True)
+            if result.get("status") != "success":
+                print(f"DEBUG: force test result: {result}")
             self.assertEqual(result.get("status"), "success")
             mock_post.assert_called_once()
 

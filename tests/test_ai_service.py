@@ -3,11 +3,9 @@ from unittest.mock import MagicMock, patch
 from datetime import datetime, timezone, timedelta
 import sys
 import os
+import numpy as np
 
-# Mock dependencies
-mock_np = MagicMock()
-mock_np.mean.side_effect = lambda x: sum(x) / len(x) if x else 0
-sys.modules["numpy"] = mock_np
+# Mock dependencies that are NOT installed or require connections
 sys.modules["influxdb_client"] = MagicMock()
 sys.modules["influxdb_client.client.write_api"] = MagicMock()
 
@@ -32,7 +30,7 @@ mock_cache_module = MagicMock()
 mock_cache_module.cache = mock_cache_obj
 sys.modules["core.cache"] = mock_cache_module
 
-from services.ai import analyze_yeast_history
+from app.services.ai import analyze_yeast_history
 
 class MockRecord:
     def __init__(self, t, v):
@@ -51,7 +49,7 @@ class TestAIService(unittest.TestCase):
     def setUp(self):
         mock_cache_data.clear()
 
-    @patch('services.ai.query_api')
+    @patch('app.services.ai.query_api')
     def test_analyze_yeast_history_caching(self, mock_query_api):
         yeast_name = "US-05"
         now = datetime.now(timezone.utc)
@@ -97,7 +95,7 @@ class TestAIService(unittest.TestCase):
         self.assertIn(cache_key, mock_cache_data)
         self.assertEqual(mock_cache_data[cache_key], result1)
 
-    @patch('services.ai.query_api')
+    @patch('app.services.ai.query_api')
     def test_analyze_yeast_history_no_data(self, mock_query_api):
         mock_query_api.query.return_value = []
         result = analyze_yeast_history("UnknownYeast")
