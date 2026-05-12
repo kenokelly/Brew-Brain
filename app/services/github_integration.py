@@ -1,7 +1,5 @@
 import logging
-import base64
 from github import Github
-from core.config import get_config
 
 logger = logging.getLogger(__name__)
 

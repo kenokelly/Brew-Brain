@@ -187,6 +187,8 @@ function validateVendor(value: any): 'TMM' | 'GEB' | 'Tie' | 'None' {
     return 'None';
 }
 
+import { apiFetch } from '@/lib/api';
+
 // ============================================
 // MAIN COMPONENT
 // ============================================
@@ -204,17 +206,16 @@ export function PriceComparator() {
 
     const fetchRecipes = async () => {
         setLoadingRecipes(true);
-
-        const { data, error } = await safeFetchJson<Recipe[]>('/api/automation/brewfather/recipes');
-
-        if (error) {
+        try {
+            const data = await apiFetch<any>('/api/automation/brewfather/recipes');
+            if (Array.isArray(data.data)) {
+                setRecipes(data.data);
+            }
+        } catch (error: any) {
             console.error('[PriceComparator] Failed to fetch recipes:', error);
-            // Don't show error for recipes - just leave dropdown empty
-        } else if (Array.isArray(data)) {
-            setRecipes(data);
+        } finally {
+            setLoadingRecipes(false);
         }
-
-        setLoadingRecipes(false);
     };
 
     const runComparison = async () => {
@@ -223,40 +224,39 @@ export function PriceComparator() {
         setLoading(true);
         setResult(null);
 
-        const { data, error, rawText } = await safeFetchJson<any>(
-            '/api/automation/sourcing/compare',
-            {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ recipe_id: selectedRecipe })
+        try {
+            const data = await apiFetch<any>(
+                '/api/automation/sourcing/compare',
+                {
+                    method: 'POST',
+                    body: { recipe_id: selectedRecipe }
+                }
+            );
+
+            if (data.data) {
+                const validated = validateComparisonResult(data.data);
+                setResult(validated);
+            } else {
+                setResult({
+                    breakdown: [],
+                    total_tmm: 0,
+                    total_geb: 0,
+                    winner: '',
+                    error: 'No data received from server'
+                });
             }
-        );
-
-        if (error) {
-            // Create a user-friendly error result
+        } catch (error: any) {
             setResult({
                 breakdown: [],
                 total_tmm: 0,
                 total_geb: 0,
                 winner: '',
-                error: error,
-                debug_info: rawText
+                error: error.message,
+                debug_info: JSON.stringify(error.data)
             });
-        } else if (data) {
-            // Validate and sanitize the response
-            const validated = validateComparisonResult(data);
-            setResult(validated);
-        } else {
-            setResult({
-                breakdown: [],
-                total_tmm: 0,
-                total_geb: 0,
-                winner: '',
-                error: 'No data received from server'
-            });
+        } finally {
+            setLoading(false);
         }
-
-        setLoading(false);
     };
 
     const formatPrice = (price: number | string | null | undefined) => {

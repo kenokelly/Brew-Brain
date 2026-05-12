@@ -1,7 +1,6 @@
 import requests
 import logging
 from datetime import datetime, timezone
-from core.config import get_config
 from core.influx import write_api, INFLUX_BUCKET, INFLUX_ORG
 from influxdb_client import Point
 
@@ -80,7 +79,7 @@ def poll_tilt_api():
                 # logger.debug(f"TiltPi API at {url} returned status code {resp.status_code}")
                 continue
                 
-        except Exception as e:
+        except Exception:
             # logger.debug(f"Failed to poll {url}: {e}")
             continue
 

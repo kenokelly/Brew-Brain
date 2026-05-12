@@ -1,5 +1,4 @@
 import logging
-import requests
 import json
 import difflib
 import math
@@ -7,7 +6,6 @@ import re
 import time as std_time
 import threading
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime, date
 from bs4 import BeautifulSoup
 from core.config import get_config
 from serpapi import GoogleSearch

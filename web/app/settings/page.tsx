@@ -20,6 +20,7 @@ import {
 import { cn } from '@/lib/utils';
 import { useSettings, useTaps, useStatus } from '@/lib/hooks';
 import toast from 'react-hot-toast';
+import { apiFetch } from '@/lib/api';
 
 export default function SettingsPage() {
     const router = useRouter();
@@ -62,20 +63,16 @@ export default function SettingsPage() {
     const handleSave = async (e?: React.FormEvent) => {
         if (e) e.preventDefault();
         setSaving(true);
+        const toastId = toast.loading('Saving settings...');
         try {
-            const res = await fetch('/api/settings', {
+            await apiFetch('/api/settings', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(settings)
+                body: settings
             });
-            if (res.ok) {
-                toast.success('Settings saved successfully');
-                mutate();
-            } else {
-                toast.error('Failed to save settings');
-            }
-        } catch (err) {
-            toast.error('Connection error');
+            toast.success('Settings saved successfully', { id: toastId });
+            mutate();
+        } catch (err: any) {
+            toast.error(`Save failed: ${err.message}`, { id: toastId });
         } finally {
             setSaving(false);
         }
@@ -100,11 +97,11 @@ export default function SettingsPage() {
 
     const submitManualTap = async () => {
         if (!selectedTap) return;
+        const toastId = toast.loading('Updating tap...');
         try {
-            await fetch(`/api/taps/${selectedTap}`, {
+            await apiFetch(`/api/taps/${selectedTap}`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
+                body: {
                     action: 'manual',
                     name: manualForm.name,
                     style: manualForm.style,
@@ -114,44 +111,50 @@ export default function SettingsPage() {
                     keg_total: manualForm.keg_total,
                     keg_remaining: manualForm.keg_remaining,
                     volume_unit: manualForm.unit
-                })
+                }
             });
-            toast.success(`Tap ${selectedTap.replace('tap_', '')} updated`);
+            toast.success(`Tap ${selectedTap.replace('tap_', '')} updated`, { id: toastId });
             mutateTaps();
             setActiveModal(null);
-        } catch (e) { toast.error("Failed to update tap"); }
+        } catch (e: any) { 
+            toast.error(`Update failed: ${e.message}`, { id: toastId }); 
+        }
     };
 
     const submitSnapshotTap = async () => {
         if (!selectedTap) return;
+        const toastId = toast.loading('Assigning snapshot...');
         try {
-            await fetch(`/api/taps/${selectedTap}`, {
+            await apiFetch(`/api/taps/${selectedTap}`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
+                body: {
                     action: 'assign_current',
                     keg_total: snapshotForm.keg_total,
                     keg_remaining: snapshotForm.keg_total,
                     volume_unit: snapshotForm.unit
-                })
+                }
             });
-            toast.success(`Snapshot assigned to ${selectedTap.replace('tap_', '')}`);
+            toast.success(`Snapshot assigned to ${selectedTap.replace('tap_', '')}`, { id: toastId });
             mutateTaps();
             setActiveModal(null);
-        } catch (e) { toast.error("Failed to assign snapshot"); }
+        } catch (e: any) { 
+            toast.error(`Assignment failed: ${e.message}`, { id: toastId }); 
+        }
     };
 
     const clearTap = async (tapId: string) => {
         if (!confirm('Are you sure you want to clear this tap?')) return;
+        const toastId = toast.loading('Clearing tap...');
         try {
-            await fetch(`/api/taps/${tapId}`, {
+            await apiFetch(`/api/taps/${tapId}`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'clear' })
+                body: { action: 'clear' }
             });
-            toast.success("Tap cleared");
+            toast.success("Tap cleared", { id: toastId });
             mutateTaps();
-        } catch (e) { toast.error("Failed to clear tap"); }
+        } catch (e: any) { 
+            toast.error(`Clear failed: ${e.message}`, { id: toastId }); 
+        }
     };
 
     // --- Legacy Actions ---
@@ -163,22 +166,21 @@ export default function SettingsPage() {
             return;
         }
         setCalibrating(true);
+        const toastId = toast.loading('Calibrating...');
         try {
-            const res = await fetch('/api/calibrate', {
+            const d = await apiFetch<any>('/api/calibrate', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ sg: val, source: "Manual Entry" })
+                body: { sg: val, source: "Manual Entry" }
             });
-            const d = await res.json();
             if (d.status === 'success' || d.status === 'synced' || d.new_offset !== undefined) {
-                toast.success(`Calibrated! New offset: ${d.new_offset || 'Updated'}`);
+                toast.success(`Calibrated! New offset: ${d.new_offset || 'Updated'}`, { id: toastId });
                 mutate();
                 setManualSg('');
             } else {
-                toast.error(d.message || d.error || "Calibration failed");
+                toast.error(d.message || d.error || "Calibration failed", { id: toastId });
             }
-        } catch (e) {
-            toast.error("Calibration request failed");
+        } catch (e: any) {
+            toast.error(`Calibration request failed: ${e.message}`, { id: toastId });
         } finally {
             setCalibrating(false);
         }
@@ -187,16 +189,15 @@ export default function SettingsPage() {
     const handleSyncBrewfather = async () => {
         const toastId = toast.loading("Syncing with Brewfather...");
         try {
-            const res = await fetch('/api/sync_brewfather', { method: 'POST' });
-            const d = await res.json();
+            const d = await apiFetch<any>('/api/sync_brewfather', { method: 'POST' });
             if (d.status === 'synced') {
                 toast.success(`Synced batch: ${d.data.name}`, { id: toastId });
                 mutate();
             } else {
                 toast.error(`Sync error: ${d.error || 'Unknown'}`, { id: toastId });
             }
-        } catch (e) {
-            toast.error("Connection failed", { id: toastId });
+        } catch (e: any) {
+            toast.error(`Connection failed: ${e.message}`, { id: toastId });
         }
     };
 

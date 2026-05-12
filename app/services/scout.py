@@ -91,7 +91,6 @@ def analyze_xml_recipes(query):
     Searches for BeerXML recipes and analyzes them against G40 specs.
     Calculates Brewer's Percentages and Est. Final pH.
     """
-    import requests
     from services.calculator import validate_equipment
     
     # Mocking for demo purposes

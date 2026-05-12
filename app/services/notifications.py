@@ -77,8 +77,9 @@ def troubleshoot_tiltpi() -> dict:
     
     Returns diagnostic info and suggested actions.
     """
+    from typing import Dict, Any
     tiltpi_url = get_config("tiltpi_url")
-    results = {
+    results: Dict[str, Any] = {
         "status": "checking",
         "checks": [],
         "suggested_actions": []

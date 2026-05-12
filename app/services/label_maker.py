@@ -1,7 +1,6 @@
 import qrcode
 from PIL import Image, ImageDraw, ImageFont
 from io import BytesIO
-import datetime
 
 def generate_label(data):
     """

@@ -2,8 +2,6 @@
 import unittest
 import logging
 import requests
-import json
-import time
 
 # Configure Logging
 logging.basicConfig(level=logging.INFO)

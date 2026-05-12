@@ -11,8 +11,8 @@ Real-time detection of fermentation issues:
 
 import logging
 import numpy as np
-from datetime import datetime, timezone, timedelta
-from typing import Dict, List, Optional, Any
+from datetime import datetime, timezone
+from typing import Dict, Optional, Any
 from core.config import get_config
 from core.influx import query_api, INFLUX_BUCKET
 from services.notifications import send_telegram_message, broadcast_alert, troubleshoot_tiltpi
@@ -436,7 +436,7 @@ def run_all_anomaly_checks(batch_name: str = "Current Batch") -> Dict[str, Any]:
     Runs all anomaly detection checks and returns combined results.
     Called periodically by the scheduler.
     """
-    results = {
+    results: Dict[str, Any] = {
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "batch": batch_name,
         "checks": {},

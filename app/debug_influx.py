@@ -1,5 +1,4 @@
 import os
-import time
 from influxdb_client import InfluxDBClient
 
 url = os.environ.get("INFLUX_URL", "http://influxdb:8086")

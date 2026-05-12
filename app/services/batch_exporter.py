@@ -11,11 +11,10 @@ import base64
 import requests
 import pyarrow as pa
 import pyarrow.parquet as pq
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Dict, List, Optional, Any
 from core.config import get_config
 from core.influx import query_api, INFLUX_BUCKET
-from ml.features import extract_features_from_batch
 
 logger = logging.getLogger(__name__)
 

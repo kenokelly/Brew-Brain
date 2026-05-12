@@ -1,5 +1,5 @@
-from typing import Optional, Dict, Any, Union
-from pydantic import BaseModel, Field, Extra, model_validator
+from typing import Optional
+from pydantic import BaseModel, Field, model_validator
 
 class CalibrationData(BaseModel):
     sensor_type: str = Field(default="tilt", description="Type of sensor, e.g., tilt or ispindel")

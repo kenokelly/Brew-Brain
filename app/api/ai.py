@@ -1,6 +1,6 @@
 from typing import Tuple
-from flask import Blueprint, jsonify, request, Response
-from core.config import get_config, logger
+from flask import Blueprint, request, Response
+from core.config import get_config
 from services.ai import generate_narrative
 from api.routes import api_response, handle_error
 
@@ -40,10 +40,8 @@ def brewmaster_chat() -> Tuple[Response, int]:
         if not user_msg:
             return api_response(status="error", error="Missing message", code=400)
             
-        # For now, this is a placeholder for 15.2
-        return api_response(data={
-            "response": "The Brewmaster assistant is currently in development. Please check back soon!",
-            "status": "experimental"
-        })
+        from services.ai import generate_chat_response
+        result = generate_chat_response(user_msg)
+        return api_response(data=result)
     except Exception as e:
         return handle_error(e, "Chat Error")

@@ -1,10 +1,7 @@
-import numpy as np
-from datetime import datetime, timezone, timedelta
 from typing import Tuple
 from flask import Response
 from flask import Blueprint, request
-from core.config import get_all_config, logger
-from core.auth import require_api_token
+from core.config import get_all_config
 from api.routes import api_response, handle_error
 
 ml_bp = Blueprint('ml', __name__)

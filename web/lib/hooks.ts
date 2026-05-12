@@ -108,7 +108,46 @@ export function useBrewfatherRecipes() {
  * Fetch all application settings
  */
 export function useSettings() {
-    return useSWR<Record<string, string>>('/api/settings', fetcher, {
+    const { data, error, mutate, isValidating } = useSWR<any>('/api/settings', fetcher, {
         revalidateOnFocus: false,
     });
+    
+    return {
+        data: data?.data as Record<string, string> | undefined,
+        status: data?.status,
+        isLoading: !error && !data,
+        isError: error,
+        mutate,
+        isValidating
+    };
+}
+
+/**
+ * Fetch system status
+ */
+export function useStatus() {
+    const { data, error, mutate } = useSWR<any>('/api/status', fetcher, {
+        refreshInterval: 5000,
+    });
+    
+    return {
+        data: data as SystemStatus | undefined,
+        isLoading: !error && !data,
+        isError: error,
+        mutate
+    };
+}
+
+/**
+ * Fetch taps
+ */
+export function useTaps() {
+    const { data, error, mutate } = useSWR<any>('/api/taps', fetcher);
+    
+    return {
+        data: data?.data as Record<string, any> | undefined,
+        isLoading: !error && !data,
+        isError: error,
+        mutate
+    };
 }

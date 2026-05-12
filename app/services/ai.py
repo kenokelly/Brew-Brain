@@ -1,8 +1,8 @@
 import os
 import requests
-import json
 import numpy as np
-from datetime import datetime, timezone, timedelta
+from typing import Optional
+from datetime import datetime, timezone
 from core.influx import query_api, INFLUX_BUCKET
 from core.cache import cache
 from core.config import get_config, logger
@@ -60,6 +60,62 @@ def generate_narrative(batch_data: dict) -> dict:
     except Exception as e:
         logger.error(f"Narrative Error: {e}")
         return {"error": str(e)}
+
+def generate_chat_response(message: str, history: Optional[list] = None) -> dict:
+    """
+    Experimental 'Brewmaster' chat response using local Ollama.
+    """
+    try:
+        from services.status import get_status_dict
+        status = get_status_dict()
+        
+        # 1. Prepare Context
+        batch_name = status.get("batch_name", "Unknown")
+        sg = status.get("sg", "N/A")
+        temp = status.get("temp", "N/A")
+        
+        system_prompt = (
+            "You are the 'Brewmaster', a professional and helpful brewing assistant. "
+            "You have access to the current fermentation data. Be concise, technical, and encouraging."
+        )
+        
+        prompt = (
+            f"Current batch: {batch_name}\n"
+            f"Current Specific Gravity: {sg}\n"
+            f"Current Temperature: {temp}C\n"
+            f"User: {message}\n"
+            "Brewmaster:"
+        )
+
+        # 2. Call Ollama
+        ollama_host = os.environ.get("OLLAMA_HOST", get_config("ollama_host") or "localhost")
+        ollama_url = f"http://{ollama_host}:11434/api/generate"
+        
+        payload = {
+            "model": get_config("ollama_model") or "llama3",
+            "prompt": prompt,
+            "system": system_prompt,
+            "stream": False
+        }
+        
+        try:
+            res = requests.post(ollama_url, json=payload, timeout=30)
+            if res.status_code == 200:
+                text = res.json().get("response")
+                if text:
+                    return {"status": "success", "response": text.strip(), "source": "ollama"}
+        except Exception as e:
+            logger.debug(f"Ollama chat failed: {e}")
+
+        return {
+            "status": "fallback", 
+            "response": "The Brewmaster is currently offline. I can see your batch is at " + str(sg) + " SG, but I can't provide detailed advice right now.",
+            "source": "template"
+        }
+
+    except Exception as e:
+        logger.error(f"Chat AI Error: {e}")
+        return {"status": "error", "message": str(e)}
 
 def analyze_yeast_history(yeast_name):
     """

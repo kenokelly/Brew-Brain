@@ -3,7 +3,7 @@ import sqlite3
 import logging
 import requests
 import hashlib
-from typing import List, Dict, Any, Optional, Tuple
+from typing import List, Dict, Any, Tuple
 from datetime import datetime
 import xml.etree.ElementTree as ET
 

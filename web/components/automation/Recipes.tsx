@@ -32,6 +32,8 @@ interface AnalysisResult {
     recipes: RecipeResult[];
 }
 
+import { apiFetch } from '@/lib/api';
+
 export function Recipes() {
     const [query, setQuery] = useState('');
     const [results, setResults] = useState<RecipeResult[]>([]);
@@ -49,17 +51,15 @@ export function Recipes() {
         setAnalysis(null);
 
         try {
-            const res = await fetch('/api/automation/recipes', {
+            const data = await apiFetch<any>('/api/automation/recipes', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ query: query.trim() })
+                body: { query: query.trim() }
             });
-            const data = await res.json();
 
             if (data.error) {
                 setError(data.error);
-            } else if (Array.isArray(data)) {
-                setResults(data);
+            } else if (Array.isArray(data.data)) {
+                setResults(data.data);
             }
         } catch (e: any) {
             setError(e.message || 'Search failed');
@@ -76,17 +76,15 @@ export function Recipes() {
         setResults([]);
 
         try {
-            const res = await fetch('/api/automation/recipes/analyze', {
+            const data = await apiFetch<any>('/api/automation/recipes/analyze', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ query: query.trim() })
+                body: { query: query.trim() }
             });
-            const data = await res.json();
 
             if (data.error) {
                 setError(data.error);
             } else {
-                setAnalysis(data);
+                setAnalysis(data.data);
             }
         } catch (e: any) {
             setError(e.message || 'Analysis failed');
@@ -100,37 +98,33 @@ export function Recipes() {
         setAuditResults(prev => ({ ...prev, [key]: { loading: true } }));
 
         try {
-            const res = await fetch('/api/automation/learning/audit', {
+            const data = await apiFetch<any>('/api/automation/learning/audit', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
+                body: {
                     style: recipe.style || 'Ale',
                     og: recipe.og,
                     name: recipe.name
-                })
+                }
             });
-            const data = await res.json();
-            setAuditResults(prev => ({ ...prev, [key]: data }));
-        } catch (e) {
-            setAuditResults(prev => ({ ...prev, [key]: { error: 'Audit failed' } }));
+            setAuditResults(prev => ({ ...prev, [key]: data.data }));
+        } catch (e: any) {
+            setAuditResults(prev => ({ ...prev, [key]: { error: 'Audit failed: ' + e.message } }));
         }
     };
 
     const scaleRecipe = async (recipe: RecipeResult) => {
         try {
-            const res = await fetch('/api/automation/recipes/scale', {
+            const data = await apiFetch<any>('/api/automation/recipes/scale', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(recipe)
+                body: recipe
             });
-            const data = await res.json();
             if (!data.error) {
                 // Update the recipe in results
                 if (analysis) {
                     setAnalysis({
                         ...analysis,
                         recipes: analysis.recipes.map(r =>
-                            r.name === recipe.name ? { ...r, ...data } : r
+                            r.name === recipe.name ? { ...r, ...data.data } : r
                         )
                     });
                 }

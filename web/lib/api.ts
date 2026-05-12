@@ -34,6 +34,14 @@ export async function apiFetch<T>(
         ...customHeaders,
     };
 
+    // Try to get API token from localStorage
+    if (typeof window !== "undefined") {
+        const token = localStorage.getItem("brew_brain_token");
+        if (token) {
+            headers["Authorization"] = `Bearer ${token}`;
+        }
+    }
+
     // Only set Content-Type for JSON bodies (not FormData)
     if (body && !(body instanceof FormData)) {
         (headers as Record<string, string>)['Content-Type'] = 'application/json';

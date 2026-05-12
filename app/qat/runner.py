@@ -1,5 +1,4 @@
 import logging
-import json
 from qat.dataset import generate_golden_dataset
 from services import learning, sourcing, calculator
 
@@ -88,7 +87,7 @@ class QATRunner:
         if self.report['failed'] > 0:
             try:
                 from services.notifications import send_telegram_message
-                msg = f"🚨 *SYSTEM FAILURE DETECTED* (QAT)\n\n"
+                msg = "🚨 *SYSTEM FAILURE DETECTED* (QAT)\n\n"
                 msg += f"Failed Tests: {self.report['failed']}\n"
                 for t in self.report['tests']:
                     if t['status'] == 'FAIL':

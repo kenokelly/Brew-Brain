@@ -3,8 +3,8 @@ import json
 from datetime import datetime, timezone
 from typing import Tuple
 from flask import Response
-from flask import Blueprint, request, jsonify
-from core.config import get_config, set_config, get_all_config, BACKUP_DIR, logger
+from flask import Blueprint, request
+from core.config import set_config, get_all_config, BACKUP_DIR
 from core.auth import require_api_token
 from api.routes import api_response, handle_error
 

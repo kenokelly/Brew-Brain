@@ -1,10 +1,10 @@
 import base64
 import requests
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Tuple
 from flask import Response
 from flask import Blueprint, request, send_file
-from core.config import get_config, set_config, logger
+from core.config import get_config, set_config
 from core.auth import require_api_token
 from api.routes import api_response, handle_error
 

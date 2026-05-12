@@ -2,7 +2,7 @@ import json
 import os
 import logging
 import numpy as np
-from datetime import datetime, timezone, timedelta
+from datetime import timedelta
 from scipy.optimize import curve_fit
 from scipy.signal import medfilt
 
@@ -76,6 +76,14 @@ def predict_fg_4pl(times, readings, og=None, yeast_attenuation=None):
         else:
             y_data_smooth = y_data
         
+        if len(y_data_smooth) == 0:
+            return {
+                "predicted_fg": None,
+                "hours_to_terminal": None,
+                "confidence": "Error",
+                "error": "Empty smoothed data"
+            }
+
         # Calculate data-driven initial guesses
         current_max = max(y_data_smooth)
         current_min = min(y_data_smooth)

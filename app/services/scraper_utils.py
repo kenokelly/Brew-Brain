@@ -38,7 +38,7 @@ def extract_price(text):
     # 4. Fallback: Pure number if context suggests (simplified)
     try:
         return float(text)
-    except Exception as e:
+    except Exception:
         pass
         
     return None

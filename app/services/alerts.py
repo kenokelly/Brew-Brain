@@ -3,7 +3,6 @@ import logging
 import io
 import requests
 import base64
-import re
 from core.config import get_config
 from services import yeast
 
@@ -103,7 +102,7 @@ def fetch_brewfather_recipes(limit=50):
             elif author:
                 recipe['name'] = f"{author}'s Recipe"
             else:
-                recipe['name'] = f"Untitled Recipe"
+                recipe['name'] = "Untitled Recipe"
     
     return all_recipes
 

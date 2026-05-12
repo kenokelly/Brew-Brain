@@ -7,7 +7,7 @@ Uses standard brewing chemistry for CaSO4 (Gypsum), CaCl2, MgSO4 (Epsom), NaHCO3
 
 import logging
 from dataclasses import dataclass, asdict
-from typing import Dict, Optional
+from typing import Dict
 @dataclass
 class WaterProfile:
     name: str

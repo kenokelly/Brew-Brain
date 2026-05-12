@@ -42,6 +42,10 @@ def predict_fg_from_curve(times, readings, og=None, attenuation=None):
         else:
             y_data_smooth = y_data
 
+        if len(y_data_smooth) == 0:
+            logger.warning("Empty smoothed data, skipping prediction")
+            return None, None
+
         current_min = min(y_data_smooth)
         current_max = max(y_data_smooth)
         
