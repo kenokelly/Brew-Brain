@@ -10,6 +10,7 @@ import { useStatus } from '@/lib/hooks';
 
 const NAV_ITEMS = [
     { href: '/', icon: LayoutDashboard, label: 'Dashboard' },
+    { href: '/chat', icon: Bot, label: 'Brewmaster' },
     { href: '/settings', icon: Menu, label: 'Settings' },
     { href: 'http://192.168.155.226:1880/ui/', icon: LayoutDashboard, label: 'TiltPi' },
     { href: '/taplist', icon: Beer, label: 'Tap List' },
@@ -134,13 +135,13 @@ export function NavBar() {
                         <Beer className="w-5 h-5" />
                         <span className="text-[10px] font-medium">Taps</span>
                     </Link>
+                    <Link href="/chat" className={cn("flex items-center justify-center w-full h-full gap-1 flex-col focus-visible:ring-2 focus-visible:ring-primary outline-none", pathname === '/chat' ? "text-primary" : "text-muted-foreground")}>
+                        <Bot className="w-5 h-5" />
+                        <span className="text-[10px] font-medium">Brewmaster</span>
+                    </Link>
                     <Link href="/settings" className={cn("flex items-center justify-center w-full h-full gap-1 flex-col focus-visible:ring-2 focus-visible:ring-primary outline-none", pathname === '/settings' ? "text-primary" : "text-muted-foreground")}>
                         <Menu className="w-5 h-5" />
                         <span className="text-[10px] font-medium">Settings</span>
-                    </Link>
-                    <Link href="/kiosk" className={cn("flex items-center justify-center w-full h-full gap-1 flex-col focus-visible:ring-2 focus-visible:ring-primary outline-none", pathname === '/kiosk' ? "text-primary" : "text-muted-foreground")}>
-                        <Monitor className="w-5 h-5" />
-                        <span className="text-[10px] font-medium">Kiosk</span>
                     </Link>
                 </div>
             </nav>

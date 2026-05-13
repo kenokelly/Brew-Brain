@@ -62,20 +62,36 @@ export const fetcher = async <T>(url: string): Promise<T> => {
  * Fetch system status with 5s refresh interval
  */
 export function useStatus() {
-    return useSWR<SystemStatus>('/api/status', fetcher, {
+    const { data, error, mutate, isLoading } = useSWR<any>('/api/status', fetcher, {
         refreshInterval: 5000,
         revalidateOnFocus: false,
     });
+    
+    return {
+        data: data as SystemStatus | undefined,
+        isLoading,
+        isError: !!error,
+        error,
+        mutate
+    };
 }
 
 /**
  * Fetch tap data with 10s refresh interval
  */
 export function useTaps() {
-    return useSWR<TapsResponse>('/api/taps', fetcher, {
+    const { data, error, mutate, isLoading } = useSWR<any>('/api/taps', fetcher, {
         refreshInterval: 10000,
         revalidateOnFocus: false,
     });
+
+    return {
+        data: data?.data as Record<string, any> | undefined,
+        isLoading,
+        isError: !!error,
+        error,
+        mutate
+    };
 }
 
 /**
@@ -104,50 +120,22 @@ export function useBrewfatherRecipes() {
         revalidateOnFocus: false,
     });
 }
+
 /**
  * Fetch all application settings
  */
 export function useSettings() {
-    const { data, error, mutate, isValidating } = useSWR<any>('/api/settings', fetcher, {
+    const { data, error, mutate, isValidating, isLoading } = useSWR<any>('/api/settings', fetcher, {
         revalidateOnFocus: false,
     });
     
     return {
-        data: data?.data as Record<string, string> | undefined,
+        data: data?.data as Record<string, any> | undefined,
         status: data?.status,
-        isLoading: !error && !data,
-        isError: error,
+        isLoading,
+        isError: !!error,
+        error,
         mutate,
         isValidating
-    };
-}
-
-/**
- * Fetch system status
- */
-export function useStatus() {
-    const { data, error, mutate } = useSWR<any>('/api/status', fetcher, {
-        refreshInterval: 5000,
-    });
-    
-    return {
-        data: data as SystemStatus | undefined,
-        isLoading: !error && !data,
-        isError: error,
-        mutate
-    };
-}
-
-/**
- * Fetch taps
- */
-export function useTaps() {
-    const { data, error, mutate } = useSWR<any>('/api/taps', fetcher);
-    
-    return {
-        data: data?.data as Record<string, any> | undefined,
-        isLoading: !error && !data,
-        isError: error,
-        mutate
     };
 }

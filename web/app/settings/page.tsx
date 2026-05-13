@@ -15,7 +15,9 @@ import {
     Hash,
     Trash2,
     Plus,
-    Scale
+    Scale,
+    Bot,
+    Sparkles
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSettings, useTaps, useStatus } from '@/lib/hooks';
@@ -468,6 +470,33 @@ export default function SettingsPage() {
                                 onChange={(e) => handleChange('serp_api_key', e.target.value)}
                                 className="w-full bg-secondary/30 border border-border/50 rounded-xl px-4 py-2"
                             />
+                        </div>
+
+                        {/* Ollama AI */}
+                        <div className="md:col-span-2 space-y-4 p-4 rounded-2xl bg-secondary/20 border border-border/30">
+                            <h3 className="font-semibold text-sm flex items-center gap-2">
+                                <Sparkles className="w-4 h-4 text-purple-500" /> Ollama AI (Local LLM)
+                            </h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <label className="text-xs font-medium text-muted-foreground">Ollama Host</label>
+                                    <input
+                                        type="text" placeholder="localhost or IP"
+                                        value={settings['ollama_host'] || 'localhost'}
+                                        onChange={(e) => handleChange('ollama_host', e.target.value)}
+                                        className="w-full bg-background border border-border/50 rounded-lg px-3 py-2 text-sm"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-xs font-medium text-muted-foreground">Model Name</label>
+                                    <input
+                                        type="text" placeholder="llama3"
+                                        value={settings['ollama_model'] || 'llama3'}
+                                        onChange={(e) => handleChange('ollama_model', e.target.value)}
+                                        className="w-full bg-background border border-border/50 rounded-lg px-3 py-2 text-sm"
+                                    />
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </section>
