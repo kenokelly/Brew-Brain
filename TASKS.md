@@ -189,7 +189,7 @@ Transform Brew Brain from a monitoring dashboard into an **Intelligent Fermentat
 - [x] **15.2 Narrative Brew Logs** — Created `services/ai.py` and `/api/ai/narrative`.
 - [x] **15.3 Natural Language "Brewmaster"** — Implemented Chat UI and local Ollama integration.
 - [x] **15.4 Smart Troubleshooting** — Implemented backend `analyze_anomaly` and `/api/ai/troubleshoot`.
-- [ ] **15.5 Proactive Advice** — Use AI to suggest adjustments (e.g., temp changes) based on yeast history.
+- [x] **15.5 Proactive Advice** — Created `AdviceWidget` and backend `get_proactive_advice` using yeast metadata and history.
 
 ---
 

@@ -1,7 +1,7 @@
 from typing import Tuple
 from flask import Blueprint, request, Response
 from core.config import get_config
-from services.ai import generate_narrative, analyze_anomaly
+from services.ai import generate_narrative, analyze_anomaly, get_proactive_advice
 from api.routes import api_response, handle_error
 
 ai_bp = Blueprint('ai', __name__)
@@ -60,3 +60,14 @@ def troubleshoot_anomaly() -> Tuple[Response, int]:
         return api_response(data=result)
     except Exception as e:
         return handle_error(e, "Troubleshoot Error")
+
+@ai_bp.route('/advice', methods=['GET'])
+def get_advice() -> Tuple[Response, int]:
+    """
+    AI Proactive Advice endpoint.
+    """
+    try:
+        result = get_proactive_advice()
+        return api_response(data=result)
+    except Exception as e:
+        return handle_error(e, "Advice Error")

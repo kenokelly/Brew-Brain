@@ -9,6 +9,7 @@ import { useStatus } from '@/lib/hooks';
 import { fetcher } from '@/lib/hooks';
 import { DashboardSkeleton } from '@/components/ui/skeleton';
 import { AnomalyWidget } from '@/components/AnomalyWidget';
+import { AdviceWidget } from '@/components/AdviceWidget';
 import { PredictionCard } from '@/components/PredictionCard';
 import { PeerComparisonWidget } from '@/components/PeerComparison';
 import { BrewDayGuide } from '@/components/BrewDayGuide';
@@ -218,8 +219,12 @@ export default function Dashboard() {
         </motion.div>
 
         {/* AI & Insights */}
-        <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <PredictionCard />
+        <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <PredictionCard className="lg:h-full" />
+          <AdviceWidget className="lg:h-full" />
+        </section>
+
+        <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <AnomalyWidget />
           <PeerComparisonWidget />
           <SystemHealth />

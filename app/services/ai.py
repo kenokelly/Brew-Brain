@@ -238,6 +238,76 @@ def analyze_yeast_history(yeast_name):
         print(f"AI Error: {e}")
         return None
 
+def get_proactive_advice() -> dict:
+    """
+    Analyzes current fermentation and provides proactive advice using AI.
+    """
+    try:
+        from services.status import get_status_dict
+        from services.yeast import search_yeast_meta
+        
+        status = get_status_dict()
+        batch_name = status.get("batch_name", "the current batch")
+        yeast_name = get_config("yeast_name") or "Unknown"
+        sg = status.get("sg", "N/A")
+        temp = status.get("temp", "N/A")
+        og = status.get("og", 1.050)
+        
+        # 1. Gather Context
+        yeast_specs = search_yeast_meta(yeast_name) if yeast_name != "Unknown" else {}
+        yeast_history = analyze_yeast_history(yeast_name)
+        
+        system_prompt = (
+            "You are the 'Brewmaster', an expert in fermentation management. "
+            "Provide proactive advice for the current batch. Suggest timing for diacetyl rests, dry hopping, or cold crashing. "
+            "Be technical, concise, and prioritize yeast-specific behavior."
+        )
+        
+        context_parts = [
+            f"Batch: {batch_name}",
+            f"Yeast: {yeast_name}",
+            f"Current SG: {sg} (OG: {og})",
+            f"Current Temp: {temp}C"
+        ]
+        
+        if yeast_specs and "error" not in yeast_specs:
+            context_parts.append(f"Yeast Specs: {yeast_specs}")
+            
+        if yeast_history:
+            context_parts.append(f"Historical Performance in this brewery: {yeast_history}")
+
+        prompt = "\n".join(context_parts) + "\n\nProvide 2-3 specific proactive recommendations for the next 24-48 hours."
+
+        # 2. Call Ollama
+        ollama_host = os.environ.get("OLLAMA_HOST", get_config("ollama_host") or "localhost")
+        ollama_url = f"http://{ollama_host}:11434/api/generate"
+        
+        try:
+            payload = {
+                "model": get_config("ollama_model") or "llama3",
+                "prompt": prompt,
+                "system": system_prompt,
+                "stream": False
+            }
+            res = requests.post(ollama_url, json=payload, timeout=30)
+            if res.status_code == 200:
+                text = res.json().get("response")
+                if text:
+                    return {"status": "success", "advice": text.strip(), "source": "ollama"}
+        except Exception as e:
+            logger.debug(f"Ollama proactive advice failed: {e}")
+
+        # Fallback advice
+        return {
+            "status": "fallback",
+            "advice": "Ensure temperature remains stable. If gravity has dropped by 75%, consider a diacetyl rest by raising the temperature by 2-3°C.",
+            "source": "template"
+        }
+
+    except Exception as e:
+        logger.error(f"Proactive Advice AI Error: {e}")
+        return {"status": "error", "message": str(e)}
+
 def analyze_anomaly(anomaly_data: dict) -> dict:
     """
     Uses the Brewmaster AI to analyze a fermentation anomaly and provide advice.
