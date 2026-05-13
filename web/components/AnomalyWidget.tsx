@@ -2,13 +2,20 @@
 
 import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
-import { AlertTriangle, CheckCircle, Activity, X } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Activity, X, Brain, Loader2, Sparkles } from 'lucide-react';
 import { useSocket } from '@/lib/socket';
 import type { AnomalyAlert, AnomalyStatus } from '@/types/api';
 import { fetcher } from '@/lib/hooks';
+import { apiFetch } from '@/lib/api';
 
 interface AnomalyWidgetProps {
     className?: string;
+}
+
+interface AIAnalysis {
+    status: 'success' | 'fallback' | 'error';
+    analysis: string;
+    source?: string;
 }
 
 const severityConfig = {
@@ -48,6 +55,8 @@ export function AnomalyWidget({ className }: AnomalyWidgetProps) {
     const [recentAlerts, setRecentAlerts] = useState<AnomalyAlert[]>([]);
     const [isExpanded, setIsExpanded] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
+    const [aiAnalysis, setAiAnalysis] = useState<AIAnalysis | null>(null);
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
 
     // Fetch initial anomaly status
     useEffect(() => {
@@ -69,6 +78,36 @@ export function AnomalyWidget({ className }: AnomalyWidgetProps) {
         const interval = setInterval(fetchAnomalyStatus, 5 * 60 * 1000);
         return () => clearInterval(interval);
     }, []);
+
+    const handleTroubleshoot = async () => {
+        if (!anomalyData || isAnalyzing) return;
+        
+        setIsAnalyzing(true);
+        setAiAnalysis(null);
+        
+        try {
+            const result = await apiFetch<AIAnalysis>('/api/ai/troubleshoot', {
+                method: 'POST',
+                body: { 
+                    anomaly: {
+                        type: config.label,
+                        severity: status,
+                        message: recentAlerts[0]?.message || 'General anomaly detected in fermentation parameters.',
+                        batch_name: 'Current Batch',
+                        score: score
+                    } 
+                }
+            });
+            setAiAnalysis(result);
+        } catch (_error) {
+            setAiAnalysis({
+                status: 'error',
+                analysis: 'Failed to connect to Brewmaster AI. Please check if the service is online.'
+            });
+        } finally {
+            setIsAnalyzing(false);
+        }
+    };
 
     // Escape key support for expanded view
     useEffect(() => {
@@ -204,19 +243,45 @@ export function AnomalyWidget({ className }: AnomalyWidgetProps) {
                         </div>
 
                         {/* Score Display */}
-                        <div className={cn("rounded-xl p-4 mb-4", config.bg)}>
-                            <div className="flex items-center gap-3">
-                                <Icon className={cn("w-8 h-8", config.color)} />
-                                <div>
-                                    <div className={cn("text-2xl font-bold", config.color)}>
-                                        {config.label}
-                                    </div>
-                                    <div className="text-sm text-muted-foreground">
-                                        Anomaly Score: {(score * 100).toFixed(0)}%
+                        <div className={cn("rounded-xl p-4 mb-6", config.bg)}>
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <Icon className={cn("w-8 h-8", config.color)} />
+                                    <div>
+                                        <div className={cn("text-2xl font-bold", config.color)}>
+                                            {config.label}
+                                        </div>
+                                        <div className="text-sm text-muted-foreground">
+                                            Anomaly Score: {(score * 100).toFixed(0)}%
+                                        </div>
                                     </div>
                                 </div>
+                                <button
+                                    onClick={handleTroubleshoot}
+                                    disabled={isAnalyzing}
+                                    className="flex items-center gap-2 px-4 py-2 rounded-xl bg-purple-600 text-white hover:bg-purple-500 transition-colors disabled:opacity-50 text-sm font-medium shadow-sm"
+                                >
+                                    {isAnalyzing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Brain className="w-4 h-4" />}
+                                    Troubleshoot
+                                </button>
                             </div>
                         </div>
+
+                        {/* AI Analysis Result */}
+                        {aiAnalysis && (
+                            <div className="mb-6 animate-in fade-in slide-in-from-top-2 duration-500">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <Sparkles className="w-4 h-4 text-purple-500" />
+                                    <h3 className="text-sm font-bold uppercase tracking-wider text-purple-500">Brewmaster Analysis</h3>
+                                    {aiAnalysis.source === 'ollama' && (
+                                        <span className="text-[10px] bg-purple-500/10 text-purple-500 px-2 py-0.5 rounded-full font-bold">AI</span>
+                                    )}
+                                </div>
+                                <div className="p-4 rounded-2xl bg-purple-600/5 border border-purple-500/20 text-sm leading-relaxed whitespace-pre-wrap">
+                                    {aiAnalysis.analysis}
+                                </div>
+                            </div>
+                        )}
 
                         {/* Check Details */}
                         <div className="space-y-3 mb-4">

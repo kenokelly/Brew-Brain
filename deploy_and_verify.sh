@@ -20,16 +20,16 @@ echo "📡 Synchronizing configuration..."
 
 # Function for parallel rsync
 p_sync() {
-    rsync -avz --delete "$@" > /dev/null 2>&1
+    rsync -avz --delete --exclude 'node_modules' --exclude '.next' --exclude '__pycache__' --exclude '*.pyc' "$@" > /dev/null 2>&1
 }
 
-# Sync config files (no longer syncing full app/web dirs since they are in containers)
-p_sync ./docker-compose.yml ./telegraf.conf ./grafana $HOST:$REMOTE_DIR/ &
+# Sync config and source files
+p_sync ./docker-compose.yml ./telegraf.conf ./grafana ./app ./web $HOST:$REMOTE_DIR/ &
 wait
 
-# 2. Pull & Up
-echo "🚀 Pulling latest images and Finalizing Deployment..."
-ssh $HOST "cd $REMOTE_DIR && docker compose pull && docker compose up -d"
+# 2. Rebuild & Up
+echo "🚀 Rebuilding and Finalizing Deployment..."
+ssh $HOST "cd $REMOTE_DIR && docker compose up -d --build"
 
 # 3. Verification (Fast check)
 echo "🔍 Verifying Deployment..."

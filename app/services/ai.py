@@ -237,3 +237,56 @@ def analyze_yeast_history(yeast_name):
     except Exception as e:
         print(f"AI Error: {e}")
         return None
+
+def analyze_anomaly(anomaly_data: dict) -> dict:
+    """
+    Uses the Brewmaster AI to analyze a fermentation anomaly and provide advice.
+    """
+    try:
+        anomaly_type = anomaly_data.get("type", "Unknown Anomaly")
+        severity = anomaly_data.get("severity", "warning")
+        message = anomaly_data.get("message", "No description available")
+        batch_name = anomaly_data.get("batch_name", "the current batch")
+        
+        system_prompt = (
+            "You are the 'Brewmaster', an expert in fermentation troubleshooting. "
+            "Analyze the following anomaly and provide a technical yet accessible explanation and 2-3 actionable steps. "
+            "Be concise and professional."
+        )
+        
+        prompt = (
+            f"Anomaly Type: {anomaly_type}\n"
+            f"Severity: {severity}\n"
+            f"Description: {message}\n"
+            f"Batch: {batch_name}\n\n"
+            "Please provide an analysis and recommendations."
+        )
+
+        # Try Local Ollama
+        ollama_host = os.environ.get("OLLAMA_HOST", get_config("ollama_host") or "localhost")
+        ollama_url = f"http://{ollama_host}:11434/api/generate"
+        
+        try:
+            payload = {
+                "model": get_config("ollama_model") or "llama3",
+                "prompt": prompt,
+                "system": system_prompt,
+                "stream": False
+            }
+            res = requests.post(ollama_url, json=payload, timeout=20)
+            if res.status_code == 200:
+                text = res.json().get("response")
+                if text:
+                    return {"status": "success", "analysis": text.strip(), "source": "ollama"}
+        except Exception as e:
+            logger.debug(f"Ollama anomaly analysis failed: {e}")
+
+        return {
+            "status": "fallback",
+            "analysis": f"The Brewmaster suggests checking the {anomaly_type} carefully. Ensure your Tilt is calibrated and temperature is stable.",
+            "source": "template"
+        }
+
+    except Exception as e:
+        logger.error(f"Anomaly AI Error: {e}")
+        return {"status": "error", "message": str(e)}

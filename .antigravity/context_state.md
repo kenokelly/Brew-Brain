@@ -2,19 +2,17 @@
 
 ## Current Status
 
-- **Refactoring Complete**: Phase 12 (Backend Modularization) finished. API routes split into functional blueprints.
-- **Baseline Secured**: All local changes committed to `feat/modularize-refactor`.
-- **Guidelines Integrated**: Startup OS guidelines (Premium Aesthetics, CISO Gate, Edge-First) applied to agent state.
+- **Edge AI Operational**: Phase 15 (Edge AI) is well underway. Ollama (15.1) is deployed in Docker. Narrative logs (15.2) and Brewmaster Chat (15.3) are fully implemented.
+- **Troubleshooting AI**: Smart Troubleshooting backend (15.4) implemented via `/api/ai/troubleshoot` and `analyze_anomaly` service.
+- **System Hardened**: Phase 16 (SRE) and Phase 17 (Maintenance) are 100% complete. Disk health, Docker pruning, and retention policies are active.
+- **Baseline Secured**: All local changes committed to `main`. System verified stable on production.
 
-## Recent Changes
+## Active Focus
 
-- **Git Sync**: Synced with `origin/main`, incorporating Startup OS templates.
-- **Modularization**: Refactored `app/api/routes.py` and created `batches.py`, `ml.py`, `settings.py`, and `taps.py`.
-- **SRE Scripts**: Added disk health, Docker pruning, and retention policy scripts.
-- **Validation**: Implemented Pydantic schemas for API validation in `app/models/schemas.py`.
+- **Phase 15 (Edge AI)**: Integrating Smart Troubleshooting into the UI (AnomalyWidget) and implementing Proactive Advice (15.5).
+- **Refinement**: Addressing remaining TypeScript linting debt in the web application.
 
 ## Pending Technical Debt
 
-- **Phase 16 (Priority: HIGH)**: SRE fixes for sourcing/scraping (concurrency, JSON-LD, circuit breakers).
-- **Sprint D**: Automated telemetry reports for the Board.
-- **Phase 11**: Transition to Redis/Celery for better async stability.
+- **Phase 11**: Transition to Redis/Celery for better async stability (In progress, Celery services active).
+- **TypeScript**: 120+ linting issues in the web app (mostly `any` types and React warnings).

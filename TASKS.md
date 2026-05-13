@@ -183,12 +183,13 @@ Transform Brew Brain from a monitoring dashboard into an **Intelligent Fermentat
 
 ---
 
-### Phase 15 — Edge AI (Experimental) 🟡
+### Phase 15 — Edge AI (Experimental) ✅
 
-- [ ] **15.1 Ollama Deployment** — Add `ollama/ollama` to `docker-compose.yml` and pull a quantized 3B/8B model (e.g., Llama-3 or Phi-4).
-- [x] **15.2 Narrative Brew Logs** — Created `services/ai.py` and `/api/ai/narrative` to generate automated fermentation summaries (with template fallback).
-- [ ] **15.3 Natural Language "Brewmaster"** — Initial `/api/ai/chat` endpoint created (placeholder).
-- [ ] **15.4 Smart Troubleshooting** — Use the SLM to analyze anomalies and provide actionable advice.
+- [x] **15.1 Ollama Deployment** — Added `ollama/ollama` to `docker-compose.yml`.
+- [x] **15.2 Narrative Brew Logs** — Created `services/ai.py` and `/api/ai/narrative`.
+- [x] **15.3 Natural Language "Brewmaster"** — Implemented Chat UI and local Ollama integration.
+- [x] **15.4 Smart Troubleshooting** — Implemented backend `analyze_anomaly` and `/api/ai/troubleshoot`.
+- [ ] **15.5 Proactive Advice** — Use AI to suggest adjustments (e.g., temp changes) based on yeast history.
 
 ---
 

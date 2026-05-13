@@ -11,6 +11,12 @@ interface Message {
     content: string;
 }
 
+interface ChatResponse {
+    status: 'success' | 'fallback' | 'error';
+    response: string;
+    source?: string;
+}
+
 export default function ChatPage() {
     const [messages, setMessages] = useState<Message[]>([
         { role: 'assistant', content: 'Hello! I am your Brewmaster AI. How can I help with your fermentation today?' }
@@ -34,7 +40,7 @@ export default function ChatPage() {
         setLoading(true);
 
         try {
-            const data: any = await apiFetch('/api/ai/chat', {
+            const data = await apiFetch<ChatResponse>('/api/ai/chat', {
                 method: 'POST',
                 body: { message: userMsg }
             });
@@ -44,7 +50,7 @@ export default function ChatPage() {
             } else {
                 setMessages(prev => [...prev, { role: 'assistant', content: 'Sorry, I encountered an error processing your request.' }]);
             }
-        } catch (err) {
+        } catch (_err) {
             setMessages(prev => [...prev, { role: 'assistant', content: 'Connection to Brewmaster failed. Is Ollama running?' }]);
         } finally {
             setLoading(false);

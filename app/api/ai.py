@@ -1,7 +1,7 @@
 from typing import Tuple
 from flask import Blueprint, request, Response
 from core.config import get_config
-from services.ai import generate_narrative
+from services.ai import generate_narrative, analyze_anomaly
 from api.routes import api_response, handle_error
 
 ai_bp = Blueprint('ai', __name__)
@@ -45,3 +45,18 @@ def brewmaster_chat() -> Tuple[Response, int]:
         return api_response(data=result)
     except Exception as e:
         return handle_error(e, "Chat Error")
+
+@ai_bp.route('/troubleshoot', methods=['POST'])
+def troubleshoot_anomaly() -> Tuple[Response, int]:
+    """
+    AI Anomaly Analysis endpoint.
+    """
+    try:
+        anomaly_data = request.json.get("anomaly")
+        if not anomaly_data:
+            return api_response(status="error", error="Missing anomaly data", code=400)
+            
+        result = analyze_anomaly(anomaly_data)
+        return api_response(data=result)
+    except Exception as e:
+        return handle_error(e, "Troubleshoot Error")
