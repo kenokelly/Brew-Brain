@@ -1,0 +1,3 @@
+## 2024-05-11 - Batching InfluxDB Queries with yield()
+**Learning:** InfluxDB allows executing multiple Flux queries in a single HTTP request by separating them with a newline and appending `|> yield(name: '...')` to each. The results can be distinguished during parsing by checking the `result` key (e.g. `record.values.get('result')`). This bypasses significant network latency for sequential queries.
+**Action:** Always look for sequential synchronous `query_api.query()` calls in the same function block and refactor them into a single batched query using `yield()` to improve execution speed and reduce overhead.

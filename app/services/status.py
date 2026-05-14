@@ -122,34 +122,32 @@ def get_daily_telemetry() -> dict:
         batch_name = get_config("batch_name") or "Unknown"
         og = float(get_config("og") or 1.050)
         
-        # 1. Get Latest and 24h ago data
-        q_now = f'from(bucket: "{INFLUX_BUCKET}") |> range(start: -1h) |> filter(fn: (r) => r["_measurement"] == "calibrated_readings") |> last()'
-        q_24h = f'from(bucket: "{INFLUX_BUCKET}") |> range(start: -25h, stop: -23h) |> filter(fn: (r) => r["_measurement"] == "calibrated_readings") |> last()'
+        # 1. Get Latest and 24h ago data, plus temp stability
+        # Batching three queries into one via yield()
+        q_batch = f'''
+        from(bucket: "{INFLUX_BUCKET}") |> range(start: -1h) |> filter(fn: (r) => r["_measurement"] == "calibrated_readings") |> last() |> yield(name: "now")
+        from(bucket: "{INFLUX_BUCKET}") |> range(start: -25h, stop: -23h) |> filter(fn: (r) => r["_measurement"] == "calibrated_readings") |> last() |> yield(name: "24h")
+        from(bucket: "{INFLUX_BUCKET}") |> range(start: -24h) |> filter(fn: (r) => r["_measurement"] == "calibrated_readings" and r["_field"] == "temp") |> yield(name: "temp")
+        '''
         
-        res_now = query_api.query(q_now)
-        res_24h = query_api.query(q_24h)
+        res_batch = query_api.query(q_batch)
         
         sg_now, sg_24h = None, None
         temp_min, temp_max = 99.0, 0.0
         
-        # Parse current
-        for t in res_now:
+        for t in res_batch:
             for r in t.records:
-                if r.get_field() == "sg": sg_now = r.get_value()
-        
-        # Parse 24h ago and get temp range for stability check
-        for t in res_24h:
-            for r in t.records:
-                if r.get_field() == "sg": sg_24h = r.get_value()
-        
-        # Temp stability check (24h window)
-        q_temp = f'from(bucket: "{INFLUX_BUCKET}") |> range(start: -24h) |> filter(fn: (r) => r["_measurement"] == "calibrated_readings" and r["_field"] == "temp")'
-        res_temp = query_api.query(q_temp)
-        for t in res_temp:
-            for r in t.records:
+                res_name = r.values.get("result") or r["result"]
+                field = r.get_field()
                 val = r.get_value()
-                if val < temp_min: temp_min = val
-                if val > temp_max: temp_max = val
+
+                if res_name == "now" and field == "sg":
+                    sg_now = val
+                elif res_name == "24h" and field == "sg":
+                    sg_24h = val
+                elif res_name == "temp":
+                    if val < temp_min: temp_min = val
+                    if val > temp_max: temp_max = val
         
         if not sg_now or not sg_24h:
             return {"error": "Insufficient data for 24h diff"}
