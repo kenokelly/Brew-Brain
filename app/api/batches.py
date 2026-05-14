@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Tuple
 from flask import Response
 from flask import Blueprint, request, send_file
-from core.config import get_config, set_config
+from core.config import get_config, set_config, logger
 from core.auth import require_api_token
 from api.routes import api_response, handle_error
 
@@ -13,15 +13,26 @@ batches_bp = Blueprint('batches', __name__)
 @batches_bp.route('/sync_brewfather', methods=['POST'])
 @require_api_token
 def sync_brewfather() -> Tuple[Response, int]:
-    u, k = get_config("bf_user"), get_config("bf_key")
-    if not u or not k: 
+    u_raw, k_raw = get_config("bf_user"), get_config("bf_key")
+    
+    if not u_raw or not k_raw: 
+        logger.error("Sync Brewfather failed: Missing Credentials")
         return api_response(status="error", error="Missing Credentials", code=400)
+    
+    # Clean and Log
+    u, k = u_raw.strip(), k_raw.strip()
+    logger.info(f"Sync Brewfather triggered. User len: {len(u)}, Key len: {len(k)}")
     
     try:
         auth = base64.b64encode(f"{u}:{k}".encode()).decode()
-        r = requests.get("https://api.brewfather.app/v2/batches?status=Fermenting&include=recipe", headers={"Authorization": f"Basic {auth}"}, timeout=10)
+        url = "https://api.brewfather.app/v2/batches?status=Fermenting&include=recipe"
+        logger.info(f"Calling Brewfather API: {url}")
+        
+        r = requests.get(url, headers={"Authorization": f"Basic {auth}"}, timeout=10)
+        logger.info(f"Brewfather API response: {r.status_code}")
         
         if r.status_code != 200: 
+            logger.error(f"Brewfather API returned {r.status_code}: {r.text}")
             return api_response(status="error", error=f"API Error {r.status_code}", code=400)
         
         batches = r.json()

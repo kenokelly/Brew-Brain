@@ -15,9 +15,8 @@ import { PeerComparisonWidget } from '@/components/PeerComparison';
 import { BrewDayGuide } from '@/components/BrewDayGuide';
 import { GrafanaChart } from '@/components/GrafanaChart';
 import { SystemHealth } from '@/components/SystemHealth';
-import { motion, AnimatePresence } from 'framer-motion';
 import type { SystemStatus } from '@/types/api';
-import toast from 'react-hot-toast';
+import { toast } from 'react-hot-toast';
 
 interface DataPoint {
   time: string;
@@ -106,11 +105,7 @@ export default function Dashboard() {
       <div className="max-w-7xl mx-auto space-y-6">
 
         {/* Header */}
-        <motion.header 
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4"
-        >
+        <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/60">
               Brew Brain
@@ -137,18 +132,13 @@ export default function Dashboard() {
             <BookOpen className="w-4 h-4" />
             Brew Day Prep
           </button>
-        </motion.header>
+        </header>
 
         {/* Brew Day Guide Modal */}
         <BrewDayGuide isOpen={isGuideOpen} onClose={() => setIsGuideOpen(false)} />
 
         {/* Status Cards (Top 4 Grid) */}
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.1 }}
-          className="grid grid-cols-2 md:grid-cols-4 gap-4"
-        >
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <StatCard
             title="Gravity"
             value={status?.sg ? status.sg.toFixed(3) : "--.---"}
@@ -174,15 +164,10 @@ export default function Dashboard() {
             <span className="text-xs uppercase tracking-widest text-purple-500/80 mb-2 font-bold z-10">Atten.</span>
             <RingChart value={att} max={100} color="#a855f7" unit="%" />
           </div>
-        </motion.div>
+        </div>
 
         {/* Batch Info Card */}
-        <motion.div 
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.2 }}
-          className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-2xl p-6 relative overflow-hidden"
-        >
+        <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-2xl p-6 relative overflow-hidden">
           <div className="flex justify-between items-start mb-2 relative z-10">
             <div className="flex items-center gap-3">
               <h2 className="text-xl font-bold">{status?.batch_name || '--'}</h2>
@@ -216,7 +201,7 @@ export default function Dashboard() {
               </span>
             </div>
           </div>
-        </motion.div>
+        </div>
 
         {/* AI & Insights */}
         <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">

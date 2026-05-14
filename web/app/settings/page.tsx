@@ -199,7 +199,9 @@ export default function SettingsPage() {
                 toast.error(`Sync error: ${d.error || 'Unknown'}`, { id: toastId });
             }
         } catch (e: any) {
-            toast.error(`Connection failed: ${e.message}`, { id: toastId });
+            console.error('Brewfather Sync Failed:', e);
+            const detail = e.data?.error || e.data?.message || e.message;
+            toast.error(`Connection failed: ${detail}`, { id: toastId });
         }
     };
 
