@@ -273,18 +273,32 @@ def test_get_daily_telemetry_success(mock_query, mock_get_config):
     mock_prediction.get_predicted_fg = MagicMock(return_value={"fg": 1.012, "date": "2023-01-10"})
 
     # Mock influx queries
-    # Three queries are made: now, 24h, temp_range
-    mock_record_now = MagicMock(); mock_record_now.get_field.return_value = "sg"; mock_record_now.get_value.return_value = 1.020
-    mock_record_24h = MagicMock(); mock_record_24h.get_field.return_value = "sg"; mock_record_24h.get_value.return_value = 1.030
+    # Batched query returns multiple tables based on yield name
+    mock_record_now = MagicMock()
+    mock_record_now.get_field.return_value = "sg"
+    mock_record_now.get_value.return_value = 1.020
+    mock_record_now.values = {"result": "now"}
 
-    mock_record_temp1 = MagicMock(); mock_record_temp1.get_field.return_value = "temp"; mock_record_temp1.get_value.return_value = 20.0
-    mock_record_temp2 = MagicMock(); mock_record_temp2.get_field.return_value = "temp"; mock_record_temp2.get_value.return_value = 20.5
+    mock_record_24h = MagicMock()
+    mock_record_24h.get_field.return_value = "sg"
+    mock_record_24h.get_value.return_value = 1.030
+    mock_record_24h.values = {"result": "24h"}
+
+    mock_record_temp1 = MagicMock()
+    mock_record_temp1.get_field.return_value = "temp"
+    mock_record_temp1.get_value.return_value = 20.0
+    mock_record_temp1.values = {"result": "temp"}
+
+    mock_record_temp2 = MagicMock()
+    mock_record_temp2.get_field.return_value = "temp"
+    mock_record_temp2.get_value.return_value = 20.5
+    mock_record_temp2.values = {"result": "temp"}
 
     mock_table_now = MagicMock(); mock_table_now.records = [mock_record_now]
     mock_table_24h = MagicMock(); mock_table_24h.records = [mock_record_24h]
     mock_table_temp = MagicMock(); mock_table_temp.records = [mock_record_temp1, mock_record_temp2]
 
-    mock_query.side_effect = [[mock_table_now], [mock_table_24h], [mock_table_temp]]
+    mock_query.return_value = [mock_table_now, mock_table_24h, mock_table_temp]
 
     with patch.dict("sys.modules", {"ml.prediction": mock_prediction}):
         telemetry = get_daily_telemetry()
@@ -306,7 +320,7 @@ def test_get_daily_telemetry_insufficient_data(mock_query, mock_get_config):
     mock_get_config.return_value = "1.050"
 
     # Return empty tables
-    mock_query.side_effect = [[], [], []]
+    mock_query.return_value = []
 
     mock_prediction = MagicMock()
     mock_prediction.get_predicted_fg = MagicMock(return_value={})
