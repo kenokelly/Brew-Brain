@@ -33,8 +33,10 @@ interface TapsResponse {
 export default function TapListPage() {
     const [taps, setTaps] = useState<TapsResponse | null>(null);
     const [loading, setLoading] = useState(true);
+    const [isRefreshing, setIsRefreshing] = useState(false);
 
     const fetchTaps = async () => {
+        setIsRefreshing(true);
         try {
             const res = await fetch('/api/taps', { cache: 'no-store' });
             if (!res.ok) throw new Error("Failed to fetch taps");
@@ -44,6 +46,7 @@ export default function TapListPage() {
             console.error(e);
         } finally {
             setLoading(false);
+            setIsRefreshing(false);
         }
     };
 
@@ -68,9 +71,12 @@ export default function TapListPage() {
                 </div>
                 <button
                     onClick={fetchTaps}
-                    className="p-2 rounded-full bg-secondary/50 hover:bg-secondary text-foreground transition-colors"
+                    disabled={isRefreshing || loading}
+                    aria-label="Refresh tap list"
+                    title="Refresh tap list"
+                    className="p-2 rounded-full bg-secondary/50 hover:bg-secondary text-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                    <RefreshCw className="w-5 h-5" />
+                    <RefreshCw className={cn("w-5 h-5", isRefreshing && "animate-spin")} />
                 </button>
             </header>
 
