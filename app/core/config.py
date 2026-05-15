@@ -33,7 +33,8 @@ DEFAULTS: Dict[str, str] = {
     "test_sg_start": "1.060", "test_temp_base": "20.0",
     "alert_start_time": "08:00", "alert_end_time": "22:00",
     "alert_verbosity_min": "0", "report_verbosity_min": "60",
-    "bypass_temp_threshold": "0.5", "bypass_sg_threshold": "0.005"
+    "bypass_temp_threshold": "0.5", "bypass_sg_threshold": "0.005",
+    "ollama_host": "ollama", "ollama_model": "llama3:latest"
 }
 
 # Config Cache

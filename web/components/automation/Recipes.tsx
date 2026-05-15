@@ -249,12 +249,27 @@ export function Recipes() {
             {/* Simple Search Results */}
             {results.length > 0 && !analysis && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {results.map((r, i) => (
-                        <div key={i} className="p-4 bg-black/20 rounded-xl border border-white/5 hover:border-primary/50 transition-colors">
-                            <div className="font-bold text-lg">{r.name}</div>
-                            <div className="text-sm text-muted-foreground">
+                    {results.map((r: any, i) => (
+                        <div 
+                            key={i} 
+                            onClick={() => r.link && window.open(r.link, '_blank')}
+                            className={cn(
+                                "p-4 bg-black/20 rounded-xl border border-white/5 hover:border-primary/50 transition-colors relative group",
+                                r.link ? "cursor-pointer" : ""
+                            )}
+                        >
+                            <div className="flex justify-between items-start">
+                                <div className="font-bold text-lg text-white group-hover:text-primary transition-colors">{r.name}</div>
+                                {r.link && <ExternalLink className="w-4 h-4 text-muted-foreground group-hover:text-primary opacity-0 group-hover:opacity-100 transition-all" />}
+                            </div>
+                            <div className="text-sm text-muted-foreground mt-1">
                                 {r.style} • {r.abv}% ABV • {r.ibu} IBU
                             </div>
+                            {r.og && (
+                                <div className="text-xs text-muted-foreground/60 mt-2 font-mono">
+                                    Target OG: {r.og.toFixed(3)}
+                                </div>
+                            )}
                         </div>
                     ))}
                 </div>

@@ -18,8 +18,8 @@ export function AdviceWidget({ className }: { className?: string }) {
     const fetchAdvice = async () => {
         setIsLoading(true);
         try {
-            const json = await fetcher<{ status: string; data: AdviceData }>('/api/ai/advice');
-            if (json.status === 'success') {
+            const json = await fetcher<any>('/api/ai/advice');
+            if (json.status === 'success' && json.data) {
                 setAdvice(json.data);
             }
         } catch (error) {

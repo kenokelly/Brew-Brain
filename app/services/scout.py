@@ -54,37 +54,40 @@ def search_ingredients(query):
 
 def search_recipes(query):
     """
-    Searches for homebrew recipes using SerpApi (Google).
-    Targeting popular recipe sites.
+    Searches for recipes in the user's Brewfather library.
+    Filters by name or style based on the query.
     """
-    api_key = get_config("serp_api_key")
-    if not api_key:
-        return [{"title": "API Key Missing", "link": "#", "snippet": "Please set serp_api_key in settings."}]
-        
-    params = {
-        "engine": "google",
-        "q": f"site:brewersfriend.com OR site:brewfather.app OR site:grainfather.com {query} recipe",
-        "api_key": api_key,
-        "num": 10
-    }
+    from services.alerts import fetch_brewfather_recipes
     
     try:
-        search = GoogleSearch(params)
-        results = search.get_dict()
-        organic = results.get("organic_results", [])
+        recipes = fetch_brewfather_recipes()
+        if isinstance(recipes, dict) and 'error' in recipes:
+            return [{"name": "Error", "style": recipes['error'], "abv": "0", "ibu": 0}]
+
+        query_lower = query.lower()
+        filtered = []
         
-        cleaned = []
-        for r in organic:
-            cleaned.append({
-                "title": r.get("title"),
-                "link": r.get("link"),
-                "snippet": r.get("snippet", "")
-            })
+        for r in recipes:
+            name = r.get('name', '').lower()
+            style = r.get('style', {}).get('name', '').lower()
             
-        return cleaned
+            if query_lower in name or query_lower in style:
+                filtered.append({
+                    "name": r.get('name', 'Untitled'),
+                    "style": r.get('style', {}).get('name', 'Unknown'),
+                    "og": r.get('og', 1.050),
+                    "fg": r.get('fg', 1.010),
+                    "abv": str(r.get('abv', '0')),
+                    "ibu": r.get('ibu', 0),
+                    "batch_size_l": r.get('batchSize', 20),
+                    "source_url": r.get('_id'), # Use ID as source for internal link/import
+                    "link": f"https://app.brewfather.app/recipes/{r.get('_id')}"
+                })
+        
+        return filtered
     except Exception as e:
         logger.error(f"Recipe Search Error: {e}")
-        return [{"title": "Search Error", "link": "#", "snippet": str(e)}]
+        return [{"name": "Search Error", "style": str(e), "abv": "0", "ibu": 0}]
 
 def analyze_xml_recipes(query):
     """

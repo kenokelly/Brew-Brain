@@ -40,10 +40,13 @@ export default function ChatPage() {
         setLoading(true);
 
         try {
-            const data = await apiFetch<ChatResponse>('/api/ai/chat', {
+            const res = await apiFetch<any>('/api/ai/chat', {
                 method: 'POST',
                 body: { message: userMsg }
             });
+
+            // The backend wraps results in a "data" object: { status: "success", data: { response: "...", ... } }
+            const data = res.data || res;
 
             if (data.status === 'success' || data.status === 'fallback') {
                 setMessages(prev => [...prev, { role: 'assistant', content: data.response }]);

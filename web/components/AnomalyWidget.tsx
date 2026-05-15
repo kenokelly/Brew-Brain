@@ -86,7 +86,7 @@ export function AnomalyWidget({ className }: AnomalyWidgetProps) {
         setAiAnalysis(null);
         
         try {
-            const result = await apiFetch<AIAnalysis>('/api/ai/troubleshoot', {
+            const res = await apiFetch<any>('/api/ai/troubleshoot', {
                 method: 'POST',
                 body: { 
                     anomaly: {
@@ -98,7 +98,10 @@ export function AnomalyWidget({ className }: AnomalyWidgetProps) {
                     } 
                 }
             });
-            setAiAnalysis(result);
+            
+            // The backend wraps results in a "data" object
+            const data = res.data || res;
+            setAiAnalysis(data);
         } catch (_error) {
             setAiAnalysis({
                 status: 'error',

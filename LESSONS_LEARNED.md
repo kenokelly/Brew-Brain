@@ -26,5 +26,11 @@ This document is a living repository of failures, successes, and insights gather
 *   **The Root Cause:** Sequential network requests and fragile CSS selectors caused timeouts and failed price extraction. Missing imports/globals in previous refactoring.
 *   **The Lesson & Action:** Implemented `ThreadPoolExecutor` for concurrency, JSON-LD for robust parsing, and a TTL-based Circuit Breaker for domain safety. Standardized on "CISO Gate" input sanitization.
 
+### 2026-05-15
+*   **Submitter:** AI Agent (directed by CEO)
+*   **The Incident:** Need for higher precision and reduced complexity in agent-driven modifications.
+*   **The Root Cause:** Vague instructions and "just-in-case" code additions were leading to over-engineering and lack of traceability.
+*   **The Lesson & Action:** Formally adopted four Core Engineering Guidelines: Think Before Coding, Simplicity First, Surgical Changes, and Goal-Driven Execution. These are now mandated in `GEMINI.md` to enforce surgical precision and simplicity in all future development.
+
 ---
 *(Add new entries below this line)*
