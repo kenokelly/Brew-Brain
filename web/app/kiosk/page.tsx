@@ -140,8 +140,9 @@ export default function KioskPage() {
             {/* Exit Kiosk Button */}
             <a
                 href="/"
-                className="fixed bottom-6 right-6 p-4 rounded-full bg-white/5 hover:bg-white/20 text-muted-foreground hover:text-white transition-all backdrop-blur-md border border-white/5 z-50 group"
+                className="fixed bottom-6 right-6 p-4 rounded-full bg-white/5 hover:bg-white/20 text-muted-foreground hover:text-white transition-all backdrop-blur-md border border-white/5 z-50 group focus-visible:ring-2 focus-visible:ring-primary outline-none"
                 title="Exit Kiosk"
+                aria-label="Exit Kiosk"
             >
                 <div className="w-6 h-6 border-2 border-current rounded-md group-hover:scale-90 transition-transform" />
             </a>

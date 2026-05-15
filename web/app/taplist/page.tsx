@@ -68,9 +68,12 @@ export default function TapListPage() {
                 </div>
                 <button
                     onClick={fetchTaps}
-                    className="p-2 rounded-full bg-secondary/50 hover:bg-secondary text-foreground transition-colors"
+                    disabled={loading}
+                    className="p-2 rounded-full bg-secondary/50 hover:bg-secondary text-foreground transition-colors focus-visible:ring-2 focus-visible:ring-primary outline-none disabled:opacity-50"
+                    aria-label="Refresh tap list"
+                    title="Refresh tap list"
                 >
-                    <RefreshCw className="w-5 h-5" />
+                    <RefreshCw className={cn("w-5 h-5", loading && "animate-spin")} />
                 </button>
             </header>
 
