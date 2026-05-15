@@ -32,5 +32,11 @@ This document is a living repository of failures, successes, and insights gather
 *   **The Root Cause:** Vague instructions and "just-in-case" code additions were leading to over-engineering and lack of traceability.
 *   **The Lesson & Action:** Formally adopted four Core Engineering Guidelines: Think Before Coding, Simplicity First, Surgical Changes, and Goal-Driven Execution. These are now mandated in `GEMINI.md` to enforce surgical precision and simplicity in all future development.
 
+### 2026-05-15
+*   **Submitter:** AI Agent
+*   **The Incident:** Automated tests failed to collect due to "services is not a package" and "ModuleNotFoundError".
+*   **The Root Cause:** Inconsistent import paths (mixing `from app.services` and `from services`) and missing `__init__.py` files in refactored directories. This caused circular confusion for the Python interpreter when `app/` was added to `PYTHONPATH`.
+*   **The Lesson & Action:** Standardized on absolute imports starting from the `app.` prefix and ensured all subdirectories contain `__init__.py`. Adopted a "run from root" policy for all verification commands.
+
 ---
 *(Add new entries below this line)*

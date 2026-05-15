@@ -33,15 +33,18 @@ def get_batch_narrative() -> Tuple[Response, int]:
 @ai_bp.route('/chat', methods=['POST'])
 def brewmaster_chat() -> Tuple[Response, int]:
     """
-    Experimental 'Brewmaster' chat endpoint.
+    Experimental 'Brewmaster' chat endpoint with history support.
     """
     try:
-        user_msg = request.json.get("message")
+        data = request.json or {}
+        user_msg = data.get("message")
+        history = data.get("history")
+        
         if not user_msg:
             return api_response(status="error", error="Missing message", code=400)
             
         from services.ai import generate_chat_response
-        result = generate_chat_response(user_msg)
+        result = generate_chat_response(user_msg, history=history)
         return api_response(data=result)
     except Exception as e:
         return handle_error(e, "Chat Error")

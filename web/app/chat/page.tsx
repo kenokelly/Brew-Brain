@@ -42,7 +42,10 @@ export default function ChatPage() {
         try {
             const res = await apiFetch<any>('/api/ai/chat', {
                 method: 'POST',
-                body: { message: userMsg }
+                body: { 
+                    message: userMsg,
+                    history: messages.slice(1) // Skip the first greeting to keep context clean
+                }
             });
 
             // The backend wraps results in a "data" object: { status: "success", data: { response: "...", ... } }

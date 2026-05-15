@@ -10,7 +10,7 @@ from core.config import get_config, logger
 def analyze_yeast_history(yeast_name: str) -> Optional[dict]:
     """
     Queries InfluxDB for historical batches with the same yeast.
-    Returns average attenuation and common temp range.
+    Returns average attenuation, common temp range, and daily drop rate.
     """
     if not yeast_name or yeast_name == "Unknown":
         return None
@@ -19,39 +19,55 @@ def analyze_yeast_history(yeast_name: str) -> Optional[dict]:
     cached = cache.get(cache_key)
     if cached: return cached
 
-    # Query last 12 months for this yeast
-    query = f'''
-    from(bucket: "{INFLUX_BUCKET}")
-      |> range(start: -365d)
-      |> filter(fn: (r) => r["_measurement"] == "fermentation_readings")
-      |> filter(fn: (r) => r["yeast"] == "{yeast_name}")
-      |> filter(fn: (r) => r["_field"] == "sg")
-      |> aggregateWindow(every: 1h, fn: mean, createEmpty: false)
-      |> yield(name: "mean")
-    '''
-    
     try:
-        # Note: This is a simplified placeholder for actual multi-batch analysis logic
-        # In a real implementation, you'd group by batch_id and calculate per-batch stats
-        result = query_api.query(query)
-        if not result: return None
+        # 1. Query Daily SG Drop (Rate)
+        q_rate = f'''
+        from(bucket: "{INFLUX_BUCKET}")
+          |> range(start: -365d)
+          |> filter(fn: (r) => r["_measurement"] == "calibrated_readings")
+          |> filter(fn: (r) => r["yeast"] == "{yeast_name}")
+          |> filter(fn: (r) => r["_field"] == "sg")
+          |> aggregateWindow(every: 24h, fn: spread, createEmpty: false)
+        '''
+        res_rate = query_api.query(q_rate)
+        drops = []
+        for t in res_rate:
+            for r in t.records:
+                val = r.get_value()
+                if val > 0.002: # Only count active fermentation days
+                    drops.append(val)
         
-        # Aggregate logic would go here
-        historic_batches = [] # placeholder
+        avg_rate = np.mean(drops) if drops else 0.008 # Default 8 points/day
         
+        # 2. Query Average Temp
+        q_temp = f'''
+        from(bucket: "{INFLUX_BUCKET}")
+          |> range(start: -365d)
+          |> filter(fn: (r) => r["_measurement"] == "calibrated_readings")
+          |> filter(fn: (r) => r["yeast"] == "{yeast_name}")
+          |> filter(fn: (r) => r["_field"] == "temp")
+          |> mean()
+        '''
+        res_temp = query_api.query(q_temp)
+        avg_temp = 20.0
+        if res_temp:
+            for t in res_temp:
+                for r in t.records:
+                    avg_temp = r.get_value()
+
         result = {
-            "avg_attenuation": 78.5,
-            "avg_temp": 19.5,
-            "samples": len(historic_batches)
+            "avg_attenuation": 75.0, # Placeholder for complex multi-batch OG/FG calc
+            "avg_temp": round(float(avg_temp), 1),
+            "avg_rate": round(float(avg_rate), 4),
+            "samples": len(drops)
         }
 
-        # Cache result for 1 hour
-        cache.set(cache_key, result, ttl=3600)
-
+        # Cache result for 4 hours (yeast history doesn't change fast)
+        cache.set(cache_key, result, ttl=14400)
         return result
 
     except Exception as e:
-        print(f"AI Error: {e}")
+        logger.error(f"AI Yeast History Error: {e}")
         return None
 
 def generate_chat_response(message: str, history: Optional[list] = None) -> dict:
