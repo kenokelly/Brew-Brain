@@ -105,7 +105,7 @@ def generate_chat_response(message: str, history: Optional[list] = None) -> dict
 
         try:
             logger.info(f"Sending request to Ollama ({ollama_url}) with model {payload.get('model')}")
-            res = requests.post(ollama_url, json=payload, timeout=60)
+            res = requests.post(ollama_url, json=payload, timeout=180)
             if res.status_code == 200:
                 text = res.json().get("response")
                 if text:
@@ -174,7 +174,7 @@ def get_proactive_advice() -> dict:
                 "system": system_prompt,
                 "stream": False
             }
-            res = requests.post(ollama_url, json=payload, timeout=30)
+            res = requests.post(ollama_url, json=payload, timeout=180)
             if res.status_code == 200:
                 text = res.json().get("response")
                 if text:
@@ -228,7 +228,7 @@ def analyze_anomaly(anomaly_data: dict) -> dict:
                 "system": system_prompt,
                 "stream": False
             }
-            res = requests.post(ollama_url, json=payload, timeout=20)
+            res = requests.post(ollama_url, json=payload, timeout=180)
             if res.status_code == 200:
                 text = res.json().get("response")
                 if text:
@@ -279,7 +279,7 @@ def generate_narrative(batch_data: dict) -> dict:
                 "prompt": prompt,
                 "stream": False
             }
-            res = requests.post(ollama_url, json=payload, timeout=15)
+            res = requests.post(ollama_url, json=payload, timeout=180)
             if res.status_code == 200:
                 text = res.json().get("response")
                 if text:
