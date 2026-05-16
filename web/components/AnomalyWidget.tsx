@@ -2,11 +2,18 @@
 
 import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
-import { AlertTriangle, CheckCircle, Activity, X, Brain, Loader2, Sparkles } from 'lucide-react';
+import { X, Brain, Loader2 } from 'lucide-react';
 import { useSocket } from '@/lib/socket';
 import type { AnomalyAlert, AnomalyStatus } from '@/types/api';
 import { fetcher } from '@/lib/hooks';
 import { apiFetch } from '@/lib/api';
+import { SeverityIcon, severityConfig } from './anomaly/SeverityIcon';
+import { CheckItem } from './anomaly/CheckItem';
+import { AIAnalysis } from './anomaly/AIAnalysis';
+import { AlertsList } from './anomaly/AlertsList';
+import { StatisticalGrid } from './anomaly/StatisticalGrid';
+
+import { AnomalySkeleton } from '@/components/ui/skeleton';
 
 interface AnomalyWidgetProps {
     className?: string;
@@ -17,37 +24,6 @@ interface AIAnalysis {
     analysis: string;
     source?: string;
 }
-
-const severityConfig = {
-    ok: {
-        color: 'text-emerald-500',
-        bg: 'bg-emerald-500/10',
-        border: 'border-emerald-500/20',
-        icon: CheckCircle,
-        label: 'Normal'
-    },
-    elevated: {
-        color: 'text-amber-400',
-        bg: 'bg-amber-500/10',
-        border: 'border-amber-500/20',
-        icon: Activity,
-        label: 'Elevated'
-    },
-    warning: {
-        color: 'text-orange-500',
-        bg: 'bg-orange-500/10',
-        border: 'border-orange-500/20',
-        icon: AlertTriangle,
-        label: 'Warning'
-    },
-    critical: {
-        color: 'text-rose-500',
-        bg: 'bg-rose-500/10',
-        border: 'border-rose-500/20',
-        icon: AlertTriangle,
-        label: 'Critical'
-    },
-};
 
 export function AnomalyWidget({ className }: AnomalyWidgetProps) {
     const { socket } = useSocket();
@@ -154,20 +130,11 @@ export function AnomalyWidget({ className }: AnomalyWidgetProps) {
     }, [socket]);
 
     const status = anomalyData?.anomaly_status ?? 'ok';
-    const config = severityConfig[status];
-    const Icon = config.icon;
+    const config = severityConfig[status] || severityConfig.ok;
     const score = anomalyData?.anomaly_score ?? 0;
 
     if (isLoading) {
-        return (
-            <div className={cn(
-                "rounded-2xl bg-card p-4 border border-border/50 animate-pulse",
-                className
-            )}>
-                <div className="h-6 bg-secondary rounded w-24 mb-2" />
-                <div className="h-8 bg-secondary rounded w-16" />
-            </div>
-        );
+        return <AnomalySkeleton />;
     }
 
     return (
@@ -195,7 +162,7 @@ export function AnomalyWidget({ className }: AnomalyWidgetProps) {
                 <div className="flex items-center justify-between mb-4">
                     <h3 className="text-sm font-medium text-muted-foreground">Anomaly Status</h3>
                     <div className={cn("p-2 rounded-full bg-secondary/80", config.color)}>
-                        <Icon className="w-5 h-5" />
+                        <SeverityIcon status={status} className="w-5 h-5" />
                     </div>
                 </div>
 
@@ -249,7 +216,7 @@ export function AnomalyWidget({ className }: AnomalyWidgetProps) {
                         <div className={cn("rounded-xl p-4 mb-6", config.bg)}>
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
-                                    <Icon className={cn("w-8 h-8", config.color)} />
+                                    <SeverityIcon status={status} className={cn("w-8 h-8", config.color)} />
                                     <div>
                                         <div className={cn("text-2xl font-bold", config.color)}>
                                             {config.label}
@@ -272,94 +239,36 @@ export function AnomalyWidget({ className }: AnomalyWidgetProps) {
 
                         {/* AI Analysis Result */}
                         {aiAnalysis && (
-                            <div className="mb-6 animate-in fade-in slide-in-from-top-2 duration-500">
-                                <div className="flex items-center gap-2 mb-2">
-                                    <Sparkles className="w-4 h-4 text-purple-500" />
-                                    <h3 className="text-sm font-bold uppercase tracking-wider text-purple-500">Brewmaster Analysis</h3>
-                                    {aiAnalysis.source === 'ollama' && (
-                                        <span className="text-[10px] bg-purple-500/10 text-purple-500 px-2 py-0.5 rounded-full font-bold">AI</span>
-                                    )}
-                                </div>
-                                <div className="p-4 rounded-2xl bg-purple-600/5 border border-purple-500/20 text-sm leading-relaxed whitespace-pre-wrap">
-                                    {aiAnalysis.analysis}
-                                </div>
-                            </div>
+                            <AIAnalysis analysis={aiAnalysis.analysis} source={aiAnalysis.source} />
                         )}
 
                         {/* Check Details */}
                         <div className="space-y-3 mb-4">
                             <h3 className="text-sm font-medium text-muted-foreground">Detection Checks</h3>
                             {anomalyData?.checks && Object.entries(anomalyData.checks).map(([key, check]) => (
-                                <div
-                                    key={key}
-                                    className="flex items-center justify-between p-3 rounded-lg bg-secondary/30"
-                                >
-                                    <span className="capitalize">{key.replace('_', ' ')}</span>
-                                    <span className={cn(
-                                        "text-sm font-medium px-2 py-1 rounded-full",
-                                        check?.status === 'normal' || check?.status === 'ok'
-                                            ? 'bg-emerald-500/10 text-emerald-500'
-                                            : check?.alert_sent
-                                                ? 'bg-rose-500/10 text-rose-500'
-                                                : 'bg-amber-500/10 text-amber-500'
-                                    )}>
-                                        {check?.status || 'unknown'}
-                                    </span>
-                                </div>
+                                <CheckItem 
+                                    key={key} 
+                                    label={key} 
+                                    status={check?.status || 'unknown'} 
+                                    alertSent={check?.alert_sent} 
+                                />
                             ))}
                         </div>
 
                         {/* Z-Score Details */}
-                        {anomalyData?.checks?.statistical && (
-                            <div className="p-4 rounded-xl bg-secondary/20 mb-4">
-                                <h3 className="text-sm font-medium text-muted-foreground mb-2">Statistical Analysis</h3>
-                                <div className="grid grid-cols-2 gap-4 text-sm">
-                                    <div>
-                                        <div className="text-muted-foreground">Temp Z-Score</div>
-                                        <div className="text-lg font-semibold">
-                                            {anomalyData.checks.statistical.temp_zscore?.toFixed(2) ?? '--'}
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <div className="text-muted-foreground">SG Rate Z-Score</div>
-                                        <div className="text-lg font-semibold">
-                                            {anomalyData.checks.statistical.sg_rate_zscore?.toFixed(2) ?? '--'}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
+                        <StatisticalGrid 
+                            tempZScore={anomalyData?.checks?.statistical?.temp_zscore}
+                            sgRateZScore={anomalyData?.checks?.statistical?.sg_rate_zscore}
+                        />
 
                         {/* Recent Alerts */}
-                        {recentAlerts.length > 0 && (
-                            <div>
-                                <h3 className="text-sm font-medium text-muted-foreground mb-2">Recent Alerts</h3>
-                                <div className="space-y-2 max-h-40 overflow-y-auto">
-                                    {recentAlerts.map((alert, i) => (
-                                        <div
-                                            key={i}
-                                            className={cn(
-                                                "p-3 rounded-lg text-sm",
-                                                alert.severity === 'critical' ? 'bg-rose-500/10 text-rose-400' :
-                                                    alert.severity === 'error' ? 'bg-orange-500/10 text-orange-400' :
-                                                        alert.severity === 'warning' ? 'bg-amber-500/10 text-amber-400' :
-                                                            'bg-blue-500/10 text-blue-400'
-                                            )}
-                                        >
-                                            <div className="font-medium">{alert.message}</div>
-                                            <div className="text-xs opacity-70">
-                                                {new Date(alert.timestamp).toLocaleTimeString()}
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
+                        <AlertsList alerts={recentAlerts} />
                     </div>
                 </div>
             )}
         </>
     );
 }
+
 
 export default AnomalyWidget;

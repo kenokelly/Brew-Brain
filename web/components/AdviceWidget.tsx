@@ -5,6 +5,8 @@ import { cn } from '@/lib/utils';
 import { Sparkles, RefreshCcw, ChevronRight, MessageSquare, Lightbulb, Loader2 } from 'lucide-react';
 import { fetcher } from '@/lib/hooks';
 
+import { AdviceSkeleton } from '@/components/ui/skeleton';
+
 interface AdviceData {
     status: 'success' | 'fallback' | 'error';
     advice: string;
@@ -34,15 +36,7 @@ export function AdviceWidget({ className }: { className?: string }) {
     }, []);
 
     if (isLoading && !advice) {
-        return (
-            <div className={cn(
-                "rounded-2xl bg-purple-600/5 border border-purple-500/20 p-6 flex flex-col items-center justify-center min-h-[200px] animate-pulse",
-                className
-            )}>
-                <Loader2 className="w-8 h-8 text-purple-500 animate-spin mb-4" />
-                <div className="h-4 bg-purple-500/10 rounded w-32" />
-            </div>
-        );
+        return <AdviceSkeleton />;
     }
 
     if (!advice) return null;

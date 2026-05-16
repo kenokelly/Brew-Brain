@@ -6,6 +6,8 @@ import { Brain, Clock, ChevronRight, TrendingDown, Thermometer, Database, Activi
 import type { MLPrediction } from '@/types/api';
 import { fetcher } from '@/lib/hooks';
 
+import { PredictionSkeleton } from '@/components/ui/skeleton';
+
 interface PredictionCardProps {
     className?: string;
 }
@@ -41,12 +43,7 @@ export function PredictionCard({ className }: PredictionCardProps) {
     }, []);
 
     if (isLoading) {
-        return (
-            <div className={cn("bg-zinc-900/50 border border-zinc-800 rounded-xl p-6 h-full flex flex-col justify-center items-center gap-4 animate-pulse", className)}>
-                <Brain className="w-8 h-8 text-zinc-700" />
-                <div className="h-4 w-32 bg-zinc-800 rounded" />
-            </div>
-        );
+        return <PredictionSkeleton />;
     }
 
     if (error || !prediction) {

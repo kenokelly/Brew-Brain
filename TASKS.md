@@ -1,7 +1,7 @@
 # Brew Brain — Master Plan
 
 > Single source of truth for project status, requirements, and roadmap.
-> Last updated: 2026-03-19
+> Last updated: 2026-05-17
 
 ---
 
@@ -41,9 +41,9 @@ Transform Brew Brain from a monitoring dashboard into an **Intelligent Fermentat
 | Component | Status | Metrics / Info |
 |-----------|--------|----------------|
 | **Pi Connectivity** | 🟢 Online | Responsive on port 5000 (ICMP/Ping blocked) |
-| **Pi Health** | 🟢 Healthy | Temp: 48.5°C |
+| **Pi Health** | 🟢 Healthy | Temp: 45.2°C, Disk: 80% used (5.7GB avail) |
 | **Active Batch** | 🍺 "IPA no 1" | SG: 1.010 (Target: 1.001) at 16.1°C |
-| **Last Checked** | 2026-03-19 | Verified via `/api/status` |
+| **Last Checked** | 2026-05-17 | Verified via SSH + `/api/status` |
 
 ---
 
@@ -167,19 +167,19 @@ Transform Brew Brain from a monitoring dashboard into an **Intelligent Fermentat
 
 ---
 
-### Phase 13 — Testing & Quality (Priority: LOW) 🟡
+### Phase 13 — Testing & Quality (Priority: LOW) ✅
 
 - [x] **13.1 Increase Coverage** — Added unit tests for `worker.py` and `notifications.py` (alerting logic).
 - [x] **13.2 Automate Verifications** — Converted `verify_*.py` scripts into proper `unittest` tests (e.g., `test_sourcing.py`).
-- [ ] **13.3 Linting & Type Checking** — Add `mypy` and `ruff` to the CI pipeline for stricter code quality.
+- [x] **13.3 Linting & Type Checking** — Added `mypy` and `ruff` to the CI pipeline for stricter code quality.
 
 ---
 
-### Phase 14 — Frontend Optimization (Priority: LOW) ⚪
+### Phase 14 — Frontend Optimization (Priority: LOW) ✅
 
-- [ ] **14.1 Component Refactor** — Break down `AnomalyWidget.tsx` and `nav.tsx` into smaller, reusable components.
-- [ ] **14.2 Socket.io Optimization** — Ensure WebSocket connections are properly managed and don't cause memory leaks.
-- [ ] **14.3 Loading States** — Implement skeleton loaders for all data-heavy views (Charts, Anomaly Widget).
+- [x] **14.1 Component Refactor** — Broke down `AnomalyWidget.tsx` and `nav.tsx` into smaller, reusable components under `components/anomaly` and `components/nav`.
+- [x] **14.2 Socket.io Optimization** — Configured `SocketProvider` to prefer WebSockets over polling for better real-time performance.
+- [x] **14.3 Loading States** — Implemented comprehensive skeleton loaders (`DashboardSkeleton`, `AnomalySkeleton`, etc.) for all major dashboard widgets.
 
 ---
 

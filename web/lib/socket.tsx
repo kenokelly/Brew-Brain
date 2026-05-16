@@ -36,7 +36,7 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
             randomizationFactor: 0.5, // Add randomness to prevent thundering herd
             // Connection settings
             timeout: 20000,
-            transports: ['polling'], // Force polling for maximum stability through proxy
+            transports: ['websocket', 'polling'], // Prefer websocket for performance, fallback to polling
             autoConnect: true,
         });
 
