@@ -7,10 +7,73 @@ from core.config import get_config
 
 logger = logging.getLogger(__name__)
 
-def search_yeast_meta(yeast_name):
+# Local Database of common yeast strains for offline-first intelligence
+YEAST_DATABASE = {
+    "us-05": {
+        "name": "SafAle US-05",
+        "attenuation": "78-82%",
+        "flocculation": "Medium",
+        "temp_range": "18-28°C",
+        "styles": ["American Ale", "IPA", "Stout"],
+        "notes": "Neutral flavor, clean finish. Very robust and reliable."
+    },
+    "s-04": {
+        "name": "SafAle S-04",
+        "attenuation": "72-75%",
+        "flocculation": "High",
+        "temp_range": "15-20°C",
+        "styles": ["English Ale", "Porter", "Stout"],
+        "notes": "Fast fermentation, compact sediment. Slight fruity esters."
+    },
+    "w-34/70": {
+        "name": "Saflager W-34/70",
+        "attenuation": "80-84%",
+        "flocculation": "High",
+        "temp_range": "12-15°C",
+        "styles": ["Lager", "Pilsner"],
+        "notes": "Clean lager profile. High pressure tolerance."
+    },
+    "be-256": {
+        "name": "SafAle BE-256",
+        "attenuation": "82-85%",
+        "flocculation": "High",
+        "temp_range": "15-25°C",
+        "styles": ["Abbey Style", "Belgian Strong"],
+        "notes": "Fast, high alcohol tolerance, spicy/phenolic."
+    },
+    "wlp001": {
+        "name": "White Labs California Ale",
+        "attenuation": "73-80%",
+        "flocculation": "Medium",
+        "temp_range": "20-23°C",
+        "styles": ["American Style Ale"],
+        "notes": "Standard clean ale yeast. Balanced."
+    },
+    "london ale iii": {
+        "name": "Wyeast 1318 London Ale III",
+        "attenuation": "71-75%",
+        "flocculation": "High",
+        "temp_range": "18-23°C",
+        "styles": ["NEIPA", "English Pale"],
+        "notes": "Fruit-forward, great for hazy IPAs. Soft finish."
+    }
+}
+
+def search_yeast_meta(yeast_name: str) -> dict:
     """
-    Searches spec sheets for a yeast strain and attempts to scrape metadata.
+    Searches for yeast metadata, prioritizing the local expert database.
     """
+    if not yeast_name:
+        return {"error": "No yeast name provided"}
+
+    # 1. Check local expert database (fuzzy-ish match)
+    lower_name = yeast_name.lower()
+    for key, data in YEAST_DATABASE.items():
+        if key in lower_name or lower_name in key:
+            logger.info(f"Found yeast '{yeast_name}' in local expert database as '{data['name']}'")
+            return data
+
+    # 2. Fallback to SerpApi Search if local DB fails
     api_key = get_config("serp_api_key")
     if not api_key:
         return {"error": "Missing SerpApi Key"}

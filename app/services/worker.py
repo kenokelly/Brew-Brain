@@ -116,8 +116,7 @@ def process_data_once():
     try:
         offset = float(get_config("offset") or 0.0)
         test_mode = get_config("test_mode") == "true"
-        target_temp = float(get_config("target_temp") or 20.0)
-        current_temp = None
+        float(get_config("target_temp") or 20.0)
         points_to_write = []
         
         if test_mode:
@@ -136,7 +135,6 @@ def process_data_once():
             fake_temp = temp_base + (np.sin(now.timestamp()/100) * 0.5)
             fake_rssi = -60 + int(np.sin(now.timestamp()/50) * 10)
             
-            current_temp = fake_temp # For Controller
             
             p = Point("test_readings")\
                 .tag("Color", "TEST")\
@@ -155,7 +153,7 @@ def process_data_once():
                 for t in t_res:
                     for r in t.records:
                         val = r.get_value()
-                        current_temp = (val - 32) * 5/9 if val > 40 else val
+                        (val - 32) * 5/9 if val > 40 else val
             except Exception as e:
                 logger.debug(f"Temp query issue: {e}")
 
@@ -229,8 +227,7 @@ def process_data():
         try:
             offset = float(get_config("offset") or 0.0)
             test_mode = get_config("test_mode") == "true"
-            target_temp = float(get_config("target_temp") or 20.0)
-            current_temp = None
+            float(get_config("target_temp") or 20.0)
             points_to_write = []
             
             if test_mode:
@@ -249,7 +246,6 @@ def process_data():
                 fake_temp = temp_base + (np.sin(now.timestamp()/100) * 0.5)
                 fake_rssi = -60 + int(np.sin(now.timestamp()/50) * 10)
                 
-                current_temp = fake_temp # For Controller
                 
                 p = Point("test_readings")\
                     .tag("Color", "TEST")\
@@ -268,7 +264,7 @@ def process_data():
                     for t in t_res:
                         for r in t.records:
                             val = r.get_value()
-                            current_temp = (val - 32) * 5/9 if val > 40 else val
+                            (val - 32) * 5/9 if val > 40 else val
                 except Exception as e:
                     logger.debug(f"Temp query issue: {e}")
 
@@ -600,6 +596,7 @@ def check_alerts_once():
         STALL_COOLDOWN = 43200
         
         if (now - alert_state.get("last_stall_alert", 0)) > STALL_COOLDOWN:
+            # 1. Traditional Rule-based Stall Detection
             q_combined = f'''
             from(bucket: "{INFLUX_BUCKET}") |> range(start: -1h) |> filter(fn: (r) => r["_measurement"] == "sensor_data") |> filter(fn: (r) => r["_field"] == "SG") |> last() |> yield(name: "current")
             from(bucket: "{INFLUX_BUCKET}") |> range(start: -25h, stop: -24h) |> filter(fn: (r) => r["_measurement"] == "sensor_data") |> filter(fn: (r) => r["_field"] == "SG") |> last() |> yield(name: "previous")
@@ -623,6 +620,13 @@ def check_alerts_once():
                 if (daily_drop < 0.002) and (sg_current > (target_fg + 0.005)):
                     send_telegram(f"⚠️ Stall Detected! Gravity dropped only {daily_drop:.3f} points in 24h. Current: {sg_current:.3f}")
                     alert_state["last_stall_alert"] = now
+                else:
+                    # 2. Advanced AI-based Predictive Stall Detection
+                    from services.ai import predict_issues
+                    ai_warning = predict_issues()
+                    if ai_warning:
+                        send_telegram(ai_warning)
+                        alert_state["last_stall_alert"] = now # Share cooldown with traditional stall
 
     except Exception as e:
         logger.error(f"Stall Check Error: {e}")

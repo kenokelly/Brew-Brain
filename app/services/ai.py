@@ -2,7 +2,7 @@ import os
 import requests
 import numpy as np
 from typing import Optional
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from core.influx import query_api, INFLUX_BUCKET
 from core.cache import cache
 from core.config import get_config, logger
@@ -100,7 +100,8 @@ def generate_chat_response(message: str, history: Optional[list] = None) -> dict
             "model": get_config("ollama_model") or "llama3:latest",
             "prompt": prompt,
             "system": system_prompt,
-            "stream": False
+            "stream": False,
+            "keep_alive": 0
         }
 
         try:
@@ -130,6 +131,7 @@ def get_proactive_advice() -> dict:
     try:
         from services.status import get_status_dict
         from services.yeast import search_yeast_meta
+        from ml.features import query_batch_data, calculate_sg_velocity
         
         status = get_status_dict()
         batch_name = status.get("batch_name", "the current batch")
@@ -140,30 +142,34 @@ def get_proactive_advice() -> dict:
         
         # 1. Gather Context
         yeast_specs = search_yeast_meta(yeast_name) if yeast_name != "Unknown" else {}
-        yeast_history = analyze_yeast_history(yeast_name)
+        
+        # Calculate Real-time Velocity (Last 24h)
+        now = datetime.now(timezone.utc)
+        start_time = now - timedelta(hours=24)
+        data = query_batch_data(start_time, now)
+        velocity = calculate_sg_velocity(data["sg_readings"], data["sg_times"]) if data["sg_readings"] else 0.0
         
         system_prompt = (
             "You are the 'Brewmaster', an expert in fermentation management. "
             "Provide proactive advice for the current batch. Suggest timing for diacetyl rests, dry hopping, or cold crashing. "
-            "Be technical, concise, and prioritize yeast-specific behavior."
+            "Be technical, extremely concise (max 3 sentences), and prioritize yeast-specific behavior."
         )
         
         context_parts = [
             f"Batch: {batch_name}",
             f"Yeast: {yeast_name}",
             f"Current SG: {sg} (OG: {og})",
-            f"Current Temp: {temp}C"
+            f"Current Temp: {temp}C",
+            f"Fermentation Velocity: {velocity} gravity points/day"
         ]
         
         if yeast_specs and "error" not in yeast_specs:
-            context_parts.append(f"Yeast Specs: {yeast_specs}")
-            
-        if yeast_history:
-            context_parts.append(f"Historical Performance in this brewery: {yeast_history}")
+            # Only include key specs to save context tokens/RAM
+            context_parts.append(f"Yeast Specs: {yeast_specs.get('attenuation')}, {yeast_specs.get('temp_range')}")
 
-        prompt = "\n".join(context_parts) + "\n\nProvide 2-3 specific proactive recommendations for the next 24-48 hours."
+        prompt = "\n".join(context_parts) + "\n\nProvide specific proactive recommendations for the next 24-48 hours."
 
-        # 2. Call Ollama
+        # 2. Call Ollama with Waste Management (keep_alive: 0)
         ollama_host = os.environ.get("OLLAMA_HOST", get_config("ollama_host") or "ollama")
         ollama_url = f"http://{ollama_host}:11434/api/generate"
         
@@ -172,8 +178,10 @@ def get_proactive_advice() -> dict:
                 "model": get_config("ollama_model") or "llama3:latest",
                 "prompt": prompt,
                 "system": system_prompt,
-                "stream": False
+                "stream": False,
+                "keep_alive": 0 # Immediately unload model from RAM after generation
             }
+            logger.info(f"Sending resource-optimized request to Ollama: {context_parts[-1]}")
             res = requests.post(ollama_url, json=payload, timeout=600)
             if res.status_code == 200:
                 text = res.json().get("response")
@@ -226,7 +234,8 @@ def analyze_anomaly(anomaly_data: dict) -> dict:
                 "model": get_config("ollama_model") or "llama3:latest",
                 "prompt": prompt,
                 "system": system_prompt,
-                "stream": False
+                "stream": False,
+                "keep_alive": 0
             }
             res = requests.post(ollama_url, json=payload, timeout=600)
             if res.status_code == 200:
@@ -245,6 +254,64 @@ def analyze_anomaly(anomaly_data: dict) -> dict:
     except Exception as e:
         logger.error(f"Anomaly AI Error: {e}")
         return {"status": "error", "message": str(e)}
+
+def predict_issues() -> Optional[str]:
+    """
+    Analyzes recent trends and uses AI to predict impending issues.
+    Returns a warning message if an issue is predicted, else None.
+    """
+    try:
+        from services.status import get_status_dict
+        from ml.features import query_batch_data, calculate_sg_velocity
+        
+        status = get_status_dict()
+        sg = status.get("sg", 1.050)
+        target_fg = float(get_config("target_fg") or 1.010)
+        
+        # 1. Check if we are in a 'stall-risk' zone
+        if sg <= target_fg + 0.002:
+            return None # Fermentation essentially complete
+            
+        # 2. Get Velocity Trend (Last 48h vs Last 12h)
+        now = datetime.now(timezone.utc)
+        data_12h = query_batch_data(now - timedelta(hours=12), now)
+        data_48h = query_batch_data(now - timedelta(hours=48), now)
+        
+        vel_12h = calculate_sg_velocity(data_12h["sg_readings"], data_12h["sg_times"]) if data_12h["sg_readings"] else 0.0
+        vel_48h = calculate_sg_velocity(data_48h["sg_readings"], data_48h["sg_times"]) if data_48h["sg_readings"] else 0.0
+        
+        # 3. AI Analysis if trend is negative (slowing down significantly)
+        if vel_12h < (vel_48h * 0.4) and vel_48h > 2.0:
+            system_prompt = "You are the 'Brewmaster'. Analyze fermentation speed and flag risks of a stall."
+            prompt = (
+                f"Current SG: {sg}\nTarget FG: {target_fg}\n"
+                f"Velocity (48h avg): {vel_48h} pts/day\n"
+                f"Velocity (Last 12h): {vel_12h} pts/day\n\n"
+                "Is this a normal slowdown or a risk of a premature stall? "
+                "Provide a 1-sentence warning if risky, else respond 'Normal'."
+            )
+            
+            ollama_host = os.environ.get("OLLAMA_HOST", get_config("ollama_host") or "ollama")
+            ollama_url = f"http://{ollama_host}:11434/api/generate"
+            
+            payload = {
+                "model": get_config("ollama_model") or "llama3:latest",
+                "prompt": prompt,
+                "system": system_prompt,
+                "stream": False,
+                "keep_alive": 0
+            }
+            
+            res = requests.post(ollama_url, json=payload, timeout=60)
+            if res.status_code == 200:
+                answer = res.json().get("response", "").strip()
+                if "Normal" not in answer:
+                    return f"🤖 *AI PREDICTION:* {answer}"
+                    
+        return None
+    except Exception as e:
+        logger.error(f"AI Predictive Issue Error: {e}")
+        return None
 
 def generate_narrative(batch_data: dict) -> dict:
     """
@@ -277,7 +344,8 @@ def generate_narrative(batch_data: dict) -> dict:
             payload = {
                 "model": get_config("ollama_model") or "llama3:latest",
                 "prompt": prompt,
-                "stream": False
+                "stream": False,
+                "keep_alive": 0
             }
             res = requests.post(ollama_url, json=payload, timeout=600)
             if res.status_code == 200:
