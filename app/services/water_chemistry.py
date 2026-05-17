@@ -7,7 +7,10 @@ Uses standard brewing chemistry for CaSO4 (Gypsum), CaCl2, MgSO4 (Epsom), NaHCO3
 
 import logging
 from dataclasses import dataclass, asdict
-from typing import Dict
+from typing import Dict, List, Optional
+
+logger = logging.getLogger(__name__)
+
 @dataclass
 class WaterProfile:
     name: str
@@ -18,244 +21,103 @@ class WaterProfile:
     sulfate: float
     bicarbonate: float
     ph: float = 7.0
+    description: str = ""
 
 PROFILES = {
-    "ro": WaterProfile("RO Water", 0, 0, 0, 0, 0, 0, 5.5),
-    "west_coast": WaterProfile("West Coast IPA (Simple)", 110, 18, 25, 50, 250, 20),
-    "neipa": WaterProfile("NEIPA (Simple)", 130, 15, 25, 150, 80, 30),
-    "balanced": WaterProfile("Balanced Profile (Simple)", 100, 15, 20, 90, 90, 45),
-    "yellow_dry": WaterProfile("Yellow Dry (Bru'n Water)", 110, 18, 15, 50, 300, 0, 5.3),
-    "yellow_balanced": WaterProfile("Yellow Balanced (Bru'n Water)", 75, 10, 10, 65, 75, 0, 5.4),
-    "yellow_full": WaterProfile("Yellow Full (Bru'n Water)", 90, 15, 15, 100, 65, 0, 5.4),
-    "neipa_juicy": WaterProfile("NEIPA Juicy (Bru'n Water)", 140, 18, 20, 150, 80, 0, 5.3),
-    "black_balanced": WaterProfile("Black Balanced (Bru'n Water)", 80, 10, 25, 65, 55, 130, 5.5)
+    "ro": WaterProfile("RO Water", 0, 0, 0, 0, 0, 0, 5.5, "Zero-ion baseline"),
+    "west_coast": WaterProfile("West Coast IPA", 110, 18, 25, 50, 250, 20, 5.2, "High sulfate for crisp bitterness"),
+    "neipa_juicy": WaterProfile("NEIPA Juicy", 140, 18, 20, 150, 80, 0, 5.3, "High chloride for soft mouthfeel"),
+    "london_porter": WaterProfile("London Porter", 100, 15, 35, 100, 80, 150, 5.4, "High bicarbonate for dark malts"),
+    "pilsen_soft": WaterProfile("Pilsen Soft", 10, 5, 5, 10, 10, 5, 5.1, "Extremely soft water for lagers"),
+    "balanced": WaterProfile("Balanced Profile", 80, 10, 15, 75, 75, 40, 5.3, "Versatile for many styles"),
+    "black_full": WaterProfile("Black Full", 90, 12, 30, 120, 60, 180, 5.6, "Rich profile for stouts")
 }
 
-def get_profile(name):
-    p = PROFILES.get(name.lower())
-    if p:
-        return asdict(p)
-    return None
-
-def get_all_profiles():
-    return {k: asdict(v) for k, v in PROFILES.items()}
-
-logger = logging.getLogger(__name__)
-
-# Salt contribution rates (ppm per gram per liter)
-# Source: Bru'n Water / Palmer's How to Brew
-SALT_CONTRIBUTIONS = {
-    "gypsum": {      # CaSO4·2H2O
-        "calcium": 61.5,
-        "sulfate": 147.4
-    },
-    "calcium_chloride": {  # CaCl2·2H2O
-        "calcium": 72.0,
-        "chloride": 127.4
-    },
-    "epsom": {       # MgSO4·7H2O
-        "magnesium": 26.1,
-        "sulfate": 103.0
-    },
-    "baking_soda": {  # NaHCO3
-        "sodium": 72.3,
-        "bicarbonate": 191.0
-    },
-    "chalk": {        # Cite CaCO3 (rarely dissolves fully)
-        "calcium": 105.8,
-        "bicarbonate": 158.4
-    },
-    "table_salt": {   # NaCl (non-iodized)
-        "sodium": 103.9,
-        "chloride": 160.3
-    }
+# --- ION CONTRIBUTION RATES ---
+# Grams = (needed_mg/L * volume_L) / contribution_rate_mg_per_g
+ION_CONTRIBUTIONS = {
+    "gypsum": {"ca": 232.0, "so4": 557.0},
+    "calcium_chloride": {"ca": 272.0, "cl": 482.0},
+    "epsom": {"mg": 98.0, "so4": 389.0},
+    "baking_soda": {"na": 273.0, "hco3": 726.0},
+    "table_salt": {"na": 393.0, "cl": 607.0}
 }
-
 
 @dataclass
 class WaterAdditions:
-    """Result of salt addition calculations"""
     gypsum_g: float = 0.0
     calcium_chloride_g: float = 0.0
     epsom_g: float = 0.0
     baking_soda_g: float = 0.0
     table_salt_g: float = 0.0
-    
-    # Resulting chemistry (estimated)
     final_calcium: float = 0.0
     final_magnesium: float = 0.0
     final_sodium: float = 0.0
     final_chloride: float = 0.0
     final_sulfate: float = 0.0
     final_bicarbonate: float = 0.0
-    
-    # Ratios
     sulfate_chloride_ratio: float = 0.0
     ratio_description: str = ""
 
+def get_profile(name: str) -> Optional[dict]:
+    p = PROFILES.get(name.lower())
+    if p: return asdict(p)
+    return None
 
-def calculate_salt_additions(
-    source_water: Dict[str, float],
-    target_profile_name: str,
-    volume_liters: float = 23.0
-) -> Dict:
-    """
-    Calculates required salt additions to hit target water profile.
-    
-    Args:
-        source_water: Dict with keys: calcium, magnesium, sodium, chloride, sulfate, bicarbonate
-                     Use all zeros for RO/distilled water
-        target_profile_name: Name of target profile (e.g., 'neipa', 'west_coast')
-        volume_liters: Batch volume in liters (default: G40 standard 23L)
-    
-    Returns:
-        Dict with salt additions (grams) and final estimated water chemistry
-    """
+def get_all_profiles() -> dict:
+    return {k: asdict(v) for k, v in PROFILES.items()}
+
+def calculate_salt_additions(source_water: Dict[str, float], target_profile_name: str, volume_liters: float = 23.0) -> Dict:
     target = get_profile(target_profile_name)
-    if not target:
-        return {"error": f"Unknown profile: {target_profile_name}"}
+    if not target: return {"error": f"Unknown profile: {target_profile_name}"}
     
-    # Ensure source water has all keys
-    source = {
-        "calcium": source_water.get("calcium", 0),
-        "magnesium": source_water.get("magnesium", 0),
-        "sodium": source_water.get("sodium", 0),
-        "chloride": source_water.get("chloride", 0),
-        "sulfate": source_water.get("sulfate", 0),
-        "bicarbonate": source_water.get("bicarbonate", 0)
-    }
+    add = WaterAdditions()
     
-    # Calculate deltas needed
-    delta = {
-        "calcium": max(0, target["calcium"] - source["calcium"]),
-        "magnesium": max(0, target["magnesium"] - source["magnesium"]),
-        "sodium": max(0, target["sodium"] - source["sodium"]),
-        "chloride": max(0, target["chloride"] - source["chloride"]),
-        "sulfate": max(0, target["sulfate"] - source["sulfate"]),
-        "bicarbonate": max(0, target["bicarbonate"] - source["bicarbonate"])
-    }
-    
-    # ---- Simple Linear Approach ----
-    # Priority: Calcium first (via gypsum for sulfate, CaCl2 for chloride)
-    # Then Magnesium (epsom), Sodium (baking soda for bicarb, table salt for chloride boost)
-    
-    additions = WaterAdditions()
-    
-    # 1. Sulfate: Use Gypsum (also adds Calcium)
-    if delta["sulfate"] > 0:
-        # grams = (ppm_needed * volume_L) / contribution_per_g_per_L
-        gypsum_for_sulfate = (delta["sulfate"] * volume_liters) / (SALT_CONTRIBUTIONS["gypsum"]["sulfate"] * volume_liters)
-        gypsum_for_sulfate = delta["sulfate"] / SALT_CONTRIBUTIONS["gypsum"]["sulfate"]
-        additions.gypsum_g = round(gypsum_for_sulfate, 1)
-        
-        # Calcium contributed by gypsum
-        ca_from_gypsum = additions.gypsum_g * SALT_CONTRIBUTIONS["gypsum"]["calcium"]
-        delta["calcium"] = max(0, delta["calcium"] - ca_from_gypsum)
-    
-    # 2. Chloride: Use Calcium Chloride (also adds Calcium)
-    if delta["chloride"] > 0:
-        cacl2_for_chloride = delta["chloride"] / SALT_CONTRIBUTIONS["calcium_chloride"]["chloride"]
-        additions.calcium_chloride_g = round(cacl2_for_chloride, 1)
-        
-        # Calcium contributed
-        ca_from_cacl2 = additions.calcium_chloride_g * SALT_CONTRIBUTIONS["calcium_chloride"]["calcium"]
-        delta["calcium"] = max(0, delta["calcium"] - ca_from_cacl2)
-    
-    # 3. Magnesium: Use Epsom Salt
-    if delta["magnesium"] > 5:  # Only add if significant
-        epsom_for_mg = delta["magnesium"] / SALT_CONTRIBUTIONS["epsom"]["magnesium"]
-        additions.epsom_g = round(epsom_for_mg, 1)
-    
-    # 4. Bicarbonate (for dark beers): Use Baking Soda
-    if delta["bicarbonate"] > 20:  # Only add if significant
-        soda_for_bicarb = delta["bicarbonate"] / SALT_CONTRIBUTIONS["baking_soda"]["bicarbonate"]
-        additions.baking_soda_g = round(soda_for_bicarb, 1)
-    
-    # Calculate final estimated chemistry
-    additions.final_calcium = round(
-        source["calcium"] + 
-        additions.gypsum_g * SALT_CONTRIBUTIONS["gypsum"]["calcium"] +
-        additions.calcium_chloride_g * SALT_CONTRIBUTIONS["calcium_chloride"]["calcium"],
-        1
-    )
-    additions.final_magnesium = round(
-        source["magnesium"] + 
-        additions.epsom_g * SALT_CONTRIBUTIONS["epsom"]["magnesium"],
-        1
-    )
-    additions.final_sodium = round(
-        source["sodium"] + 
-        additions.baking_soda_g * SALT_CONTRIBUTIONS["baking_soda"]["sodium"] +
-        additions.table_salt_g * SALT_CONTRIBUTIONS["table_salt"]["sodium"],
-        1
-    )
-    additions.final_chloride = round(
-        source["chloride"] + 
-        additions.calcium_chloride_g * SALT_CONTRIBUTIONS["calcium_chloride"]["chloride"] +
-        additions.table_salt_g * SALT_CONTRIBUTIONS["table_salt"]["chloride"],
-        1
-    )
-    additions.final_sulfate = round(
-        source["sulfate"] + 
-        additions.gypsum_g * SALT_CONTRIBUTIONS["gypsum"]["sulfate"] +
-        additions.epsom_g * SALT_CONTRIBUTIONS["epsom"]["sulfate"],
-        1
-    )
-    additions.final_bicarbonate = round(
-        source["bicarbonate"] + 
-        additions.baking_soda_g * SALT_CONTRIBUTIONS["baking_soda"]["bicarbonate"],
-        1
-    )
-    
-    # Calculate SO4:Cl ratio
-    if additions.final_chloride > 0:
-        additions.sulfate_chloride_ratio = round(
-            additions.final_sulfate / additions.final_chloride, 2
-        )
-    else:
-        additions.sulfate_chloride_ratio = float('inf')
-    
-    # Describe the ratio effect
-    ratio = additions.sulfate_chloride_ratio
-    if ratio > 2.0:
-        additions.ratio_description = "Very Bitter / Crisp (West Coast)"
-    elif ratio > 1.5:
-        additions.ratio_description = "Bitter-Forward"
-    elif ratio > 0.8:
-        additions.ratio_description = "Balanced"
-    elif ratio > 0.5:
-        additions.ratio_description = "Malt-Forward / Soft"
-    else:
-        additions.ratio_description = "Very Malty / Full"
-    
-    result = asdict(additions)
-    result["target_profile"] = target_profile_name
-    result["volume_liters"] = volume_liters
-    result["source_water"] = source
-    result["target_water"] = target
-    
-    return result
+    # 1. Magnesium via Epsom
+    needed_mg = max(0, target["magnesium"] - source_water.get("magnesium", 0))
+    if needed_mg > 0:
+        add.epsom_g = round((needed_mg * volume_liters) / ION_CONTRIBUTIONS["epsom"]["mg"], 1)
 
+    # 2. Sulfate: Remainder after Epsom
+    so4_from_epsom = (add.epsom_g * ION_CONTRIBUTIONS["epsom"]["so4"]) / volume_liters
+    needed_so4 = max(0, target["sulfate"] - (source_water.get("sulfate", 0) + so4_from_epsom))
+    if needed_so4 > 0:
+        add.gypsum_g = round((needed_so4 * volume_liters) / ION_CONTRIBUTIONS["gypsum"]["so4"], 1)
+    
+    # 3. Chloride via Calcium Chloride
+    needed_cl = max(0, target["chloride"] - source_water.get("chloride", 0))
+    if needed_cl > 0:
+        add.calcium_chloride_g = round((needed_cl * volume_liters) / ION_CONTRIBUTIONS["calcium_chloride"]["cl"], 1)
+    
+    # 4. Bicarb via Baking Soda
+    needed_hco3 = max(0, target["bicarbonate"] - source_water.get("bicarbonate", 0))
+    if needed_hco3 > 0:
+        add.baking_soda_g = round((needed_hco3 * volume_liters) / ION_CONTRIBUTIONS["baking_soda"]["hco3"], 1)
+
+    # Final Totals
+    def gain(salt, ion, grams): return (grams * ION_CONTRIBUTIONS[salt][ion]) / volume_liters
+
+    add.final_calcium = round(source_water.get("calcium", 0) + gain("gypsum", "ca", add.gypsum_g) + gain("calcium_chloride", "ca", add.calcium_chloride_g), 1)
+    add.final_magnesium = round(source_water.get("magnesium", 0) + gain("epsom", "mg", add.epsom_g), 1)
+    add.final_sodium = round(source_water.get("sodium", 0) + gain("baking_soda", "na", add.baking_soda_g), 1)
+    add.final_chloride = round(source_water.get("chloride", 0) + gain("calcium_chloride", "cl", add.calcium_chloride_g), 1)
+    add.final_sulfate = round(source_water.get("sulfate", 0) + gain("gypsum", "so4", add.gypsum_g) + gain("epsom", "so4", add.epsom_g), 1)
+    add.final_bicarbonate = round(source_water.get("bicarbonate", 0) + gain("baking_soda", "hco3", add.baking_soda_g), 1)
+
+    if add.final_chloride > 0: add.sulfate_chloride_ratio = round(add.final_sulfate / add.final_chloride, 2)
+    else: add.sulfate_chloride_ratio = 9.99
+
+    r = add.sulfate_chloride_ratio
+    if r > 2.0: add.ratio_description = "Very Bitter / Crisp"
+    elif r > 1.5: add.ratio_description = "Bitter-Forward"
+    elif r > 0.8: add.ratio_description = "Balanced"
+    elif r > 0.5: add.ratio_description = "Malt-Forward / Soft"
+    else: add.ratio_description = "Very Malty / Full"
+
+    res = asdict(add)
+    res["target_profile"] = target_profile_name
+    res["volume_liters"] = volume_liters
+    return res
 
 def get_ro_water_source() -> Dict[str, float]:
-    """Returns a zero-ion source water profile (RO/distilled)"""
-    return {
-        "calcium": 0,
-        "magnesium": 0,
-        "sodium": 0,
-        "chloride": 0,
-        "sulfate": 0,
-        "bicarbonate": 0
-    }
-
-
-def get_typical_tap_water() -> Dict[str, float]:
-    """Returns a typical UK tap water profile (London-ish)"""
-    return {
-        "calcium": 100,
-        "magnesium": 5,
-        "sodium": 30,
-        "chloride": 35,
-        "sulfate": 60,
-        "bicarbonate": 180
-    }
+    return {"calcium": 0, "magnesium": 0, "sodium": 0, "chloride": 0, "sulfate": 0, "bicarbonate": 0}
