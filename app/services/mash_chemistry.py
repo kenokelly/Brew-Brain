@@ -151,10 +151,10 @@ def predict_mash_ph(
             # Lactic 88%: ~0.8ml per gallon per 0.1 pH
             result.lactic_acid_ml = round(ph_drop_needed * 10 * 0.8 * mash_gallons, 1)
             
-            # Phosphoric 10%: ~2.5ml per gallon per 0.1 pH  
-            result.phosphoric_acid_ml = round(ph_drop_needed * 10 * 2.5 * mash_gallons, 1)
+            # Phosphoric 75%: ~0.34ml per gallon per 0.1 pH  
+            result.phosphoric_acid_ml = round(ph_drop_needed * 10 * 0.34 * mash_gallons, 1)
             
-            result.notes = f"pH too high. Add {result.lactic_acid_ml}ml lactic acid (88%) OR {result.phosphoric_acid_ml}ml phosphoric acid (10%)"
+            result.notes = f"pH too high. Add {result.lactic_acid_ml}ml lactic acid (88%) OR {result.phosphoric_acid_ml}ml phosphoric acid (75%)"
         
         # If pH too low, suggest calcium carbonate
         elif adjustment_needed > 0.05:

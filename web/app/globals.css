@@ -114,6 +114,8 @@ body {
 @layer components {
   .glass-card {
     @apply bg-card/60 backdrop-blur-xl border border-border/50 shadow-sm;
+    transform: translateZ(0);
+    will-change: transform, backdrop-filter;
   }
   
   .glass-card-hover {

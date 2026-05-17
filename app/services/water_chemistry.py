@@ -30,17 +30,18 @@ PROFILES = {
     "london_porter": WaterProfile("London Porter", 100, 15, 35, 100, 80, 150, 5.4, "High bicarbonate for dark malts"),
     "pilsen_soft": WaterProfile("Pilsen Soft", 10, 5, 5, 10, 10, 5, 5.1, "Extremely soft water for lagers"),
     "balanced": WaterProfile("Balanced Profile", 80, 10, 15, 75, 75, 40, 5.3, "Versatile for many styles"),
-    "black_full": WaterProfile("Black Full", 90, 12, 30, 120, 60, 180, 5.6, "Rich profile for stouts")
+    "black_full": WaterProfile("Black Full", 90, 12, 30, 120, 60, 180, 5.6, "Rich profile for stouts"),
+    "neipa": WaterProfile("NEIPA", 150, 15, 10, 200, 100, 50, 5.2, "High chloride for soft mouthfeel")
 }
 
-# --- ION CONTRIBUTION RATES ---
+# --- ION CONTRIBUTION RATES (Bru'n Water Exact Constants, mg/g) ---
 # Grams = (needed_mg/L * volume_L) / contribution_rate_mg_per_g
 ION_CONTRIBUTIONS = {
-    "gypsum": {"ca": 232.0, "so4": 557.0},
-    "calcium_chloride": {"ca": 272.0, "cl": 482.0},
-    "epsom": {"mg": 98.0, "so4": 389.0},
-    "baking_soda": {"na": 273.0, "hco3": 726.0},
-    "table_salt": {"na": 393.0, "cl": 607.0}
+    "gypsum": {"ca": 232.8, "so4": 557.9},
+    "calcium_chloride": {"ca": 272.6, "cl": 482.3}, # Dihydrate
+    "epsom": {"mg": 98.6, "so4": 389.5},
+    "baking_soda": {"na": 273.7, "hco3": 726.3},
+    "table_salt": {"na": 393.4, "cl": 606.6}
 }
 
 @dataclass
