@@ -193,6 +193,15 @@ Transform Brew Brain from a monitoring dashboard into an **Intelligent Fermentat
 
 ---
 
+### Phase 18 — Edge AI Refinement (Waste Management) ✅
+
+- [x] **18.1 Yeast Metadata DB** — Created a local expert database in `services/yeast.py` for high-quality, offline-first context.
+- [x] **18.2 Dynamic AI Metrics** — Injected real-time gravity velocity (last 24h) and fermentation phase data into AI prompts.
+- [x] **18.3 Predictive Stall Detection** — Implemented AI-powered trend analysis in `worker.py` to flag impending stalls before they trigger traditional alerts.
+- [x] **18.4 RAM Optimization (Waste Management)** — Enforced `keep_alive: 0` for all local LLM calls to ensure model memory is immediately reclaimed on the Pi.
+
+---
+
 ### Phase 16 — Sourcing & SRE Fixes (Priority: HIGH) ✅
 - [x] **16.1 Fix Price Comparison Logic (SRE)** — Removed the 3-item limit. Implemented `ThreadPoolExecutor` for concurrent fetching, an in-memory TTL cache, and thread-safe domain rate-limiting.
 - [x] **16.2 Improve Scraper Reliability** — Updated `search_vendor_direct` with robust JSON-LD parsing and introduced a 429/403 Circuit Breaker in `get_page_content`.
