@@ -20,6 +20,7 @@ class GrainScalingRequest(BaseModel):
     is_g40: bool = True
 
 @calc_bp.route('/ibu', methods=['POST'])
+@calc_bp.route('/../automation/calc_ibu', methods=['POST'])
 def get_ibu():
     """Calculate IBU for a hop addition."""
     try:

@@ -16,15 +16,25 @@ def list_profiles():
     return jsonify({"status": "success", "data": get_all_profiles()})
 
 @water_bp.route('/calculate', methods=['POST'])
-def adjust_water():
+@water_bp.route('/<target_profile>', methods=['GET'])
+def adjust_water(target_profile: Optional[str] = None):
     """Calculate salt additions to reach a target profile."""
     try:
-        data = WaterAdjustmentRequest(**request.json)
-        result = calculate_salt_additions(
-            data.source_water,
-            data.target_profile,
-            data.volume_liters
-        )
+        if request.method == 'GET' and target_profile:
+            # Handle legacy GET request from frontend
+            result = calculate_salt_additions(
+                get_ro_water_source(),
+                target_profile,
+                23.0
+            )
+        else:
+            data = WaterAdjustmentRequest(**request.json)
+            result = calculate_salt_additions(
+                data.source_water,
+                data.target_profile,
+                data.volume_liters
+            )
+        
         if "error" in result:
             return jsonify({"status": "error", "message": result["error"]}), 400
         return jsonify({"status": "success", "data": result})
