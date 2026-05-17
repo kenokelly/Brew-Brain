@@ -65,6 +65,7 @@ export function useStatus() {
     const { data, error, mutate, isLoading } = useSWR<any>('/api/status', fetcher, {
         refreshInterval: 5000,
         revalidateOnFocus: false,
+        keepPreviousData: true,
     });
     
     return {
