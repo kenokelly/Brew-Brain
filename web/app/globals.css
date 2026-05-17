@@ -109,3 +109,31 @@ body {
 @utility pr-safe {
   padding-right: env(safe-area-inset-right);
 }
+
+/* Premium Glassmorphism & Animations */
+@layer components {
+  .glass-card {
+    @apply bg-card/60 backdrop-blur-xl border border-border/50 shadow-sm;
+  }
+  
+  .glass-card-hover {
+    @apply hover:bg-card/80 hover:border-primary/20 hover:shadow-md transition-all duration-300;
+  }
+
+  .glow-primary {
+    @apply shadow-[0_0_15px_rgba(var(--primary),0.1)];
+  }
+
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-br from-foreground to-foreground/60;
+  }
+}
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(0.98); }
+}
+
+.animate-pulse-soft {
+  animation: pulse-soft 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
