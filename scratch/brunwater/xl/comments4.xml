@@ -1,0 +1,644 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<comments xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" mc:Ignorable="xr" xmlns:xr="http://schemas.microsoft.com/office/spreadsheetml/2014/revision"><authors><author>martin.brungard</author><author>Martin Brungard</author><author>Martin.Brungard</author></authors><commentList><comment ref="B2" authorId="0" shapeId="0" xr:uid="{00000000-0006-0000-0400-000001000000}"><text><r><rPr><sz val="9"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Beer Name is entered on 
+</t></r><r><rPr><b/><sz val="9"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Grain Bill Input </t></r><r><rPr><sz val="9"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">sheet.
+</t></r></text></comment><comment ref="A4" authorId="0" shapeId="0" xr:uid="{00000000-0006-0000-0400-000002000000}"><text><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Use this calculator to amend your water 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">to produce a desired water profile.
+</t></r></text></comment><comment ref="A5" authorId="1" shapeId="0" xr:uid="{00000000-0006-0000-0400-000003000000}"><text><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">This is the water profile desired to brew the beer.  
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">To Enter Custom Profiles, </t></r><r><rPr><b/><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">scroll to the bottom 
+</t></r><r><rPr><b/><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>of this sheet</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> and enter values in the Table below.
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">NOTE: </t></r><r><rPr><b/><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">USE A BOILED PROFILE IF 
+</t></r><r><rPr><b/><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">CONSIDERING USING A HISTORIC WATER 
+</t></r><r><rPr><b/><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>PROFILE.</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">  The </t></r><r><rPr><b/><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>"Boiled"</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> water profiles included 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">here, represent the new water profile that results 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">for a water that was boiled to remove temporary 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">hardness and alkalinity.  Where the "original" water 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">profile might have been more suited for darker beers, 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">the "boiled" profile may be more suitable for lighter 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">colored beers.  Boiling and decanting water off the 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">chalky sediment was one of the first water treatment 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>methods used by brewers. The "</t></r><r><rPr><b/><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Boiled</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">" profiles are 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">more likely to produce acceptable pH results.
+</t></r></text></comment><comment ref="C5" authorId="0" shapeId="0" xr:uid="{00000000-0006-0000-0400-000004000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Mashing water Calcium content should typically 
+fall in the range of 40 to 100 ppm.  Less than 
+40 ppm calcium content can be used in lager 
+brewing, but the low calcium content may not 
+produce desirable precipitation of trub and 
+oxalates from wort. High oxalates may lead to 
+beerstone formation.  Calcium aids in yeast 
+floculation and beer clarification, but calcium is 
+not needed for yeast health (the malt provides 
+all the calcium needed for yeast health).
+
+Calcium should not typically exceed 100 ppm 
+unless it has to be added to provide a desirable 
+anion like sulfate to the water.
+
+If calcium content will be less than 40 ppm, 
+adding the sparging water addition to the mash 
+may elevate the mash calcium content above 
+40 ppm. Use the </t></r><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Add Sparging Water 
+mineral additions to the Mash</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> tool below.
+</t></r></text></comment><comment ref="D5" authorId="0" shapeId="0" xr:uid="{00000000-0006-0000-0400-000005000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Magnesium is a yeast nutrient, but may be 
+astringent at concentrations over 40 ppm.  
+Preferred range is 0 to 30 ppm.   
+
+Malts typically provide sufficient magnesium 
+to wort to provide for proper yeast health 
+and flocculation.  
+
+Add magnesium when its bitter and sour 
+taste is desirable in beer, such as in Bitter 
+or Pale Ales.  There is no need to add 
+magnesium for other beer styles, even if 
+the water profiles below indicate to. 
+However, using magnesium salts instead 
+of calcium salts can be desirable when you 
+want more chloride or sulfate without 
+driving the calcium concentration too high.
+ </t></r></text></comment><comment ref="E5" authorId="0" shapeId="0" xr:uid="{00000000-0006-0000-0400-000006000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Sodium accentuates beer flavor and roundness 
+at moderate concentrations.  Preferred range 
+is 0 to 150 ppm, but should be less than 100 ppm 
+if sulfate content is high.  Keeping sodium below 
+50 ppm is desirable for most pale beers. Higher 
+sodium concentration can be desirable in darker 
+styles.
+</t></r></text></comment><comment ref="F5" authorId="0" shapeId="0" xr:uid="{00000000-0006-0000-0400-000007000000}"><text><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Sulfate provides a sharper and dryer edge to highly hopped beers.  
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">The preferred range is 0 to 350 ppm, but the concentration 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">should not exceed 150 ppm unless the beer is highly hopped.
+</t></r></text></comment><comment ref="G5" authorId="0" shapeId="0" xr:uid="{00000000-0006-0000-0400-000008000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Chloride accentuates fullness and sweetness.  
+The preferred range is 10 to 100 ppm, but 
+the upper limit should be reduced to avoid 
+harshness if the water has high sulfate 
+concentration.
+</t></r></text></comment><comment ref="H5" authorId="0" shapeId="0" xr:uid="{00000000-0006-0000-0400-000009000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Bicarbonate is an alkaline buffer that limits 
+pH reduction during mashing.  It is generally 
+undesirable in beer, but is needed to balance 
+the acidity of dark malts and crystal malts 
+used in some beers.
+</t></r></text></comment><comment ref="L5" authorId="1" shapeId="0" xr:uid="{00000000-0006-0000-0400-00000A000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Enter notes for batches here.</t></r><r><rPr><sz val="9"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r></text></comment><comment ref="A6" authorId="1" shapeId="0" xr:uid="{00000000-0006-0000-0400-00000B000000}"><text><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Click on this cell to bring up a selection box 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">of preloaded water profiles.
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">To change the concentrations in these profiles, 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">scroll down this page to the table at the bottom 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">of the page and adjust the concentrations there.
+</t></r></text></comment><comment ref="A7" authorId="1" shapeId="0" xr:uid="{00000000-0006-0000-0400-00000C000000}"><text><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">This water profile is entered on the </t></r><r><rPr><b/><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Water Report Input </t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">sheet.
+</t></r></text></comment><comment ref="H7" authorId="0" shapeId="0" xr:uid="{00000000-0006-0000-0400-00000D000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">The Bicarbonate concentration shown here includes 
+the contribution of Carbonate.  Therefore, this value 
+may differ somewhat from the Bicarbonate 
+concentration that was originally input on the 
+</t></r><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Water Report Input</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> sheet.
+</t></r></text></comment><comment ref="A8" authorId="1" shapeId="0" xr:uid="{00000000-0006-0000-0400-00000E000000}"><text><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Water used to dilute the Existing water profile. Select below.
+</t></r></text></comment><comment ref="A9" authorId="1" shapeId="0" xr:uid="{00000000-0006-0000-0400-00000F000000}"><text><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Click on cell to select Dilution Water.
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">To change the names or concentrations 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">of your Diluted water profiles, scroll 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">down this page to the table at the 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">bottom of the page and adjust the 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>concentrations there.</t></r><r><rPr><sz val="9"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r></text></comment><comment ref="A10" authorId="1" shapeId="0" xr:uid="{00000000-0006-0000-0400-000010000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">When the Existing Water's ion concentrations are 
+higher than the Desired Water Profile, select the 
+type of dilution water you are using (RO or Distilled) 
+and increase the dilution percentage until the 
+excessive ion concentrations are sufficiently reduced.  
+</t></r><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+Enter values between 0 and 100.</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+
+Zero dilution means that no Distilled or RO water is 
+mixed with the existing water and 100 percent 
+dilution means the water is ALL Distilled or RO water.
+  </t></r></text></comment><comment ref="B10" authorId="1" shapeId="0" xr:uid="{00000000-0006-0000-0400-000011000000}"><text><r><rPr><b/><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Enter values between 0 and 100</t></r><r><rPr><sz val="9"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r></text></comment><comment ref="D10" authorId="0" shapeId="0" xr:uid="{00000000-0006-0000-0400-000012000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Quantity of dilution water used to make the diluted volume of water
+  </t></r></text></comment><comment ref="F10" authorId="0" shapeId="0" xr:uid="{00000000-0006-0000-0400-000013000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Quantity of dilution water used to make the diluted volume of water</t></r><r><rPr><sz val="9"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r></text></comment><comment ref="A11" authorId="0" shapeId="0" xr:uid="{00000000-0006-0000-0400-000014000000}"><text><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">This is the resulting profile of the Existing Water diluted 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">with the proposed percentage of Dilution Water.
+</t></r></text></comment><comment ref="A12" authorId="1" shapeId="0" xr:uid="{00000000-0006-0000-0400-000015000000}"><text><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>If any Target Water Adjustments are negative, the cell shading may be</t></r><r><rPr><b/><sz val="8"/><color rgb="FFFF0000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> 
+</t></r><r><rPr><b/><sz val="8"/><color rgb="FFFF0000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>RED</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">.  Dilution of the existing water may be necessary to reduce that ion 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">concentration to create the Desired Water Profile.  If the adjustment is 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">less than about 20 ppm, it may be feasible to ignore the need to dilute 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">to correct the value(s). The cells do not turn RED until the needed 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">adjustment is greater than -20 ppm.
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Since excess bicarbonate can be corrected with acid addition, the 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">bicarbonate cell does NOT turn </t></r><r><rPr><b/><sz val="8"/><color rgb="FFFF0000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>RED</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> to signal the need for dilution.
+</t></r></text></comment><comment ref="A13" authorId="1" shapeId="0" xr:uid="{00000000-0006-0000-0400-000016000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Adjust mineral additions (in Table below) until </t></r><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Actual Finished Water Adjustments 
+</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">are near the </t></r><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Target Finished Water Adjustment</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> values.  The cell color will change 
+to </t></r><r><rPr><b/><sz val="8"/><color indexed="17"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">GREEN </t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">when the </t></r><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Actual</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> and </t></r><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Target </t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">values are within 5 ppm to provide the brewer 
+with a quick visual indicator.  
+</t></r></text></comment><comment ref="E13" authorId="2" shapeId="0" xr:uid="{00000000-0006-0000-0400-000017000000}"><text><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">The concentrations of Na, SO4, &amp; Cl shown here 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">are the final concentrations in the kettle.  
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">These concentrations may not always reflect the 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">concentrations shown below since the sparging 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">water concentrations may differ from those values.
+</t></r></text></comment><comment ref="F13" authorId="2" shapeId="0" xr:uid="{00000000-0006-0000-0400-000018000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">The concentrations of Na, SO4, &amp; Cl shown here 
+are the final concentrations in the kettle.  
+These concentrations may not always reflect the 
+concentrations shown below since the sparging 
+water concentrations may differ from those values.
+</t></r></text></comment><comment ref="G13" authorId="2" shapeId="0" xr:uid="{00000000-0006-0000-0400-000019000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">The concentrations of Na, SO4, &amp; Cl shown here 
+are the final concentrations in the kettle.  
+These concentrations may not always reflect the 
+concentrations shown below since the sparging 
+water concentrations may differ from those values.
+</t></r></text></comment><comment ref="N13" authorId="0" shapeId="0" xr:uid="{00000000-0006-0000-0400-00001A000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Very Dry: &gt; 2.0
+Dry: 2.0
+Balanced: 1.3
+Full: 0.75
+Very Full: 0.5
+
+DO NOT use this ratio to set SO4 
+or Cl targets.  This ratio has limited 
+applicability and should not be used 
+exclusively to determine appropriate 
+SO4 or Cl concentrations.   
+
+Use the recommended limits for SO4 
+and Cl to drive what the brewer uses 
+for 'appropriate' concentrations.</t></r><r><rPr><sz val="9"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r></text></comment><comment ref="A14" authorId="0" shapeId="0" xr:uid="{00000000-0006-0000-0400-00001B000000}"><text><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">This is the water profile that results from the mineral additions to 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">the Existing or Diluted Water Profiles for the </t></r><r><rPr><b/><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>MASHING</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> water.  
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">This is the water profile in the </t></r><r><rPr><b/><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">MASH.
+</t></r></text></comment><comment ref="C14" authorId="0" shapeId="0" xr:uid="{00000000-0006-0000-0400-00001C000000}"><text><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">At least 40 ppm calcium is recommended for oxalate (beerstone) 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">reduction to occur in the mash. This cell turns </t></r><r><rPr><b/><sz val="8"/><color rgb="FF008000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>GREEN</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> when the 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">calcium content </t></r><r><rPr><b/><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>IN THE MASH</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> is greater than 40 ppm. 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Lager brewers that want to keep their water mineralization low, 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">can boost calcium content in the mash and rely on sparging water 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">addition to dilute the overall calcium content in the kettle. 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">The calcium content in the mash does affect the mash pH. 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">More calcium will drive the mash pH lower, although acid 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">addition is a better way to lower mash pH. 
+</t></r></text></comment><comment ref="D14" authorId="0" shapeId="0" xr:uid="{00000000-0006-0000-0400-00001D000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">The magnesium content in the mash does affect the mash pH. 
+More magnesium will drive the mash pH lower, although acid 
+addition is a better way to lower mash pH. 
+</t></r></text></comment><comment ref="E14" authorId="0" shapeId="0" xr:uid="{00000000-0006-0000-0400-00001E000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">There is no need for sodium in the mash. However, 
+Baking Soda is an effective way to add alkalinity to the 
+mash. High sodium content in the mash is OK when 
+using Baking Soda since it will be diluted with the 
+sparging water addition. Although high sodium content 
+in the mash is OK, be sure that the sodium content is 
+acceptably low in the </t></r><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Finished Water Profile</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">.
+</t></r></text></comment><comment ref="F14" authorId="0" shapeId="0" xr:uid="{00000000-0006-0000-0400-00001F000000}"><text><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">There is no need for sulfate in the mash. Any sulfate 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">level should be acceptable in the mash, as long as the 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">level in the </t></r><r><rPr><b/><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Finished Water Profile</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> is at the desired level.
+</t></r></text></comment><comment ref="G14" authorId="0" shapeId="0" xr:uid="{00000000-0006-0000-0400-000020000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">There is no need for chloride in the mash. Any 
+chloride level should be acceptable in the mash, 
+as long as the level in the </t></r><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Finished Water Profile</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> 
+is at the desired level.
+</t></r></text></comment><comment ref="H14" authorId="0" shapeId="0" xr:uid="{00000000-0006-0000-0400-000021000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Bicarbonate does not have an ideal range.  
+It is needed only to the extent required to 
+produce an appropriate mash pH.
+
+The Target Bicarbonate Adjustment (in the 
+</t></r><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Desired Water Profile</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> above) should be 
+considered an initial guess for the proper 
+Bicarbonate content.  Adjust the Bicarbonate 
+level as needed to produce an acceptable 
+mash pH.
+</t></r></text></comment><comment ref="A15" authorId="0" shapeId="0" xr:uid="{00000000-0006-0000-0400-000022000000}"><text><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">This is the water profile in the </t></r><r><rPr><b/><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>KETTLE</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> that results from the mineral 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">additions to the Existing or Diluted Water Profiles.  This is the 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">resulting water quality after all dilutions, additions, and combining 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">with sparging water. Although some ion loss may occur in the mash, 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">the Overall Finished Water Profile generally represents the water in 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">the kettle. 
+</t></r></text></comment><comment ref="C15" authorId="0" shapeId="0" xr:uid="{00000000-0006-0000-0400-000023000000}"><text><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">At least 40 ppm calcium is recommended for oxalate (beerstone) 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">reduction although lower concentrations can produce good beer 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">(ie. Pilsen). Lager brewing can benefit from very low calcium 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">content, however beer taste is often enhanced if the calcium 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">content is 20 ppm or more. 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">This cell turns </t></r><r><rPr><b/><sz val="8"/><color rgb="FF008000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>GREEN</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> when the calcium content </t></r><r><rPr><b/><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>IN THE KETTLE</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">exceeds 20 ppm.
+</t></r></text></comment><comment ref="D15" authorId="0" shapeId="0" xr:uid="{00000000-0006-0000-0400-000024000000}"><text><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Magnesium is generally only desirable at concentrations less than 30 ppm. 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">It is not necessary to add magnesium unless it is desired to enhance 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">bitterness perception.  Adding magnesium is not required, even if 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">indicated in the water profiles below.
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">This cell turns </t></r><r><rPr><b/><sz val="8"/><color rgb="FF008000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>GREEN</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> when magnesium is less than 30 ppm and 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">turns </t></r><r><rPr><b/><sz val="8"/><color rgb="FFFF0000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>RED</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> above 40 ppm.
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> </t></r></text></comment><comment ref="E15" authorId="0" shapeId="0" xr:uid="{00000000-0006-0000-0400-000025000000}"><text><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Sodium does not have an ideal range but should typically be 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">below 100 ppm and never above 150 ppm for most beers.  
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Low sodium is typically desirable for beer.
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">This cell turns </t></r><r><rPr><b/><sz val="8"/><color rgb="FFFF0000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>RED</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> if sodium is above 150 ppm or sodium 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">and sulfate are above 100 ppm.  This cell turns </t></r><r><rPr><b/><sz val="8"/><color rgb="FFFF6600"/><rFont val="Tahoma"/><family val="2"/></rPr><t>ORANGE</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">when sodium is above 50 ppm and turns </t></r><r><rPr><b/><sz val="8"/><color rgb="FF008000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>GREEN</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> when 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">below 50 ppm.
+</t></r></text></comment><comment ref="F15" authorId="0" shapeId="0" xr:uid="{00000000-0006-0000-0400-000026000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Sulfate does not have an ideal range, but should generally be 
+below 150 ppm unless the beer is highly hopped.  A maximum 
+concentration of 350 ppm is recommended to avoid 'sulfury' 
+aromas in the finished beer although much higher concentrations 
+may be preferred by some tasters. 
+
+This cell turns </t></r><r><rPr><b/><sz val="8"/><color indexed="53"/><rFont val="Tahoma"/><family val="2"/></rPr><t>ORANGE</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> when sulfate is greater than 100 ppm 
+and </t></r><r><rPr><b/><sz val="8"/><color indexed="17"/><rFont val="Tahoma"/><family val="2"/></rPr><t>GREEN</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> when below 100 ppm.
+</t></r></text></comment><comment ref="G15" authorId="0" shapeId="0" xr:uid="{00000000-0006-0000-0400-000027000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Chloride should not exceed 100 ppm for most beer 
+and should be less than 100 ppm when sulfate is 
+greater than 100 ppm.
+
+This cell turns </t></r><r><rPr><b/><sz val="8"/><color indexed="52"/><rFont val="Tahoma"/><family val="2"/></rPr><t>ORANGE</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> when both chloride and sulfate are above 100 ppm.  This indicates a potential for minerally flavor.
+
+This cell turns </t></r><r><rPr><b/><sz val="8"/><color indexed="10"/><rFont val="Tahoma"/><family val="2"/></rPr><t>RED</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> when chloride is above 170 ppm and sulfate is above 100 ppm. This indicates that flavor will be minerally.
+
+This cell turns </t></r><r><rPr><b/><sz val="8"/><color indexed="17"/><rFont val="Tahoma"/><family val="2"/></rPr><t>GREEN</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> when chloride is less than 100 ppm.
+</t></r></text></comment><comment ref="H15" authorId="0" shapeId="0" xr:uid="{00000000-0006-0000-0400-000028000000}"><text><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>NA (Not Applicable)</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> is shown here because 
+bicarbonate content in the finished water is not 
+relevant since the acids produced in the mash 
+and fermentation will neutralize a portion of the 
+bicarbonate content. The low alkalinity sparging 
+water also alters the overall content. Since that 
+degree of neutralization may vary, it is not 
+displayed here.
+</t></r></text></comment><comment ref="N15" authorId="0" shapeId="0" xr:uid="{00000000-0006-0000-0400-000029000000}"><text><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>The SO</t></r><r><rPr><vertAlign val="subscript"/><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>4</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">/Cl ratio is most applicable when the 
+</t></r><r><rPr><b/><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">chloride content is between about 25 
+</t></r><r><rPr><b/><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>and 100 ppm</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">.  This cell turns </t></r><r><rPr><b/><sz val="8"/><color rgb="FFFF6600"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Orange </t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">to 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">alert the user that the ratio may not be useful 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">due to either very low or excessive Chloride 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">ion levels.
+</t></r></text></comment><comment ref="I16" authorId="0" shapeId="0" xr:uid="{00000000-0006-0000-0400-00002A000000}"><text><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Note that the</t></r><r><rPr><b/><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> Total Water Additions</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">may not equal the </t></r><r><rPr><b/><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Total Batch Volume 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">due to losses such as grain absorption, 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">kettle deadspace, tun deadspace, 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">evaporation, etc.
+</t></r></text></comment><comment ref="M16" authorId="0" shapeId="0" xr:uid="{00000000-0006-0000-0400-00002B000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Enter the intended post boil volume 
+of the batch.  This is used to estimate 
+the Beer Color on the Grain Bill Input 
+sheet.
+</t></r><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+Total Batch Volume</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> is NOT equal to the sum of Mash and Sparge Additions. It will be less than that volume.
+</t></r></text></comment><comment ref="A17" authorId="0" shapeId="0" xr:uid="{00000000-0006-0000-0400-00002C000000}"><text><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">This mash pH estimate is for the final stage of mashing 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">(say more than 20 minutes after mashing in).  The 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">mash pH may vary a tenth or two as the mashing continues.
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r><r><rPr><b/><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">DO NOT OVER-REACT IF THE INITIAL pH READING IS 
+</t></r><r><rPr><b/><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">OFF YOUR TARGET. IT TENDS TO CORRECT ITSELF
+</t></r><r><rPr><b/><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>DURING THE MASH.</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Initial mash pH over 5.4 tends to fall during the mash and 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">initial mash pH under 5.4 tends to rise during the mash. 
+</t></r></text></comment><comment ref="B17" authorId="0" shapeId="0" xr:uid="{00000000-0006-0000-0400-00002D000000}"><text><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">This pH value is taken from the </t></r><r><rPr><b/><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Grain Bill Input 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">sheet and is provided to allow the Brewer to see 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">the effect of their water adjustments on the 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Estimated Mash pH without moving back and forth 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">to the </t></r><r><rPr><b/><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Grain Bill Input</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> sheet.  This pH estimate 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">is </t></r><r><rPr><b/><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>NOT</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> correct until the User enters the proper 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">grain and water information for the mash on the 
+</t></r><r><rPr><b/><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Grain Bill Input</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> sheet,   This cell turns </t></r><r><rPr><b/><sz val="8"/><color rgb="FFFF0000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">RED 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">if the mash pH is out of the recommended range 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">and </t></r><r><rPr><b/><sz val="8"/><color rgb="FFFF6600"/><rFont val="Tahoma"/><family val="2"/></rPr><t>ORANGE</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> if the pH is at the range limits.
+</t></r></text></comment><comment ref="I17" authorId="0" shapeId="0" xr:uid="{00000000-0006-0000-0400-00002E000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Enter the total volume of water to be used for mashing.  
+This quantity is important for assessing the Acidity of 
+the mash.
+
+Include </t></r><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">ALL </t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Foundation Water or water under the 
+Mash Tun's false bottom and water in recirculating 
+piping and hoses in this volume.
+</t></r></text></comment><comment ref="K17" authorId="0" shapeId="0" xr:uid="{00000000-0006-0000-0400-00002F000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Enter the total volume of sparge water to be created. 
+</t></r><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Do not </t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">subtract any water volume that is unused or 
+trapped in a deadspace.
+
+If using No-Sparge brewing methods, set sparging 
+volume to zero.
+
+If your boil kettle produces evaporation loss of more 
+than about 10 percent of the beginning volume, you 
+can consider entering a smaller than actual volume 
+for the sparging water to help reduce the added 
+mineral quantity to your water and avoid excessive 
+mineralization in the wort. 
+</t></r></text></comment><comment ref="A19" authorId="0" shapeId="0" xr:uid="{00000000-0006-0000-0400-000030000000}"><text><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Add food-grade minerals 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">to adjust ion content of water
+</t></r></text></comment><comment ref="B19" authorId="0" shapeId="0" xr:uid="{00000000-0006-0000-0400-000031000000}"><text><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Grams of mineral added to each unit quantity of water.
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">The ADDITION cells will turn </t></r><r><rPr><b/><sz val="8"/><color rgb="FFFF0000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>RED</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> if too much of a 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">mineral is added and the Actual Water Adjustment 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">of an ion that the mineral contains differs from the 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Target Water Adjustment by more than 10 ppm.  
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">MORE THAN ONE MINERAL CELL MAY TURN 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">RED WHEN AN ION BECOMES EXCESSIVE.
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Reduce the mineral addition amount for any mineral 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>that shows a</t></r><r><rPr><b/><sz val="8"/><color rgb="FFFF0000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> RED</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> cell.  It is OK to ignore the warning 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>if the brewer thinks the level will not be excessive.</t></r><r><rPr><sz val="9"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r></text></comment><comment ref="A20" authorId="1" shapeId="0" xr:uid="{00000000-0006-0000-0400-000032000000}"><text><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Gypsum is highly soluble and 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">well suited for enhancing 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">bitterness and dryness perception 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">to finished beer.
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Adds Calcium and Sulfate to water. 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">The calculation assumes the 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>mineral is in the dihydrate (x 2H</t></r><r><rPr><vertAlign val="subscript"/><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>2</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">O) 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">form. This is the most common form.
+</t></r></text></comment><comment ref="Q20" authorId="0" shapeId="0" xr:uid="{00000000-0006-0000-0400-000033000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Use this tool to convert specific gravity (SG) 
+measurments for a calcium chloride solution 
+to its Percent Strength.
+
+The upper limit for hydrometers used by most 
+homebrewers is a SG of about 1.170, so you 
+may have to dilute the solution down to that 
+gravity or lower in order to get an accurate 
+reading. 
+
+An alternative is to weigh a known volume of 
+the solution and calculate the specific gravity 
+from that measurement. (grams divided by 
+milliliters)
+</t></r></text></comment><comment ref="A21" authorId="0" shapeId="0" xr:uid="{00000000-0006-0000-0400-000034000000}"><text><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">CaCl is highly soluble and effective at 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">adding calcium without adding sulfate.  
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">The Dihydrate (x 2H2O) form is a 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">typical solid form. 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Select the form used </t></r><r><rPr><b/><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Anhydrous</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>,</t></r><r><rPr><b/><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> 
+</t></r><r><rPr><b/><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Dihydrate</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>, or</t></r><r><rPr><b/><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> Liquid</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> in the box 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">at the right.
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Adds Calcium and Chloride to water.</t></r><r><rPr><sz val="9"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r></text></comment><comment ref="M21" authorId="0" shapeId="0" xr:uid="{00000000-0006-0000-0400-000035000000}"><text><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Click on cell and a selection box will appear.
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Select the form of CaCl</t></r><r><rPr><vertAlign val="subscript"/><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>2</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> used for treatment. 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Selections are: </t></r><r><rPr><b/><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Anhydrous, Dihydrate, 
+</t></r><r><rPr><b/><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>and Liquid</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">. 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r><r><rPr><b/><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Anhydrous </t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>form (x 0H</t></r><r><rPr><vertAlign val="subscript"/><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>2</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">O) is </t></r><r><rPr><b/><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>not</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> the most 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">common solid form of this mineral since it 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">easily absorbs water from the atmosphere. 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">However, selecting </t></r><r><rPr><b/><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Dihydrate</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> may overdose 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">the water with calcium and chloride if the 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">mineral has some </t></r><r><rPr><b/><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Anhydrous</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> form in it. 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">It may be safer to select </t></r><r><rPr><b/><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Anhydrous</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> in order 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">to avoid overdosing.
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">If </t></r><r><rPr><b/><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>calcium chloride solution</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> is used, select 
+</t></r><r><rPr><b/><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Liquid</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> and enter the solution strength in the 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">blue cell below. 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">You can also create your own calcium chloride 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">solution for use in brewing. Dissolve calcium 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">chloride in distilled water and measure its 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">specific gravity with a hydrometer. Use the 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">calculator located to the right to convert the 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">gravity measurement to a strength value.
+</t></r></text></comment><comment ref="A22" authorId="1" shapeId="0" xr:uid="{00000000-0006-0000-0400-000036000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Use Epsom Salt sparingly to keep Mg content 
+below 30 ppm for most beers.
+
+Adds Magnesium and Sulfate to water. The 
+calculation assumes the Heptahydrate (x 7H</t></r><r><rPr><vertAlign val="subscript"/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>2</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">O) 
+form. This is the most common form.
+</t></r></text></comment><comment ref="M22" authorId="0" shapeId="0" xr:uid="{00000000-0006-0000-0400-000037000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Enter the strength of Liquid Calcium Chloride solution. 
+The strength typically ranges from 10 to 40 % w/w
+
+For example: Enter 10% as 10 and not as 0.10.</t></r><r><rPr><sz val="9"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+
+</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>The value in this cell only matters if</t></r><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> Liquid</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> is 
+selected for the calcium chloride type shown above.
+</t></r></text></comment><comment ref="Q22" authorId="0" shapeId="0" xr:uid="{00000000-0006-0000-0400-000038000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Insert the measured Specific Gravity (S.G.) 
+of the calcium chloride solution here. 
+(for example: 1.090)
+
+The resulting</t></r><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> % strength</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> is shown below.
+</t></r></text></comment><comment ref="A23" authorId="1" shapeId="0" xr:uid="{00000000-0006-0000-0400-000039000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>MgCl</t></r><r><rPr><vertAlign val="subscript"/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>2</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> is not commonly used for water adjustments, 
+but it can be useful for creating some water profiles.
+
+Adds Magnesium and Chloride to water. MgCl</t></r><r><rPr><vertAlign val="subscript"/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>2</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> is 
+assumed to be available in its hexahydrate (x 6H</t></r><r><rPr><vertAlign val="subscript"/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>2</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>O) 
+form</t></r></text></comment><comment ref="Q23" authorId="0" shapeId="0" xr:uid="{00000000-0006-0000-0400-00003A000000}"><text><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Calculated Strength (%)</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+
+Insert this </t></r><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">% strength </t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>result in the 
+Liquid CaCl</t></r><r><rPr><vertAlign val="subscript"/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>2</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> Strength cell (</t></r><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>M21</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>)</t></r><r><rPr><sz val="9"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r></text></comment><comment ref="A24" authorId="1" shapeId="0" xr:uid="{00000000-0006-0000-0400-00003B000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Non-iodized table salt is preferred.  
+Keep sodium content below 150 ppm 
+in most beers.
+
+Adds Sodium and Chloride to water. 
+Canning salt exists only in the 
+Anhydrous form. 
+</t></r></text></comment><comment ref="A25" authorId="1" shapeId="0" xr:uid="{00000000-0006-0000-0400-00003C000000}"><text><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Baking Soda is effective at adding alkalinity, 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">but limit its use to keep the sodium content 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">below 150 ppm.
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Baking Soda should not be added to water 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">if acid is also added since they counteract 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">each other.  The bicarbonate cells will turn 
+</t></r><r><rPr><b/><sz val="8"/><color rgb="FFFF0000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>RED</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> if Baking Soda and an acid are input.
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Adds Sodium and Bicarbonate to water. 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Baking soda is only available in its 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Anhydrous form.
+</t></r></text></comment><comment ref="H25" authorId="0" shapeId="0" xr:uid="{00000000-0006-0000-0400-00003D000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">The bicarbonate cells will turn </t></r><r><rPr><b/><sz val="8"/><color indexed="10"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Red</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> to alert the 
+User that both acid (</t></r><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>acid malt too</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">) and alkaline 
+additions have been input. Although this is OK, 
+it is often best to remove one of those additions 
+and use less of the other to achieve your pH target.
+</t></r></text></comment><comment ref="K25" authorId="0" shapeId="0" xr:uid="{00000000-0006-0000-0400-00003E000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Do not add Alkalinity producing minerals to the sparge water.
+</t></r></text></comment><comment ref="M25" authorId="1" shapeId="0" xr:uid="{00000000-0006-0000-0400-00003F000000}"><text><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Click on cell and a selection box will appear.
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Select </t></r><r><rPr><b/><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Yes </t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">to add all calcium to the mash. 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">This can help depress mash pH and help 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">elevate the mash calcium content to help 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">remove oxalate from the wort. It also allows 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">the brewer to achieve a reduced calcium 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">content in the kettle which can be helpful in 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>lager brewing.</t></r><r><rPr><sz val="9"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r></text></comment><comment ref="A26" authorId="1" shapeId="0" xr:uid="{00000000-0006-0000-0400-000040000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Chalk has limited solubility (about 50 mg/L) in water and wort 
+making it less suitable for adding alkalinity.  
+</t></r><r><rPr><sz val="8"/><color indexed="10"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">DO NOT USE CHALK FOR BREWING UNLESS IT HAS BEEN 
+FULLY PRE-DISSOLVED INTO WATER WITH CO2. </t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+
+Chalk should not be added to water if acid is also added since 
+they counteract each other.  The bicarbonate cells will turn 
+</t></r><r><rPr><b/><sz val="8"/><color indexed="10"/><rFont val="Tahoma"/><family val="2"/></rPr><t>RED</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> if Chalk and an acid are input in the same recipe.
+
+Adds Calcium and Bicarbonate to water.  The carbonate 
+content is converted to an equivalent bicarbonate content 
+for use in the program.
+</t></r></text></comment><comment ref="H26" authorId="0" shapeId="0" xr:uid="{00000000-0006-0000-0400-000041000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">This is an equivalent bicarbonate concentration.
+
+The bicarbonate cells will turn </t></r><r><rPr><sz val="8"/><color indexed="10"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Red</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> to alert the 
+User that both acid (</t></r><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>acid malt too</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">) and alkaline 
+additions have been input. Although this is OK, 
+it is often best to remove one of those additions 
+and use less of the other to achieve your pH target.
+</t></r></text></comment><comment ref="K26" authorId="0" shapeId="0" xr:uid="{00000000-0006-0000-0400-000042000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Do not add Alkalinity producing minerals to the sparge water.
+</t></r></text></comment><comment ref="M26" authorId="0" shapeId="0" xr:uid="{00000000-0006-0000-0400-000043000000}"><text><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Click on cell and a selection box will appear.
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">If the Estimated Mash pH will be too low, 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">adding hardness minerals </t></r><r><rPr><b/><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">(Gypsum, 
+</t></r><r><rPr><b/><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Epsom Salt, Calcium Chloride, and 
+</t></r><r><rPr><b/><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Magnesium Chloride)</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> directly to the 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Kettle instead of the Mash may increase 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">the mash pH without the need to add 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Alkalinity-producing minerals. 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Select </t></r><r><rPr><b/><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Yes</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> to see if adding the hardness 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">minerals directly to the Kettle instead of 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">the Mash will help increase the mash pH.  
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Add the hardness minerals directly to the 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Kettle if this box is checked.  Input </t></r><r><rPr><b/><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>No</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> or 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">reduce any Baking Soda, Chalk, or Pickling 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Lime additions if the mash pH is too high.  
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">This cell turns </t></r><r><rPr><b/><sz val="8"/><color rgb="FFFF0000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>RED</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> to alert the Brewer 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">that it is selected.
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r><r><rPr><b/><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Baking Soda, Pickling Lime, and Chalk</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">should still be added only to the Mash, 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">whether </t></r><r><rPr><b/><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Yes </t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>or</t></r><r><rPr><b/><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> No </t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">is selected here.
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">The kettle additions from the mash are 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">highlighted in </t></r><r><rPr><b/><sz val="8"/><color rgb="FFFF6600"/><rFont val="Tahoma"/><family val="2"/></rPr><t>ORANGE</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> in the Total Mash 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Additions column. 
+</t></r></text></comment><comment ref="A27" authorId="1" shapeId="0" xr:uid="{00000000-0006-0000-0400-000044000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Pickling Lime (aka Slaked Lime) is highly effective at adding alkalinity to water 
+and wort and increasing pH.  This is a strong caustic and must be handled carefully.
+
+</t></r><r><rPr><sz val="8"/><color indexed="10"/><rFont val="Tahoma"/><family val="2"/></rPr><t>ADD PICKLING LIME IN THE MASH ONLY.  DO NOT ADD TO WATER ALONE 
+SINCE THE pH MAY INCREASE TOO HIGH.</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+
+Pickling Lime should not be added to water if acid is also added since they 
+counteract each other.  The bicarbonate cells will turn </t></r><r><rPr><b/><sz val="8"/><color indexed="10"/><rFont val="Tahoma"/><family val="2"/></rPr><t>RED</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> if Pickling Lime 
+and an acid are input.
+
+Adds Calcium and Hydroxide to water.  The hydroxide content is converted 
+to an equivalent bicarbonate content for use in the program.
+</t></r></text></comment><comment ref="H27" authorId="0" shapeId="0" xr:uid="{00000000-0006-0000-0400-000045000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">This is an equivalent bicarbonate concentration.
+
+The bicarbonate cells will turn </t></r><r><rPr><sz val="8"/><color indexed="10"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Red</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> to alert the 
+User that both acid (</t></r><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>acid malt too</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">) and alkaline 
+additions have been input. Although this is OK, 
+it is often best to remove one of those additions 
+and use less of the other to achieve your pH target.
+</t></r></text></comment><comment ref="K27" authorId="0" shapeId="0" xr:uid="{00000000-0006-0000-0400-000046000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Do not add Alkalinity producing minerals to the sparge water.
+</t></r></text></comment><comment ref="M27" authorId="0" shapeId="0" xr:uid="{00000000-0006-0000-0400-000047000000}"><text><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Click on cell and a selection box will appear.
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Select </t></r><r><rPr><b/><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Yes </t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">to automatically add Gypsum and 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>CaCl</t></r><r><rPr><vertAlign val="subscript"/><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>2</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> to Sparge Water additions to supplement 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Calcium concentration when Chalk or Pickling 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Lime are deleted from Sparge Water.  This may 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">be desirable if the Brewer's water has Calcium 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">content below 40 ppm.  The added Gypsum and 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">CaCl2 quantities maintain the Brewer's desired 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Sulfate/Chloride ratio.
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">This cell turns </t></r><r><rPr><b/><sz val="8"/><color rgb="FFFF0000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>RED</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> to alert the Brewer that this 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">option is selected.
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">If a CIRCULAR REFERENCE warning is displayed, 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">go to File/Options/Formulas and click 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">'Enable Interative Calculation' to resolve the problem.
+</t></r></text></comment><comment ref="A28" authorId="1" shapeId="0" xr:uid="{00000000-0006-0000-0400-000048000000}"><text><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>THIS addition is in ppm terms and not grams/volume as 
+for the other additions listed above.</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+Sodium Metabisulfite (SMB)</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> is used as an oxygen scavenger 
+to reduce dissolved oxygen in the wort. It oxidizes to sodium 
+and sulfate ions. 
+
+It requires about 6 ppm SMB to eliminate 1 ppm dissolved oxygen. 
+At room temperature, fresh water can contain about 8 or 9 ppm 
+oxygen. At mash temperature, that content drops to about 4 ppm.
+Preboiling the water and avoiding any subsequent splashing or 
+mixing can reduce the oxygen content to near zero. </t></r><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Preboiling 
+or deaerating  is highly recommended!</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+
+Typical SMB dosing for MASHING WATER ranges from 
+10 to 60 ppm. This calculation assumes SPARGING WATER 
+is always dosed with SMB at 5 ppm over the mashing dose.
+
+Enter 10 ppm SMB dose for systems that have extraordinary 
+oxygen reduction measures including mash caps, 
+deoxygenated water, and no splashing or mixing. 
+
+More typical brewing systems might use the upper end of the 
+SMB dosing range.
+
+Be aware that SMB tends to make the perception of roast flavors in beer harsher. Reduction of roast quantities may be necessary to achieve your intended flavor balance.
+</t></r></text></comment><comment ref="B28" authorId="1" shapeId="0" xr:uid="{00000000-0006-0000-0400-000049000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Enter a SMB dose based on the Oxygen Pickup rate of your system and procedures. </t></r><r><rPr><b/><sz val="9"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+
+</t></r><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">10 ppm is appropriate when oxygen contact is low.
+
+60 ppm is appropriate when oxygen contact is high. </t></r><r><rPr><sz val="9"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+
+Vary your dose based on those limits. </t></r></text></comment><comment ref="A29" authorId="0" shapeId="0" xr:uid="{00000000-0006-0000-0400-00004A000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Add acid to mash to reduce bicarbonate concentration.  
+Use Food-Grade acid when available. Laboratory-Reagent 
+grade acid may be an acceptable alternative when 
+food-grade acid is unavailable.
+</t></r></text></comment><comment ref="M30" authorId="1" shapeId="0" xr:uid="{00000000-0006-0000-0400-00004B000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Anion concentrations from acid additions are 
+shown for mashing and sparging waters. 
+These concentrations are only a concern if 
+they exceed an anion's taste threshold.
+
+Review the </t></r><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Adjustment Summary </t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>page 
+to check their overall concentration in the 
+kettle and potential taste warnings.</t></r><r><rPr><sz val="9"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r></text></comment><comment ref="A31" authorId="1" shapeId="0" xr:uid="{00000000-0006-0000-0400-00004C000000}"><text><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Select acid type from drop-down box. 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Also set the Strength parameters, to the right.</t></r><r><rPr><sz val="9"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r></text></comment><comment ref="D31" authorId="1" shapeId="0" xr:uid="{00000000-0006-0000-0400-00004D000000}"><text><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Enter the numeric strength value that 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">is reported for your acid. 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Acid strength reported as Percent should 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">be entered as a whole number. Example: 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">88% acid should be entered as 88 and 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>not as 0.88</t></r><r><rPr><sz val="9"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r></text></comment><comment ref="E31" authorId="1" shapeId="0" xr:uid="{00000000-0006-0000-0400-00004E000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Click cell to display drop-down box 
+with acid strength parameters: 
+percentage, normality, molarity, 
+and solid. </t></r><r><rPr><sz val="9"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r></text></comment><comment ref="H31" authorId="0" shapeId="0" xr:uid="{00000000-0006-0000-0400-00004F000000}"><text><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">This is an equivalent concentration of 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">neutralized bicarbonate. This is shown 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">as a negative value.
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">If both an acid and alkali are input on 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">this sheet, the bicarbonate cells will 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">turn </t></r><r><rPr><b/><sz val="8"/><color rgb="FFFF0000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Red</t></r><r><rPr><sz val="8"/><color rgb="FFFF0000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> </t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">to alert the User that both 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">acid and alkaline additions have been 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">input. Although this is OK, it is often 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">best to remove one of those additions 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">and use less of the other to achieve 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>your pH target.</t></r><r><rPr><sz val="9"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r></text></comment><comment ref="A33" authorId="1" shapeId="0" xr:uid="{00000000-0006-0000-0400-000050000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Select acid type from drop-down box. 
+Also set the Strength parameters, to the right.</t></r><r><rPr><sz val="9"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r></text></comment><comment ref="D33" authorId="1" shapeId="0" xr:uid="{00000000-0006-0000-0400-000051000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Enter the numeric strength value that 
+is reported for your acid. 
+
+Acid strength reported as Percent should 
+be entered as a whole number. Example: 
+88% acid should be entered as 88 and 
+not as 0.88</t></r><r><rPr><sz val="9"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r></text></comment><comment ref="E33" authorId="1" shapeId="0" xr:uid="{00000000-0006-0000-0400-000052000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Click cell to display drop-down box 
+with acid strength parameters: 
+percentage, normality, molarity, 
+and solid. </t></r><r><rPr><sz val="9"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r></text></comment><comment ref="H33" authorId="0" shapeId="0" xr:uid="{00000000-0006-0000-0400-000053000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">This is an equivalent concentration 
+of neutralized bicarbonate. This is 
+shown as a negative value.
+
+If both an acid and alkali are input 
+on this sheet, the bicarbonate cells 
+will turn </t></r><r><rPr><b/><sz val="8"/><color indexed="10"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Red</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> to alert the User that 
+both acid and alkaline additions 
+have been input. Although this is 
+OK, it is often best to remove one 
+of those additions and use less of 
+the other to achieve your pH target.</t></r><r><rPr><sz val="9"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r></text></comment><comment ref="A35" authorId="1" shapeId="0" xr:uid="{00000000-0006-0000-0400-000054000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">This acid selection is made on the 
+</t></r><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Sparge Acidification </t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>sheet</t></r><r><rPr><sz val="9"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r></text></comment><comment ref="K35" authorId="0" shapeId="0" xr:uid="{00000000-0006-0000-0400-000055000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">If the Water Volume input on the 
+</t></r><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Sparge Acidification</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> sheet is 1 unit, 
+the acid amount from that sheet is 
+multiplied by the sparge water volume 
+that was input on the</t></r><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> Water Adjustment 
+</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">sheet. If the water volume on the 
+</t></r><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Sparge Adjustment</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> sheet is not 1 unit, 
+the acid amount from the</t></r><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> 
+Sparge Adjustment</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> sheet is shown here.
+ </t></r></text></comment><comment ref="A37" authorId="1" shapeId="0" xr:uid="{00000000-0006-0000-0400-000056000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>This acid selection is made on the</t></r><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> 
+Sparge Acidification </t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">sheet
+</t></r></text></comment><comment ref="K37" authorId="0" shapeId="0" xr:uid="{00000000-0006-0000-0400-000057000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">If the Water Volume input on the 
+</t></r><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Sparge Acidification</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> sheet is 1 unit, 
+the acid amount from that sheet is 
+multiplied by the sparge water volume 
+that was input on the</t></r><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> Water Adjustment 
+</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">sheet. If the water volume on the 
+</t></r><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Sparge Adjustment</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> sheet is not 1 unit, 
+the acid amount from the</t></r><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> 
+Sparge Adjustment</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> sheet is shown here.
+ </t></r></text></comment></commentList></comments>

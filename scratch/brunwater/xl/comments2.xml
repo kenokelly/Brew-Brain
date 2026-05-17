@@ -1,0 +1,206 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<comments xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" mc:Ignorable="xr" xmlns:xr="http://schemas.microsoft.com/office/spreadsheetml/2014/revision"><authors><author>martin.brungard</author><author>Martin Brungard</author></authors><commentList><comment ref="A3" authorId="0" shapeId="0" xr:uid="{00000000-0006-0000-0200-000001000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Use this tool for acidification of Sparging Water and Mash Out Water.</t></r></text></comment><comment ref="B5" authorId="1" shapeId="0" xr:uid="{00000000-0006-0000-0200-000002000000}"><text><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">This value is taken from the Alkalinity value calculated on the 
+</t></r><r><rPr><b/><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Water Report Input</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> sheet.  Use the water inputs on that 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">sheet to adjust this Alkalinity value.
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>This cell turns</t></r><r><rPr><b/><sz val="8"/><color rgb="FF008000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> Green</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> if the Starting Water Alkalinity input is 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">less than 25 ppm.  That indicates that sparging water 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">acidification is not needed.
+</t></r></text></comment><comment ref="B6" authorId="1" shapeId="0" xr:uid="{00000000-0006-0000-0200-000003000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Starting pH of the water may be provided by the water company, 
+lab report, or can be measured directly with test strips or pH meter.
+If this value is unknown, enter </t></r><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>8</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> as a good estimate of typical 
+water pH.
+</t></r></text></comment><comment ref="A7" authorId="0" shapeId="0" xr:uid="{00000000-0006-0000-0200-000004000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">If the Starting Water will be diluted, select the type of 
+dilution water (RO or Distilled) water from the adjacent 
+drop-down box.  If the Starting Water will not be diluted, 
+select "None" from the drop-down box. 
+
+You can </t></r><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">EDIT </t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">the Names or Ion content of the </t></r><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>RO and 
+Distilled water profiles</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> on the </t></r><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Water Adjustment 
+</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">page.
+</t></r></text></comment><comment ref="B7" authorId="0" shapeId="0" xr:uid="{00000000-0006-0000-0200-000005000000}"><text><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Click the cell and a selection box will appear with 
+</t></r><r><rPr><b/><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>None, Distilled</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">, and </t></r><r><rPr><b/><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>RO Water</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> options.</t></r><r><rPr><sz val="9"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r></text></comment><comment ref="B8" authorId="0" shapeId="0" xr:uid="{00000000-0006-0000-0200-000006000000}"><text><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">This is the percentage of the water that is either 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">RO or Distilled water.
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">This percentage setting only has effect if the 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Dilution Water Used is changed from None to 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Distilled or RO.
+</t></r></text></comment><comment ref="B9" authorId="0" shapeId="0" xr:uid="{00000000-0006-0000-0200-000007000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">This is the alkalinity of the water when diluted to the percentage 
+above.  This Dilution Calculator computes the Alkalinity of the 
+Distilled Water and RO Water from their profiles which are input 
+on the </t></r><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Water Adjustment</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> page. The User can edit those 
+profiles as needed.
+
+This cell turns</t></r><r><rPr><b/><sz val="8"/><color indexed="17"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> Green</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> when the diluted water alkalinity is less 
+than 25 ppm, indicating that acidification is unnecessary.
+</t></r></text></comment><comment ref="B10" authorId="0" shapeId="0" xr:uid="{00000000-0006-0000-0200-000008000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">This is the water pH when diluted to the percentage above.
+This Dilution Calculator assumes the pH of Distilled Water 
+and RO Water are 6.5.  The true pH of those dilution waters 
+may range from 5 to 7, but this is an adequate pH estimate 
+for this usage and actual deviation from this assumption has 
+little effect on the calculation accuracy.
+</t></r></text></comment><comment ref="B11" authorId="1" shapeId="0" xr:uid="{00000000-0006-0000-0200-000009000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">This is the </t></r><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>PRIMARY ADJUSTMENT</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> used in sparging water 
+acidification. Enter the target water pH of the Sparge Water.
+
+Cell will turn </t></r><r><rPr><b/><sz val="8"/><color indexed="10"/><rFont val="Tahoma"/><family val="2"/></rPr><t>RED</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> if the Target pH is above the Diluted pH.
+
+Brewing Sparge Water is usually neutralized to a pH between</t></r><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> 
+5.5 </t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">and </t></r><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">6.0
+</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+Use the </t></r><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Final Water Alkalinity</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> result below to assess if the 
+</t></r><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Desired Water pH</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> should be increased or decreased from 
+the input value.  </t></r><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Final Water Alkalinity</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> of less than 50 ppm 
+is suggested for best results.  If the </t></r><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Starting Water Alkalinity</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> 
+is less than 25 ppm, acidification is not needed.
+</t></r></text></comment><comment ref="B12" authorId="1" shapeId="0" xr:uid="{00000000-0006-0000-0200-00000A000000}"><text><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Enter water volume to be treated.  </t></r><r><rPr><b/><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>(usually 1.0)</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">If the volume is entered as </t></r><r><rPr><b/><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">1 (liter, gallon, barrel, 
+</t></r><r><rPr><b/><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>or hectoliter)</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> here, the amount of acid for sparge water 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">adjustment calculated below will be automatically 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">multiplied by the number of liters, gallons, barrels, or 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">hectoliters of sparge water entered on the </t></r><r><rPr><b/><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Water 
+</t></r><r><rPr><b/><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Adjustment </t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">sheet and the resulting acid amount will 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">be shown on the </t></r><r><rPr><b/><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Adjustment Summary </t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">sheet.
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">This cell turns </t></r><r><rPr><b/><sz val="8"/><color rgb="FF0000FF"/><rFont val="Tahoma"/><family val="2"/></rPr><t>DARKER BLUE</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> if a value other than 1 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">is entered to alert the User that this helpful feature was 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">overriden by the User.
+</t></r></text></comment><comment ref="A13" authorId="0" shapeId="0" xr:uid="{00000000-0006-0000-0200-00000B000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Enter the type and strength of acid used in the brewing.  
+This acid will be utilized for sparging water adjustments.  
+Separate acid selections are also shown on the </t></r><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Water 
+Adjustment</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> sheet for mashing water. All acids are 
+shown on the </t></r><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Adjustment Summary </t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">sheet.
+
+Please note that CRS is a commercial product available in 
+only one strength.  The strength settings have no effect 
+when CRS is selected.
+
+</t></r><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Note: </t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">The program assumes </t></r><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Citric, Malic</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">, and </t></r><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Tartaric</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> 
+acids are in </t></r><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Solid</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> form. Liquid forms of these acids 
+</t></r><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>CANNOT</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> be calculated with this program.
+
+This cell may be blank if the Second Acid Percentage is set 
+to 100.
+</t></r></text></comment><comment ref="B13" authorId="1" shapeId="0" xr:uid="{00000000-0006-0000-0200-00000C000000}"><text><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Click cell to display drop-down selection of acids.</t></r><r><rPr><sz val="9"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r></text></comment><comment ref="B14" authorId="1" shapeId="0" xr:uid="{00000000-0006-0000-0200-00000D000000}"><text><r><rPr><b/><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>FOR LIQUID ACIDS ONLY:</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Enter acid Percentage (%) in whole terms. 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">For example, enter 88 for 88% Lactic, not 0.88
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Enter acid Normality (N) or Molarity (M) as 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">indicated on acid container. 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Adjust the strength units in the adjacent 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">drop-down box.
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r><r><rPr><b/><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">FOR SOLID ACIDS: </t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Be sure the select "</t></r><r><rPr><b/><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Solid</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">" in the adjacent 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">drop-down box.
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">The </t></r><r><rPr><b/><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Acid Strength</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> value is not used for 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">solid acids and the value in the Acid Strength 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">box can be any value or be blank.  
+</t></r></text></comment><comment ref="C14" authorId="1" shapeId="0" xr:uid="{00000000-0006-0000-0200-00000E000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Click cell to display drop-down selection of 
+acid strength parameters: percentage, normality, 
+molarity, or solid.</t></r><r><rPr><sz val="9"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r></text></comment><comment ref="A15" authorId="0" shapeId="0" xr:uid="{00000000-0006-0000-0200-00000F000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>To use 2 acids for sparging water, select the 
+percentage of the</t></r><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> 2nd acid</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> you want to use. 
+The heading cells are </t></r><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Blank</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> when either 0 or 100 
+percent are input to signal that either acid is NOT 
+used. </t></r><r><rPr><sz val="9"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r></text></comment><comment ref="B15" authorId="0" shapeId="0" xr:uid="{00000000-0006-0000-0200-000010000000}"><text><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Leave this setting at </t></r><r><rPr><b/><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Zero </t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">when using 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">only one acid in brewing.
+</t></r></text></comment><comment ref="A16" authorId="0" shapeId="0" xr:uid="{00000000-0006-0000-0200-000011000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Enter the type and strength of acid used in the brewing.  
+This acid will be utilized for sparging water adjustments.  
+Separate acid selections are also shown on the 
+</t></r><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Water Adjustment </t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">sheet for mashing water. All acids 
+are shown on the </t></r><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Adjustment Summary</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> sheet.
+
+Please note that CRS is a commercial product available in 
+only one strength.  The strength settings have no effect 
+when CRS is selected.
+
+</t></r><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Note:</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> The program assumes</t></r><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> Citric, Malic,</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> and </t></r><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Tartaric</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> 
+acids are in </t></r><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Solid</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> form. Liquid forms of these acids 
+</t></r><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>CANNOT</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> be calculated with this program.
+
+This cell may be blank if the Second Acid Percentage is set 
+to 0.
+</t></r></text></comment><comment ref="B16" authorId="1" shapeId="0" xr:uid="{00000000-0006-0000-0200-000012000000}"><text><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Click cell to display drop-down selection of acids.</t></r><r><rPr><sz val="9"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r></text></comment><comment ref="B17" authorId="1" shapeId="0" xr:uid="{00000000-0006-0000-0200-000013000000}"><text><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>FOR LIQUID ACIDS ONLY:</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+
+Enter acid Percentage (%) in whole terms. 
+For example, enter 88 for 88% Lactic, not 0.88
+
+Enter acid Normality (N) or Molarity (M) as 
+indicated on acid container. 
+
+Adjust the strength units in the adjacent 
+drop-down box.
+
+</t></r><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">FOR SOLID ACIDS: </t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+
+Be sure the select "</t></r><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Solid</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">" in the adjacent 
+drop-down box.
+
+The </t></r><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Acid Strength</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> value is not used for 
+solid acids and the value in the Acid Strength 
+box can be any value or be blank.  
+</t></r></text></comment><comment ref="C17" authorId="1" shapeId="0" xr:uid="{00000000-0006-0000-0200-000014000000}"><text><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Click cell to display drop-down selection of 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">acid strength parameters: percentage, normality, 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>molarity, or solid.</t></r><r><rPr><sz val="9"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r></text></comment><comment ref="B19" authorId="0" shapeId="0" xr:uid="{00000000-0006-0000-0200-000015000000}"><text><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">A Final Alkalinity of about 25 ppm or less is desirable, 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">but not required.  A Final Alkalinity of less than 50 ppm 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">is strongly recommended.  Adjust the </t></r><r><rPr><b/><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Desired Water pH</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">value to alter the </t></r><r><rPr><b/><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Final Water Alkalinity</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">.
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">If a check of acidification is desired, compare the measured 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">water pH to the </t></r><r><rPr><b/><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Desired Water pH</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> value.
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">This cell turns </t></r><r><rPr><b/><sz val="8"/><color rgb="FFFF6600"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Orange</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> if the alkalinity is greater than 50 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">and the Brewer should further reduce the Desired pH value.  
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">This cell turns </t></r><r><rPr><b/><sz val="8"/><color rgb="FF008000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Green</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> if the alkalinity is less than 25 which 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">means that no additional acidification is needed.
+</t></r></text></comment><comment ref="B20" authorId="0" shapeId="0" xr:uid="{00000000-0006-0000-0200-000016000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Add this quantity of the first acid to the water volume 
+indicated above.
+
+Both the </t></r><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Water Adjustment</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> and </t></r><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Adjustment Summary</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> 
+sheets present the total amount of acid to add to the quantity 
+of sparging water entered on the </t></r><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Water Adjustment</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> sheet.
+</t></r></text></comment><comment ref="D20" authorId="0" shapeId="0" xr:uid="{00000000-0006-0000-0200-000017000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">This alternate measure is provided for the acid addition.
+</t></r></text></comment><comment ref="B21" authorId="0" shapeId="0" xr:uid="{00000000-0006-0000-0200-000018000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Add this quantity of the second acid to the water volume 
+indicated above.
+
+Both the </t></r><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Water Adjustment</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> and </t></r><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Adjustment Summary 
+</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">sheets present the total amount of acid to add to the quantity 
+of sparging water entered on the </t></r><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Water Adjustment </t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">sheet.
+</t></r></text></comment><comment ref="D21" authorId="0" shapeId="0" xr:uid="{00000000-0006-0000-0200-000019000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">This alternate measure is provided for the acid addition.
+</t></r></text></comment><comment ref="B22" authorId="0" shapeId="0" xr:uid="{00000000-0006-0000-0200-00001A000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Indicates the sulfate concentration added to the 
+water by a Sulfuric acid or CRS addition.  This 
+result is zero for all other acids.
+</t></r></text></comment><comment ref="B23" authorId="0" shapeId="0" xr:uid="{00000000-0006-0000-0200-00001B000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Indicates the chloride concentration added to the 
+water by a Hydrochloric acid or CRS addition.  
+This result is zero for all other acid additions.
+</t></r></text></comment><comment ref="B24" authorId="0" shapeId="0" xr:uid="{00000000-0006-0000-0200-00001C000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">This is the anion concentration for acids other than hydrochloric, 
+sulfuric, and CRS in the acidified water. This concentration may 
+be useful in assessing if the anion is above it's taste threshold.
+
+Be aware that the sum of the acids in the final wort influence if an 
+anion is tasted in the beer. Don't worry too much if an acid is 
+above the threshold here.  Check the </t></r><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Adjustment Summary</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> 
+sheet to review the final anion concentration in the kettle.
+
+This cell can be blank.
+</t></r></text></comment><comment ref="B25" authorId="0" shapeId="0" xr:uid="{00000000-0006-0000-0200-00001D000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">This is the anion concentration for acids other than hydrochloric, 
+sulfuric, and CRS in the acidified water.This concentration may be 
+useful in assessing if the anion is above it's taste threshold.
+
+Be aware that the sum of the acids in the final wort influence if an 
+anion is tasted in the beer. Don't worry too much if an acid is 
+above the threshold here. Check the </t></r><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Adjustment Summary</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> 
+sheet to review the final anion concentration in the kettle.
+ 
+This cell can be blank.
+</t></r></text></comment></commentList></comments>

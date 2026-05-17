@@ -1,0 +1,236 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<comments xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" mc:Ignorable="xr" xmlns:xr="http://schemas.microsoft.com/office/spreadsheetml/2014/revision"><authors><author>martin.brungard</author><author>Martin Brungard</author></authors><commentList><comment ref="A2" authorId="0" shapeId="0" xr:uid="{00000000-0006-0000-0100-000001000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Select the preferred volume measurement for brewing calculations.  
+All mineral and acid additions are provided in grams and milliliters for 
+all settings.  Grain addition settings switch to pounds and ounces 
+when the volume setting is either gallons or barrels.  Grain addition 
+settings switch to kilograms and grams when the volume setting is 
+either liters or hectoliters.
+</t></r></text></comment><comment ref="B2" authorId="1" shapeId="0" xr:uid="{00000000-0006-0000-0100-000002000000}"><text><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Click to select Volume setting: 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Gallons, Liters, Barrels, or Hectoliters</t></r><r><rPr><sz val="9"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r></text></comment><comment ref="A4" authorId="0" shapeId="0" xr:uid="{00000000-0006-0000-0100-000003000000}"><text><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Input data into </t></r><r><rPr><b/><sz val="8"/><color rgb="FF00FFFF"/><rFont val="Tahoma"/><family val="2"/></rPr><t>blue</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> cells only.  
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Calculated data is shown in </t></r><r><rPr><b/><sz val="8"/><color rgb="FF99CC00"/><rFont val="Tahoma"/><family val="2"/></rPr><t>yellow</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> cells.</t></r><r><rPr><sz val="9"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r></text></comment><comment ref="A5" authorId="1" shapeId="0" xr:uid="{00000000-0006-0000-0100-000004000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Cations are postively-charged ions</t></r><r><rPr><sz val="9"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r></text></comment><comment ref="B5" authorId="0" shapeId="0" xr:uid="{00000000-0006-0000-0100-000005000000}"><text><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Enter in mg/L or ppm units only.  
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">If concentration is given in ug/L or ppb, 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">divide that value by 1000 before entering 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">the value into table below.
+</t></r></text></comment><comment ref="D5" authorId="1" shapeId="0" xr:uid="{00000000-0006-0000-0100-000006000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Anions are negatively-charged ions</t></r><r><rPr><sz val="9"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r></text></comment><comment ref="A6" authorId="1" shapeId="0" xr:uid="{00000000-0006-0000-0100-000007000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Calcium content can vary depending on the water source.  
+
+Calcium content is sometimes reported (as CaCO</t></r><r><rPr><vertAlign val="subscript"/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>3</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">) and 
+must be converted to (ppm) by multiplying by 0.401 for 
+use in this program.  
+
+If hardness and calcium values are provided in the water 
+report, check the Hardness results shown below and 
+compare to the Hardness shown in the water report.  
+If they don't closely agree, there may be an error in the 
+input units. Use the calculators below to try converting 
+the calcium concentration to the proper ppm units.  
+</t></r></text></comment><comment ref="D6" authorId="1" shapeId="0" xr:uid="{00000000-0006-0000-0100-000008000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Bicarbonate is typically the predominant Alkalinity producer 
+at typical drinking water pH between 6.5 and 10.5.  
+
+Bicarbonate is frequently reported (as CaCO</t></r><r><rPr><vertAlign val="subscript"/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>3</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>) units.  
+"As CaCO</t></r><r><rPr><vertAlign val="subscript"/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>3</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">" units must be converted to (ppm) by 
+multiplying by 1.22 for use in this program.   If the 
+report does not balance, check the reporting units 
+and convert as necessary.  
+
+Check the alkalinity result below and compare to the 
+alkalinity from the water report.  If they don't match 
+very well, there may be a units error.  
+Use the calculators below to aid in unit conversion.  
+</t></r></text></comment><comment ref="A7" authorId="1" shapeId="0" xr:uid="{00000000-0006-0000-0100-000009000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Magnesium is typically low in most drinking water and is almost 
+always at lower concentration than Calcium.  
+
+Magnesium is sometimes reported (as CaCO</t></r><r><rPr><vertAlign val="subscript"/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>3</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">) and must be 
+converted to (ppm) by multiplying by 0.243 for use in this program.  
+
+If hardness and magnesium values are given in the water report, 
+check the Hardness results shown below and compare to the 
+Hardness shown in the water report.  If they don't closely agree, 
+there may be an error in the input units.  Use the calculators below 
+to try converting the magnesium concentration to proper ppm 
+units.
+</t></r></text></comment><comment ref="D7" authorId="1" shapeId="0" xr:uid="{00000000-0006-0000-0100-00000A000000}"><text><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Most drinking water supplies typically have a pH of less than 9. 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Carbonate ion does not exist in water with pH below 8 and is a 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">minor component in water with its pH between 8 and 9.  
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Carbonate may be reported in (as CaCO</t></r><r><rPr><vertAlign val="subscript"/><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>3</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">) units and must be 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">converted to (ppm) by multiplying by 0.60 for use in this program. 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">If the water supply pH is below 9, Carbonate can be assumed to 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>be</t></r><r><rPr><b/><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> Zero</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> with little error.  This is a component that can be ignored 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">if the concentration is unknown.
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">This Carbonate concentration is converted by the program to 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">an equivalent Bicarbonate concentration for subsequent calculations.
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">The Carbonate concentration is converted to an equivalent 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Bicarbonate concentration if the Boiled Water conversion is 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">performed.
+</t></r></text></comment><comment ref="A8" authorId="1" shapeId="0" xr:uid="{00000000-0006-0000-0100-00000B000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Sodium content in drinking water is highly variable.  
+Low to moderate sodium is an important factor in 
+producing good beer.  This is a component that 
+should not be ignored.
+</t></r></text></comment><comment ref="D8" authorId="1" shapeId="0" xr:uid="{00000000-0006-0000-0100-00000C000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Sulfate is an important flavor component in brewing water.
+If the water report result is presented in (SO</t></r><r><rPr><vertAlign val="subscript"/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>4</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>-S) (sulfate as 
+sulfur) units, that value must be multiplied by 3 for use in 
+this program.  
+
+Use the calculator below to convert from SO</t></r><r><rPr><vertAlign val="subscript"/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>4</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>-S units to 
+SO</t></r><r><rPr><vertAlign val="subscript"/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>4</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> units.  
+</t></r></text></comment><comment ref="F8" authorId="0" shapeId="0" xr:uid="{00000000-0006-0000-0100-00000D000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Some laboratories cater to agricultural clients and those 
+clients are more interested in the total Sulfur content.  
+They report in terms of "Sulfate as Sulphur" which is 
+denoted "SO</t></r><r><rPr><vertAlign val="subscript"/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>4</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>-S".  The Brewer needs to convert that 
+result to its true sulfate concentration by multiplying the 
+SO</t></r><r><rPr><vertAlign val="subscript"/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>4</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">-S result by 3.
+</t></r></text></comment><comment ref="D9" authorId="1" shapeId="0" xr:uid="{00000000-0006-0000-0100-00000E000000}"><text><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Chloride </t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">is an important flavor component in brewing water.
+Chloride is not the same as </t></r><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Chlorine</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">.  Do not enter the tap 
+water's Chlorine concentration here.  Chlorine is a common 
+water disinfectant and typically ranges from about 1 to 3 ppm 
+in most municipal water supplies.   Chloride concentration in 
+most water supplies is typically higher than that.
+</t></r></text></comment><comment ref="D10" authorId="1" shapeId="0" xr:uid="{00000000-0006-0000-0100-00000F000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Nitrate is typically low in most drinking water.  
+If the result is presented in (NO</t></r><r><rPr><vertAlign val="subscript"/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>3</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>-N) (nitrate 
+as nitrogen) units, it must be multiplied by 
+4.43 to convert that result into its true nitrate 
+concentration for use in this program.  
+
+Enter</t></r><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> Zero</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> if this concentration is not known.  
+This is a component that can be ignored if its 
+concentration is unknown.
+
+Nitrate should typically be less than 44 ppm for 
+potable water.
+
+This ion is not used for brewing calculations, but 
+may be useful for assessing the balance of cations 
+and anions.
+</t></r></text></comment><comment ref="F10" authorId="0" shapeId="0" xr:uid="{00000000-0006-0000-0100-000010000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Some laboratories cater to agricultural clients and 
+those clients are more interested in the total 
+Nitrogen content.  They report in terms of 
+"Nitrate as Nitrogen" which is denoted "NO</t></r><r><rPr><vertAlign val="subscript"/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>3</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>-N". 
+The Brewer needs to convert that result to its true 
+nitrate concentration by multiplying the NO</t></r><r><rPr><vertAlign val="subscript"/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>3</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">-N 
+result by 4.43.
+</t></r></text></comment><comment ref="A11" authorId="1" shapeId="0" xr:uid="{00000000-0006-0000-0100-000011000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Potassium is typically low in most drinking water. 
+
+If the Potassium content is unknown, enter</t></r><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> Zero</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">.  
+This is a water component that can be ignored 
+for most water sources.
+
+This ion is not used for brewing calculations, 
+but may be useful for assessing the balance of 
+cations and anions.
+</t></r></text></comment><comment ref="D11" authorId="1" shapeId="0" xr:uid="{00000000-0006-0000-0100-000012000000}"><text><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Nitrite is typically low in most drinking water.  
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Enter </t></r><r><rPr><b/><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Zero</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> if this concentration is not known.
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">This is a component that can be ignored if its 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">concentration is unknown.
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">This ion is not used for brewing calculations, 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">but may be useful for assessing the balance of 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">cations and anions.
+</t></r></text></comment><comment ref="A12" authorId="1" shapeId="0" xr:uid="{00000000-0006-0000-0100-000013000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Iron is typically at low concentration (&lt;0.3 ppm) in good brewing water. 
+Iron greater than this concentration may be tasted in the water and beer. 
+If the Iron concentration is not known, enter </t></r><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Zero</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">.  This is a water 
+component that can be ignored in this input table if its concentration is 
+not known.  
+
+Iron concentration is often reported as ug/L, ppb, or parts per billion.  
+Divide iron reported as ug/L or ppb by 1000 to convert to mg/L or ppm.  
+1000 ug/L is equal to 1 mg/L. 
+</t></r><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+If the reported Iron concentration is greater than 1, then the 
+reporting units may need to be converted.
+
+</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">This ion is not used for brewing calculations, but may be useful for 
+assessing the balance of cations and anions.
+</t></r></text></comment><comment ref="D12" authorId="1" shapeId="0" xr:uid="{00000000-0006-0000-0100-000014000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Fluoride is typically at low concentrations in 
+drinking water.  
+
+Enter </t></r><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Zero</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> if the concentration is not known.
+This is a component that can be ignored if its 
+concentration is unknown.
+
+This ion is not used for brewing calculations, 
+but may be useful for assessing the balance of 
+cations and anions.
+</t></r></text></comment><comment ref="A14" authorId="1" shapeId="0" xr:uid="{00000000-0006-0000-0100-000015000000}"><text><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Use this calculator to convert tap water 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">concentrations to their post-boil calcium 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>and bicarbonate concentrations.</t></r><r><rPr><sz val="9"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r></text></comment><comment ref="A15" authorId="1" shapeId="0" xr:uid="{00000000-0006-0000-0100-000016000000}"><text><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Use this tool ONLY if you boil and decant your water supply prior to brewing use. 
+</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Use this tool to convert your tap water profile into its estimated boiled water profile. The 
+resulting estimated boiled water profile is used for all calculations in the program. Do not 
+press "Click to Convert" if this if preboiling is not performed.
+
+</t></r><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">To use tool: </t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+1.  Input your tap water parameters into the Table above.
+2.  Select the Boiling Effectiveness setting from the dropdown box.
+3.  Press "</t></r><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Click to Convert</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>" to have the program calculate the new calcium and bicarbonate 
+concentrations.
+4.  Re-Enter the original calcium, bicarbonate, and carbonate values if you want to recompute 
+the result at another setting.</t></r><r><rPr><sz val="9"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r></text></comment><comment ref="D15" authorId="1" shapeId="0" xr:uid="{00000000-0006-0000-0100-000017000000}"><text><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">The effectiveness of Boiling to reduce Temporary Hardness can vary. 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">In most cases, the ending bicarbonate concentration will end up between 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">50 and 80 ppm. Better preboiling technique should end up with lower 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">bicarbonate content. 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">To aid in determining what the post-boil water alkalinity is, an Alkalinity Test 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">kit result for the post-boiled water can be used guide this setting. 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Compare the alkalinity test kit result with the Alkalinity value reported 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">below. Adjust the Boiling Effectiveness setting to approximate your test 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">result. The Effectiveness setting does not need to be identical to your 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>test result. Just get the setting close to the alkalinity testing result.</t></r><r><rPr><sz val="9"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r></text></comment><comment ref="A17" authorId="1" shapeId="0" xr:uid="{00000000-0006-0000-0100-000018000000}"><text><r><rPr><sz val="9"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">The quantity of cations and anions in water is always equal. However, reporting errors or the presence of ions in the water that were not tested for, will through off that equality. So, perfect agreement is not a requirement. However, the sums should be similar.  
+</t></r></text></comment><comment ref="B18" authorId="1" shapeId="0" xr:uid="{00000000-0006-0000-0100-000019000000}"><text><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>This reports the total Cation content calculated from the water report.</t></r></text></comment><comment ref="C18" authorId="1" shapeId="0" xr:uid="{00000000-0006-0000-0100-00001A000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">This result should be close to zero, but the result does not have to be exactly zero.
+A difference of 0.1 or less shows good agreement for the cation and anion totals.  
+If the cation and anion totals don't fall within 0.5 meq/L of each other, begin to 
+question the reported concentrations.
+
+Examine each entry and make sure that they are reported in the proper units and 
+convert any that are not in the proper units.
+</t></r></text></comment><comment ref="B19" authorId="1" shapeId="0" xr:uid="{00000000-0006-0000-0100-00001B000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>This reports the total Anion content calculated from the water report.</t></r></text></comment><comment ref="C19" authorId="0" shapeId="0" xr:uid="{00000000-0006-0000-0100-00001C000000}"><text><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Total Dissolved Solids</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> indicates the amount of mineralization of the water. 
+It is calculated as the sum of the Cation and Anion concentrations. 
+
+Although not very useful to brewing, it can be used as a quick field check 
+between the water report and the tap water.  A TDS meter provides a field 
+check of the tap water.  The typical meter is accurate to within +/- 4% of 
+the actual TDS value.  
+
+Since the tap water may have other ionic content that was not tested for or 
+reported in the lab testing, the TDS meter is more likely to report a higher 
+value than calculated here.  
+
+A TDS meter reading is useful for checking water supply variability.  When 
+the meter reading differs significantly from this calculated value, the tap water 
+quality may have changed from the reported values.
+</t></r></text></comment><comment ref="B22" authorId="1" shapeId="0" xr:uid="{00000000-0006-0000-0100-00001D000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Total Hardness = ((Ca/20)+(Mg/12.15))*50
+</t></r></text></comment><comment ref="C22" authorId="0" shapeId="0" xr:uid="{00000000-0006-0000-0100-00001E000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Alkalinity is calculated from the bicarbonate and carbonate concentrations. 
+</t></r></text></comment><comment ref="B23" authorId="1" shapeId="0" xr:uid="{00000000-0006-0000-0100-00001F000000}"><text><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Permanent Hardness = Total Hardness - Alkalinity</t></r><r><rPr><b/><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r></text></comment><comment ref="C23" authorId="1" shapeId="0" xr:uid="{00000000-0006-0000-0100-000020000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Residual Alkalinity (RA) is an approximate measure of the water's performance 
+during mashing. RA around zero or less may be more suited to pale beer 
+brewing while RA of greater than about 50 may be more suitable for darker 
+beer brewing. RA can be a negative value.</t></r><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r></text></comment><comment ref="B24" authorId="1" shapeId="0" xr:uid="{00000000-0006-0000-0100-000021000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Temporary Hardness = Alkalinity</t></r></text></comment><comment ref="A26" authorId="0" shapeId="0" xr:uid="{00000000-0006-0000-0100-000022000000}"><text><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Total Alkalinity and Temporary Hardness 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">are typically equal to each other and can 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>be used to estimate bicarbonate content.</t></r><r><rPr><sz val="9"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r></text></comment><comment ref="B28" authorId="1" shapeId="0" xr:uid="{00000000-0006-0000-0100-000023000000}"><text><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">If pH is unknown, ENTER 8
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">To find the equivalent Carbonate concentration 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">for a reported Alkalinity, set the pH to </t></r><r><rPr><b/><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">14.  
+</t></r><r><rPr><b/><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">Reporting as Carbonate is common in some 
+</t></r><r><rPr><b/><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">countries.  
+</t></r><r><rPr><b/><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">To find the equivalent Bicarbonate concentration 
+</t></r><r><rPr><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t>for a reported Alkalinity, set the pH value to</t></r><r><rPr><b/><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> 6 or 
+</t></r><r><rPr><b/><sz val="8"/><color rgb="FF000000"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">less.
+</t></r></text></comment><comment ref="C28" authorId="1" shapeId="0" xr:uid="{00000000-0006-0000-0100-000024000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Enter this result in the Bicarbonate cell above.</t></r></text></comment><comment ref="D28" authorId="1" shapeId="0" xr:uid="{00000000-0006-0000-0100-000025000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Enter this result in the Carbonate cell above.</t></r></text></comment><comment ref="A30" authorId="0" shapeId="0" xr:uid="{00000000-0006-0000-0100-000026000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Use this calculator to convert water report results that are given in 
+(as CaCO</t></r><r><rPr><vertAlign val="subscript"/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>3</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>), (SO</t></r><r><rPr><vertAlign val="subscript"/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>4</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>-S), or (NO</t></r><r><rPr><vertAlign val="subscript"/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>3</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">-N) units into their actual ion 
+concentrations in ppm for use in the </t></r><r><rPr><b/><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t>Water Report Input</t></r><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve"> section 
+above.
+</t></r></text></comment><comment ref="D43" authorId="0" shapeId="0" xr:uid="{00000000-0006-0000-0100-000027000000}"><text><r><rPr><sz val="8"/><color indexed="81"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">This approximation is only valid when 
+water pH is less than 8.5.
+</t></r></text></comment></commentList></comments>
