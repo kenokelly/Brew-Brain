@@ -22,6 +22,12 @@ The Tap List module manages the "Finished Beer" lifecycle. It tracks what is cur
 *   The backend generates a base64 encoded QR code PNG for each active tap.
 *   Scanning the code routes the user to a public `GET /api/taplist/public/<tap_id>` endpoint which serves a read-only narrative of the beer.
 
+### 3.4 Tap Initialization (Admin Flow)
+*   To set up a new keg, the user enters an administrative flow where they select a finished batch from the Brew-Brain history (Module 4) or directly from Brewfather.
+*   They assign the batch to a specific physical tap (e.g., Tap 1-4).
+*   They specify the starting **Keg Volume** (Standard Corny Keg is 19L, Half Corny is 9.5L, Commercial sizes are 30L/50L). 
+*   The system automatically links the final gravity data from the selected batch to lock in the ABV and Calorie calculations.
+
 ## 4. API Contracts
 
 ### `GET /api/taplist`
@@ -42,6 +48,16 @@ The Tap List module manages the "Finished Beer" lifecycle. It tracks what is cur
   ]
 }
 ```
+
+### `POST /api/taplist/<tap_id>/init`
+**Request:**
+```json
+{
+  "batch_id": "bf_batch_123xyz",
+  "keg_volume_l": 19.0
+}
+```
+**Response:** `{"status": "success", "message": "Tap 1 initialized with 19L of Hop Storm IPA."}`
 
 ### `POST /api/taplist/<tap_id>/pour`
 **Request:** `{"amount_ml": 568}` (1 UK Pint)
