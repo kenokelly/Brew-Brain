@@ -33,6 +33,28 @@ def sync_inventory():
     except Exception as e:
         return handle_error(e, "Inventory Sync Error")
 
+# ============ Recipe Parser Endpoints ============
+
+@automation_bp.route('/api/automation/recipe/parse', methods=['POST'])
+@require_api_token
+def parse_recipe():
+    from services.recipe_parser import parse_recipe_and_calculate_deficit
+    try:
+        data = request.json or {}
+        source_type = data.get('source')
+        recipe_data = data.get('recipe_data') or data.get('recipe_id')
+        
+        if not source_type or not recipe_data:
+            return api_response(status="error", error="Source (beerxml/brewfather) and data required", code=400)
+            
+        results = parse_recipe_and_calculate_deficit(source_type, recipe_data)
+        if isinstance(results, dict) and 'error' in results:
+            return api_response(status="error", error=results['error'], code=500)
+            
+        return api_response(data=results)
+    except Exception as e:
+        return handle_error(e, "Recipe Parsing Error")
+
 # ============ Recipe Finder Endpoints ============
 
 @automation_bp.route('/api/automation/recipes', methods=['POST'])
