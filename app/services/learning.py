@@ -253,6 +253,76 @@ def get_recommendations(category, style=None):
     results.sort(key=lambda x: x['verified_count'], reverse=True)
     return results
 
+def run_monte_carlo_simulation(target_og, yeast_name, mash_temp_c):
+    """
+    Runs 1,000 iterations to predict the distribution of Final Gravities
+    based on historical yeast data and varying physical conditions.
+    """
+    import numpy as np
+    
+    # 1. Get Base Yeast Attenuation
+    history = get_history()
+    yeast_brews = [b for b in history if b.get('yeast') == yeast_name and b.get('success')]
+    
+    if len(yeast_brews) >= 3:
+        avg_att = sum(float(b.get('attenuation', 75)) for b in yeast_brews) / len(yeast_brews)
+        att_std = np.std([float(b.get('attenuation', 75)) for b in yeast_brews])
+    else:
+        # Fallback to manufacturer medians if no local history
+        avg_att = 75.0
+        att_std = 3.5 # Wider variance
+        
+    iterations = 1000
+    results_fg = []
+    
+    # Base calculation: OG -> Points -> FG
+    og_points = (target_og - 1) * 1000
+    
+    for _ in range(iterations):
+        # Introduce Variance 
+        # Mash Temp (Higher temp = less fermentable = lower attenuation)
+        mash_temp_var = np.random.normal(0, 0.5) # Sensor variance +/- 0.5C
+        actual_mash_temp = mash_temp_c + mash_temp_var
+        
+        # Temp impact: For every 1C above 65C, attenuation drops ~1.5%
+        temp_impact = (actual_mash_temp - 65.0) * -1.5
+        
+        # Yeast Health / Pitch Rate Variance (Random draw)
+        health_impact = np.random.normal(0, 1.0) # +/- 1% impact
+        
+        # Calculate simulated attenuation
+        base_draw = np.random.normal(avg_att, att_std)
+        sim_att = base_draw + temp_impact + health_impact
+        
+        # Clamp attenuation between 40% and 95%
+        sim_att = max(40.0, min(95.0, sim_att))
+        
+        # Calculate FG
+        fg_points = og_points * (1 - (sim_att / 100.0))
+        sim_fg = 1 + (fg_points / 1000.0)
+        
+        results_fg.append(sim_fg)
+        
+    # Analyze Results
+    mean_fg = np.mean(results_fg)
+    p5_fg = np.percentile(results_fg, 5)
+    p95_fg = np.percentile(results_fg, 95)
+    
+    # Generate Mock LLM Insight (In production, this is passed to Llama3)
+    llm_mock = (
+        f"Based on {len(yeast_brews) if yeast_brews else 'manufacturer'} batches with {yeast_name}, "
+        f"the Monte Carlo simulation predicts a median FG of {round(mean_fg, 3)}. "
+        f"There is a 5% risk of stalling at {round(p95_fg, 3)} or higher. "
+        f"Consider pitching a healthy starter to tighten this variance."
+    )
+    
+    return {
+        "predicted_fg_mean": round(mean_fg, 3),
+        "predicted_fg_p5": round(p5_fg, 3),
+        "predicted_fg_p95": round(p95_fg, 3),
+        "llm_analysis": llm_mock
+    }
+
 def simulate_brew_day(grains, volume_l, mash_efficiency_pct):
     """
     Predicts OG based on grain bill and equipment efficiency.

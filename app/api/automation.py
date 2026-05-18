@@ -55,7 +55,50 @@ def parse_recipe():
     except Exception as e:
         return handle_error(e, "Recipe Parsing Error")
 
-# ============ Recipe Finder Endpoints ============
+# ============ Simulation & R&D Endpoints ============
+
+@automation_bp.route('/api/automation/simulate', methods=['POST'])
+@require_api_token
+def trigger_simulation():
+    try:
+        data = request.json or {}
+        target_og = data.get('target_og')
+        yeast = data.get('yeast')
+        mash_temp_c = data.get('mash_temp_c')
+        
+        if not all([target_og, yeast, mash_temp_c]):
+            return api_response(status="error", error="Missing parameters. Requires target_og, yeast, and mash_temp_c.", code=400)
+            
+        # Trigger Celery Task
+        from services.tasks import run_monte_carlo_task
+        task = run_monte_carlo_task.delay(float(target_og), yeast, float(mash_temp_c))
+        
+        return api_response(data={"status": "queued", "task_id": task.id})
+    except Exception as e:
+        return handle_error(e, "Simulation Trigger Error")
+
+@automation_bp.route('/api/automation/simulate/status/<task_id>', methods=['GET'])
+@require_api_token
+def check_simulation_status(task_id):
+    try:
+        from extensions import celery
+        from celery.result import AsyncResult
+        
+        task_result = AsyncResult(task_id, app=celery)
+        
+        if task_result.state == 'PENDING':
+            return api_response(data={"status": "queued"})
+        elif task_result.state == 'FAILURE':
+            return api_response(status="error", error=str(task_result.info), code=500)
+        elif task_result.state == 'SUCCESS':
+            result_data = task_result.get()
+            return api_response(data=result_data)
+        else:
+             return api_response(data={"status": task_result.state})
+    except Exception as e:
+         return handle_error(e, "Simulation Status Check Error")
+
+# ============ Sourcing & Pricing Endpoints ============
 
 @automation_bp.route('/api/automation/recipes', methods=['POST'])
 @require_api_token

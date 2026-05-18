@@ -179,3 +179,14 @@ def sync_brewfather():
     except Exception as e:
         logger.error(f"Brewfather sync failed: {e}")
         return {"status": "error", "message": str(e)}
+
+@celery.task(name="services.tasks.run_monte_carlo_simulation")
+def run_monte_carlo_task(target_og, yeast_name, mash_temp_c):
+    """Background task to run the Monte Carlo simulation."""
+    try:
+        from services.learning import run_monte_carlo_simulation
+        result = run_monte_carlo_simulation(target_og, yeast_name, mash_temp_c)
+        return {"status": "success", "data": result}
+    except Exception as e:
+        logger.error(f"Monte Carlo simulation failed: {e}")
+        return {"status": "error", "message": str(e)}
