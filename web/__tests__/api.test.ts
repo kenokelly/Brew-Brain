@@ -1,12 +1,12 @@
 /**
- * API Client Tests
+ * API Client Tests (Ported from Jest to Vitest)
  */
-
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { api, apiFetch, ApiClientError } from '../lib/api';
 
 // Mock fetch
-const mockFetch = jest.fn();
-global.fetch = mockFetch;
+const mockFetch = vi.fn();
+global.fetch = mockFetch as any;
 
 describe('apiFetch', () => {
     beforeEach(() => {
