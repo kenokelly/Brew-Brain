@@ -10,15 +10,16 @@ from api.routes import api_response, handle_error
 
 settings_bp = Blueprint('settings', __name__)
 
-@settings_bp.route('/settings', methods=['GET', 'POST'])
+@settings_bp.route('/settings', methods=['GET', 'PATCH'])
 @require_api_token
 def settings() -> Tuple[Response, int]:
     """Get or update Brew Brain settings."""
     if request.method == 'GET':
         safe_config = get_all_config()
         # Mask sensitive keys
-        if "bf_key" in safe_config: safe_config["bf_key"] = "********"
-        if "google_search_api" in safe_config: safe_config["google_search_api"] = "********"
+        if "bf_key" in safe_config and safe_config["bf_key"]: safe_config["bf_key"] = "********"
+        if "alert_telegram_token" in safe_config and safe_config["alert_telegram_token"]: safe_config["alert_telegram_token"] = "********"
+        if "serp_api_key" in safe_config and safe_config["serp_api_key"]: safe_config["serp_api_key"] = "********"
         return api_response(data=safe_config)
     
     try:
