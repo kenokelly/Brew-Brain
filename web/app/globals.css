@@ -110,24 +110,33 @@ body {
   padding-right: env(safe-area-inset-right);
 }
 
-/* Premium Glassmorphism & Animations */
+/* Minimalist Light Framework (Option 3) */
 @layer components {
+  /* Replace glassmorphism with stark, clean minimalist cards */
   .glass-card {
-    @apply bg-card/60 backdrop-blur-xl border border-border/50 shadow-sm;
+    @apply bg-card border border-border shadow-sm rounded-2xl;
+    /* Hardware acceleration for Pi */
     transform: translateZ(0);
-    will-change: transform, backdrop-filter;
+    will-change: transform;
   }
   
   .glass-card-hover {
-    @apply hover:bg-card/80 hover:border-primary/20 hover:shadow-md transition-all duration-300;
+    @apply hover:shadow-md hover:border-primary/20 transition-all duration-300;
   }
 
-  .glow-primary {
-    @apply shadow-[0_0_15px_rgba(var(--primary),0.1)];
+  /* Pastel Chart Colors for Minimalist Light */
+  .chart-color-1 { stroke: #93c5fd; fill: #93c5fd; } /* Soft Blue */
+  .chart-color-2 { stroke: #86efac; fill: #86efac; } /* Soft Green */
+  .chart-color-3 { stroke: #fcd34d; fill: #fcd34d; } /* Soft Yellow */
+  .chart-color-4 { stroke: #d8b4fe; fill: #d8b4fe; } /* Soft Purple */
+
+  /* Menu system active state */
+  .nav-active {
+    @apply bg-blue-50 text-blue-600 font-bold border-l-4 border-blue-600;
   }
 
   .text-gradient {
-    @apply bg-clip-text text-transparent bg-gradient-to-br from-foreground to-foreground/60;
+    @apply text-foreground font-black tracking-tight;
   }
 }
 
