@@ -28,6 +28,15 @@ The Tap List module manages the "Finished Beer" lifecycle. It tracks what is cur
 *   They specify the starting **Keg Volume** (Standard Corny Keg is 19L, Half Corny is 9.5L, Commercial sizes are 30L/50L). 
 *   The system automatically links the final gravity data from the selected batch to lock in the ABV and Calorie calculations.
 
+### 3.5 Smart Tap Handle Hardware Integration (Future)
+*   The Tap List API will feed data to physical, interactive digital tap handles built using the following hardware:
+    *   **The Brain:** Waveshare ESP32-S3-Touch-LCD-2.1 (Circular touch display to show beer graphic, ABV, and remaining volume ring).
+    *   **The Power:** 603450 LiPo Battery (3.7V, ~1100mAh) mounted internally.
+    *   **The Wiring:** Micro JST 1.25 2-pin Male Connector Cables and Solder Seal Wire Connectors.
+    *   **The Charging:** 90-Degree Magnetic USB-C Cable for easy detachment and data sync.
+    *   **The Case:** 3D Printed enclosure ("Short/Tall" variants depending on tap thread).
+*   **Interaction:** The ESP32 will fetch `GET /api/taplist` on a slow poll (e.g., every 5 minutes) and display the assigned beer for that specific tap. Tapping the screen could potentially trigger a `POST /api/taplist/<tap_id>/pour` action for a standard pint.
+
 ## 4. API Contracts
 
 ### `GET /api/taplist`

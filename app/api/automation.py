@@ -87,6 +87,25 @@ def analyze_recipes():
 
 # ============ Sourcing & Pricing Endpoints ============
 
+@automation_bp.route('/api/automation/source', methods=['POST'])
+@require_api_token
+def source_deficit():
+    try:
+        data = request.json or {}
+        deficit = data.get('deficit')
+        preferred_vendors = data.get('preferred_vendors')
+        
+        if not deficit:
+            return api_response(status="error", error="Deficit data required", code=400)
+            
+        results = sourcing.source_deficit(deficit, preferred_vendors)
+        if isinstance(results, dict) and 'error' in results:
+             return api_response(status="error", error=results['error'], code=500)
+             
+        return api_response(data=results)
+    except Exception as e:
+        return handle_error(e, "Deficit Sourcing Error")
+
 @automation_bp.route('/api/automation/scout', methods=['POST'])
 @require_api_token
 def scout_ingredients():

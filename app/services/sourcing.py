@@ -692,6 +692,80 @@ def compare_recipe_prices(recipe_details, recipe_tag=None, debug_mode=False):
         "winner": "The Malt Miller" if (total_tmm < total_geb and total_tmm > 0) else "Get Er Brewed" if (total_geb < total_tmm and total_geb > 0) else "Inconclusive"
     }
 
+def source_deficit(deficit_data, preferred_vendors=None):
+    """
+    Takes a deficit report and uses ThreadPoolExecutor to find the best prices
+    to fulfill the missing ingredients.
+    """
+    items_to_check = []
+    
+    for hop in deficit_data.get('hops', []):
+        if hop.get('deficit_g', 0) > 0:
+            items_to_check.append({
+                "name": hop['name'],
+                "amount": hop['deficit_g'],
+                "unit": "g",
+                "type": "Hop"
+            })
+            
+    for ferm in deficit_data.get('fermentables', []):
+        if ferm.get('deficit_kg', 0) > 0:
+            items_to_check.append({
+                "name": ferm['name'],
+                "amount": ferm['deficit_kg'],
+                "unit": "kg",
+                "type": "Malt"
+            })
+
+    # For simplicity, we wrap compare_recipe_prices logic
+    # but adapt it to just these items. We could refactor compare_recipe_prices
+    # to share a core processing function, but for Phase 1 we will construct a dummy recipe
+    dummy_recipe = {
+        "hops": [{"name": i['name'], "amount": i['amount']} for i in items_to_check if i['type'] == 'Hop'],
+        "fermentables": [{"name": i['name'], "amount": i['amount']} for i in items_to_check if i['type'] == 'Malt']
+    }
+    
+    # We call the existing price comparison engine which uses ThreadPoolExecutor
+    # and Redis-like in-memory caching.
+    cmp_results = compare_recipe_prices(dummy_recipe)
+    
+    if "error" in cmp_results:
+        return cmp_results
+        
+    # Re-format output to match PRD
+    cart = []
+    total_cost = 0.0
+    
+    for row in cmp_results.get('breakdown', []):
+        vendor = row.get('best_vendor', 'Unknown')
+        
+        # Default to TMM if tie or inconclusive
+        if vendor == 'TMM' or vendor == 'Tie' or vendor == 'Unknown':
+            v_name = "The Malt Miller"
+            price = row.get('tmm_cost')
+            link = row.get('tmm_link')
+        else:
+            v_name = "Get Er Brewed"
+            price = row.get('geb_cost')
+            link = row.get('geb_link')
+            
+        if price == '?':
+            price = 0.0
+            
+        cart.append({
+            "item": f"{row['name']} {row['amount']}",
+            "vendor": v_name,
+            "price": price,
+            "link": link
+        })
+        total_cost += float(price) if isinstance(price, (int, float)) else 0.0
+        
+    return {
+        "total_estimated_cost": round(total_cost, 2),
+        "currency": "GBP",
+        "cart": cart
+    }
+
 def get_restock_suggestions():
     """
     Scans inventory for low items and generates TMM links.
