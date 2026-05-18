@@ -12,6 +12,7 @@ from api.automation import automation_bp
 from api.settings import settings_bp
 from api.batches import batches_bp
 from api.taps import taps_bp
+from api.kiosk import kiosk_bp
 from api.ml import ml_bp
 from api.ai import ai_bp
 from api.calculators import calc_bp
@@ -33,6 +34,7 @@ app.register_blueprint(automation_bp)
 app.register_blueprint(settings_bp, url_prefix='/api')
 app.register_blueprint(batches_bp, url_prefix='/api')
 app.register_blueprint(taps_bp, url_prefix='/api')
+app.register_blueprint(kiosk_bp, url_prefix='/api/kiosk')
 app.register_blueprint(ml_bp, url_prefix='/api/ml')
 app.register_blueprint(ai_bp, url_prefix='/api/ai')
 app.register_blueprint(calc_bp, url_prefix='/api/calculator')
