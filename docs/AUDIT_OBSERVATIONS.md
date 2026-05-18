@@ -5,23 +5,21 @@
 
 ---
 
-## 📅 Log: 2026-05-17 (Update 4)
+## 📅 Log: 2026-05-17 (End of Day Audit)
 
 ### 🔍 Current Project Baseline
-*   **Main Branch Status:** ✅ SAFE. Antigravity has successfully synced and pushed the first overhaul commit.
-*   **Version:** `3c1b4e0` (Bru'n Water Parity Implementations).
+*   **Main Branch Status:** ✅ STABLE. 20+ commits merged today covering Modules 1, 3, 5, 6, 7, and 8.
+*   **Version:** `6d7eda4` (Latest Production Release).
+*   **Host Status (Pi 5):** 🟢 Online. Disk: 96% used (**ALERT**). CPU Temp: 49.6°C.
 
 ### 📝 Observations
-1.  **Compliance Check (Module 3):** Antigravity has successfully implemented the exact ionic constants from `BrunWater-Ken.xlsm` (e.g., Gypsum Ca: 232.8, Epsom Mg: 98.6). 
-    *   **Result:** ✅ **PASSED**. The scientific engine now matches the user's gold standard.
-2.  **Asset Management:** Antigravity has committed the `BrunWater-Ken.xlsm` file to the `docs/` folder. 
-    *   **Result:** ✅ **PASSED**. This ensures the source of truth is always available for future audits.
-3.  **Stability & Regression:** Verified that the existing `test_water_chemistry.py` passes with the new constants.
-4.  **UI Polish:** Detected initial Framer Motion hooks in `globals.css` and `page.tsx`.
-5.  **Deployment Strategy Shift:** Antigravity is utilizing the automated `deploy_and_verify.sh` script. 
-    *   **Insight:** This is a departure from the SRE team's previous "Surgical Deployment" model (manual SCP/SSH). 
-    *   **Benefit:** The script uses `rsync -avz` with strict exclusions (e.g., `node_modules`), which is significantly faster and cleaner for front-end heavy changes.
-    *   **Risk:** The script's verification logic is limited (only checks `/api/health`). It does **not** yet run the functional calculator tests or the `keep_alive: 0` RAM checks I codified in `docs/SRE_CHECKLIST.md`.
+1.  **Compliance Check (Module 3 - Water):** Implementation of Bru'n Water parity is confirmed in `ION_CONTRIBUTIONS`. Parity verified locally and in production.
+2.  **Compliance Check (Module 5 & 6 - Automation):** Massive expansion of the Automation suite (Inventory, Sourcing, Monte Carlo Simulation). Use of `Pydantic V2` for config validation is a major stability win.
+3.  **UI Transformation:** Framework for 'Minimalist Light' system implemented. Dashboard now utilizes hardware-accelerated Framer Motion animations.
+4.  **Resource Management:** `keep_alive: 0` is strictly enforced across all AI functions, ensuring model unloading from RAM.
+5.  **Critical Concern - Storage:** Production disk usage is at **96% (1.3GB free)**. This is a regression from earlier today (80% / 5.7GB). 
+    *   **Cause:** InfluxDB retention was fixed, but the Next.js `build` artifacts and `scratch/brunwater` files are consuming significant space.
+6.  **Critical Concern - Logic:** The 'Mash pH' implementation (Phase 9.9) in `mash_chemistry.py` is incomplete. It uses a simplified buffering model rather than the full Kolbach Residual Alkalinity formula defined in the PRD.
 
 ---
 
@@ -29,12 +27,15 @@
 | Milestone | Auditor Status | Adherence to PRD | SRE Verified |
 | :--- | :--- | :--- | :--- |
 | Phase 1: Stabilization | ✅ Verified | 100% | ✅ Yes |
-| Dev Env Stabilization | ✅ RESOLVED | N/A | ✅ Yes (Bolt Disabled) |
 | Module 3: Water Logic | ✅ VERIFIED | 100% | ✅ Yes |
-| Phase 9.9: Mash pH | 🔍 Auditing | 50% (Basic hooks only) | ⏳ Pending |
-| Module 1: Dashboard UI | 🔍 Auditing | 20% (Layout only) | ⏳ Pending |
+| Module 5: Settings | ✅ VERIFIED | 100% | ✅ Yes |
+| Module 6: Automation | ✅ VERIFIED | 90% | ✅ Yes |
+| Phase 9.9: Mash pH | ⚠️ AT RISK | 40% (Simplified) | ❌ No |
+| Module 1: Dashboard UI | ✅ VERIFIED | 100% | ✅ Yes |
 
 ---
 
 ## 🚩 Deviations & Concerns
-*   *None at this time.*
+1.  **Storage Regression:** Raspberry Pi is nearing "Deadlock" again (96% full). Antigravity must prune build artifacts and move the `scratch/` directory to a non-production volume.
+2.  **Formula Divergence:** `mash_chemistry.py` needs to be refactored to include the Kolbach formula for residual alkalinity. The current implementation is a "v1" approximation.
+3.  **Deployment Verification:** `deploy_and_verify.sh` still lacks functional IBU/Water verification. It passed the "Is Alive" check but didn't verify math accuracy.
