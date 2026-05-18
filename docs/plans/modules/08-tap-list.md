@@ -11,7 +11,8 @@ The Tap List module manages the "Finished Beer" lifecycle. It tracks what is cur
 
 ### 3.1 Keg Volume Estimation
 *   Since physical flow-meters are not installed, the system estimates keg volume based on time. A keg is marked as "Tapped" with a total volume (e.g., 19L). 
-*   The UI allows the brewer to hit a "-1 Pint" button, or just enter an estimated percentage.
+*   The UI must provide specific pour decrement buttons based on standard UK glass sizes: **1 Pint (568ml)**, **2/3 Pint (379ml)**, **1/2 Pint (284ml)**, and **1/3 Pint (189ml)**.
+*   Alternatively, the brewer can enter an estimated percentage override.
 
 ### 3.2 Dynamic ABV & Calorie Calculation
 *   When a batch finishes fermentation (Module 4), its final Original Gravity (OG) and Final Gravity (FG) are logged. 
