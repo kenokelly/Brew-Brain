@@ -1,11 +1,37 @@
 from flask import Blueprint, request
 from core.auth import require_api_token
-from services import scout, calculator, alerts, yeast, sourcing, learning
+from services import scout, calculator, alerts, yeast, sourcing, learning, inventory
 import logging
 from api.routes import api_response, handle_error
 
 automation_bp = Blueprint('automation', __name__)
 logger = logging.getLogger(__name__)
+
+# ============ Inventory Endpoints ============
+
+@automation_bp.route('/api/automation/inventory', methods=['GET'])
+@require_api_token
+def get_inventory():
+    try:
+        results = inventory.get_processed_inventory()
+        if isinstance(results, dict) and 'error' in results:
+            return api_response(status="error", error=results['error'], code=500)
+        return api_response(data=results)
+    except Exception as e:
+        return handle_error(e, "Inventory Fetch Error")
+
+@automation_bp.route('/api/automation/inventory/sync', methods=['POST'])
+@require_api_token
+def sync_inventory():
+    # In a full production environment this would trigger a Celery task.
+    # For now, we perform a synchronous fetch.
+    try:
+        results = inventory.fetch_inventory_with_backoff()
+        if isinstance(results, dict) and 'error' in results:
+            return api_response(status="error", error=results['error'], code=500)
+        return api_response(data={"message": "Inventory successfully synced", "raw_data": results})
+    except Exception as e:
+        return handle_error(e, "Inventory Sync Error")
 
 # ============ Recipe Finder Endpoints ============
 
