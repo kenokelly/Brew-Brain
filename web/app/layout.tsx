@@ -15,6 +15,7 @@ const geistMono = Geist_Mono({
 
 import { SocketProvider } from "@/lib/socket";
 import { NavBar, PageContainer } from "@/components/nav";
+import { ThemeProvider } from "@/components/theme-provider";
 
 export const metadata: Metadata = {
   title: "Brew Brain",
@@ -49,39 +50,46 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground transition-colors duration-300`}
       >
-        <Toaster
-          position="top-right"
-          toastOptions={{
-            duration: 4000,
-            style: {
-              background: 'hsl(var(--card))',
-              color: 'hsl(var(--foreground))',
-              border: '1px solid hsl(var(--border))',
-            },
-            success: {
-              iconTheme: {
-                primary: 'hsl(var(--primary))',
-                secondary: 'white',
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <Toaster
+            position="top-right"
+            toastOptions={{
+              duration: 4000,
+              style: {
+                background: 'var(--card)',
+                color: 'var(--foreground)',
+                border: '1px solid var(--border)',
               },
-            },
-            error: {
-              iconTheme: {
-                primary: '#ef4444',
-                secondary: 'white',
+              success: {
+                iconTheme: {
+                  primary: 'var(--primary)',
+                  secondary: 'var(--primary-foreground)',
+                },
               },
-            },
-          }}
-        />
-        <SocketProvider>
-          <NavBar />
-          <PageContainer>
-            {children}
-          </PageContainer>
-        </SocketProvider>
+              error: {
+                iconTheme: {
+                  primary: 'var(--destructive)',
+                  secondary: 'var(--destructive-foreground)',
+                },
+              },
+            }}
+          />
+          <SocketProvider>
+            <NavBar />
+            <PageContainer>
+              {children}
+            </PageContainer>
+          </SocketProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

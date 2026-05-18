@@ -7,6 +7,7 @@ import { LayoutDashboard, Beer, Bot, CircleHelp, Menu, Monitor } from 'lucide-re
 
 export const NAV_ITEMS = [
     { href: '/', icon: LayoutDashboard, label: 'Dashboard' },
+    { href: '/legacy', icon: LayoutDashboard, label: 'Legacy Dashboard' },
     { href: '/chat', icon: Bot, label: 'Brewmaster' },
     { href: '/settings', icon: Menu, label: 'Settings' },
     { href: 'http://192.168.155.226:1880/ui/', icon: LayoutDashboard, label: 'TiltPi' },

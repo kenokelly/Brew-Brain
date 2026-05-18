@@ -57,33 +57,31 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    /* Premium Dark Mode */
-    --background: #09090b;
-    /* Zinc-950 */
-    --foreground: #fafafa;
-    /* Zinc-50 */
-    --card: #09090b;
-    --card-foreground: #fafafa;
-    --popover: #09090b;
-    --popover-foreground: #fafafa;
-    --primary: #fafafa;
-    --primary-foreground: #18181b;
-    --secondary: #27272a;
-    /* Zinc-800 */
-    --secondary-foreground: #fafafa;
-    --muted: #27272a;
-    --muted-foreground: #a1a1aa;
-    /* Zinc-400 */
-    --accent: #27272a;
-    --accent-foreground: #fafafa;
-    --destructive: #7f1d1d;
-    --destructive-foreground: #fafafa;
-    --border: #27272a;
-    --input: #27272a;
-    --ring: #d4d4d8;
-  }
+.dark {
+  /* Premium Dark Mode */
+  --background: #09090b;
+  /* Zinc-950 */
+  --foreground: #fafafa;
+  /* Zinc-50 */
+  --card: #09090b;
+  --card-foreground: #fafafa;
+  --popover: #09090b;
+  --popover-foreground: #fafafa;
+  --primary: #fafafa;
+  --primary-foreground: #18181b;
+  --secondary: #27272a;
+  /* Zinc-800 */
+  --secondary-foreground: #fafafa;
+  --muted: #27272a;
+  --muted-foreground: #a1a1aa;
+  /* Zinc-400 */
+  --accent: #27272a;
+  --accent-foreground: #fafafa;
+  --destructive: #7f1d1d;
+  --destructive-foreground: #fafafa;
+  --border: #27272a;
+  --input: #27272a;
+  --ring: #d4d4d8;
 }
 
 body {
@@ -132,7 +130,7 @@ body {
 
   /* Menu system active state */
   .nav-active {
-    @apply bg-blue-50 text-blue-600 font-bold border-l-4 border-blue-600;
+    @apply bg-blue-50 text-blue-600 font-bold border-l-4 border-blue-600 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-400;
   }
 
   .text-gradient {

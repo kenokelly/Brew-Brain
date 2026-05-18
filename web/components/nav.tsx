@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import { LayoutDashboard, Beer, Bot, Menu, X } from 'lucide-react';
 import { ConnectionStatus, MobileConnectionStatus } from './nav/ConnectionStatus';
 import { NAV_ITEMS, SidebarItem, MobileMenuItem } from './nav/NavItems';
+import { ThemeToggle } from './theme-toggle';
 
 export function NavBar() {
     const pathname = usePathname();
@@ -29,7 +30,11 @@ export function NavBar() {
                     ))}
                 </nav>
 
-                <div className="p-4 border-t border-border/50">
+                <div className="p-4 border-t border-border/50 flex flex-col gap-4">
+                    <div className="flex items-center justify-between lg:justify-center w-full">
+                         <span className="hidden lg:block text-xs font-semibold text-muted-foreground uppercase tracking-wider">Appearance</span>
+                         <ThemeToggle />
+                    </div>
                     <ConnectionStatus />
                 </div>
             </aside>
@@ -43,13 +48,16 @@ export function NavBar() {
                         <MobileConnectionStatus />
                     </div>
                 </div>
-                <button
-                    onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                    className="p-2 -mr-2 text-muted-foreground hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary outline-none"
-                    aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
-                >
-                    {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-                </button>
+                <div className="flex items-center gap-2">
+                    <ThemeToggle />
+                    <button
+                        onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                        className="p-2 -mr-2 text-muted-foreground hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary outline-none"
+                        aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+                    >
+                        {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+                    </button>
+                </div>
             </header>
 
             {/* Mobile Menu Overlay */}
