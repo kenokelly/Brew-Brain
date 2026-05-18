@@ -3,9 +3,22 @@
 import { useSocket } from "@/lib/socket";
 import { Activity, Thermometer, Droplets, Gauge } from "lucide-react";
 import { motion } from "framer-motion";
+import { useState, useEffect } from "react";
 
 export default function Dashboard() {
-  const { systemStatus, sensors } = useSocket();
+  const { socket } = useSocket();
+  const [systemStatus, setSystemStatus] = useState<any>(null);
+  const [sensors, setSensors] = useState<any>(null);
+
+  useEffect(() => {
+    if (!socket) return;
+    socket.on('status_update', (data) => setSystemStatus(data));
+    socket.on('sensor_data', (data) => setSensors(data));
+    return () => {
+      socket.off('status_update');
+      socket.off('sensor_data');
+    };
+  }, [socket]);
 
   const isFermenting = systemStatus?.phase === "Fermenting";
   const bgGradient = isFermenting 
