@@ -71,11 +71,42 @@ class BrewBrainConfig(BaseModel):
     @field_validator('start_date')
     @classmethod
     def validate_date(cls, v: str) -> str:
+        if v is None:
+            return datetime.now().strftime("%Y-%m-%d")
         try:
-            datetime.strptime(v, "%Y-%m-%d")
-            return v
+            datetime.strptime(str(v), "%Y-%m-%d")
+            return str(v)
         except ValueError:
             return datetime.now().strftime("%Y-%m-%d")
+
+    @field_validator('batch_name', 'batch_notes', 'style', 'yeast_strain', 
+                     'bf_user', 'bf_key', 'alert_telegram_token', 'alert_telegram_chat', 
+                     'ollama_host', 'ollama_model', 'serp_api_key', 'alert_start_time', 'alert_end_time', mode='before')
+    @classmethod
+    def coerce_string(cls, v: Any) -> str:
+        if v is None:
+            return ""
+        return str(v)
+
+    @field_validator('og', mode='before')
+    @classmethod
+    def coerce_og(cls, v: Any) -> float:
+        if v is None:
+            return 1.050
+        try:
+            return float(v)
+        except (ValueError, TypeError):
+            return 1.050
+
+    @field_validator('target_fg', mode='before')
+    @classmethod
+    def coerce_fg(cls, v: Any) -> float:
+        if v is None:
+            return 1.010
+        try:
+            return float(v)
+        except (ValueError, TypeError):
+            return 1.010
 
 # Config Instance (Defaults to starting state)
 _config_instance = BrewBrainConfig()

@@ -59,10 +59,10 @@ def sync_brewfather() -> Tuple[Response, int]:
         # Ensure global yeast_strain is set even if not found in yeast array
         set_config("yeast_strain", yeast_name)
         
-        set_config("batch_name", b.get('name'))
-        set_config("og", rec.get('og'))
-        set_config("target_fg", rec.get('fg'))
-        set_config("batch_notes", b.get('notes') or rec.get('notes'))
+        set_config("batch_name", b.get('name') or "New Batch")
+        set_config("og", rec.get('og') if rec.get('og') is not None else 1.050)
+        set_config("target_fg", rec.get('fg') if rec.get('fg') is not None else 1.010)
+        set_config("batch_notes", b.get('notes') or rec.get('notes') or "")
         set_config("start_date", date_str)
         set_config("yeast_strain", yeast_name)
         
