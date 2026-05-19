@@ -128,3 +128,95 @@ def get_debug_logs():
         return api_response(data={"logs": last_lines})
     except Exception as e:
         return handle_error(e, "Log Retrieval Error")
+
+import requests
+
+@settings_bp.route('/settings/test', methods=['POST'])
+@require_api_token
+def test_integration() -> Tuple[Response, int]:
+    """Test a 3rd-party integration with unsaved credentials."""
+    try:
+        data = request.json or {}
+        integration = data.get('integration')
+        config = data.get('config', {})
+        
+        if integration == 'telegram':
+            token = config.get('alert_telegram_token')
+            chat_id = config.get('alert_telegram_chat')
+            if not token or not chat_id:
+                return api_response(status="error", error="Missing Telegram Token or Chat ID", code=400)
+            
+            # Mask token in output for safety
+            safe_token = f"{token[:4]}...{token[-4:]}" if len(token) > 8 else "****"
+            url = f"https://api.telegram.org/bot{token}/sendMessage"
+            payload = {"chat_id": chat_id, "text": "🧪 *Brew Brain Test*\nConnection successful!", "parse_mode": "Markdown"}
+            
+            try:
+                res = requests.post(url, json=payload, timeout=5)
+                if res.status_code == 200:
+                    return api_response(status="success", message=f"Telegram connected! Test message sent to {chat_id}.")
+                else:
+                    return api_response(status="error", error=f"Telegram Error ({res.status_code}): {res.text}", code=400)
+            except requests.exceptions.RequestException as e:
+                return api_response(status="error", error=f"Telegram Network Error: {str(e)}", code=400)
+                
+        elif integration == 'brewfather':
+            user_id = config.get('bf_user')
+            api_key = config.get('bf_key')
+            if not user_id or not api_key:
+                return api_response(status="error", error="Missing Brewfather User ID or API Key", code=400)
+            
+            import base64
+            auth_str = base64.b64encode(f"{user_id}:{api_key}".encode()).decode()
+            try:
+                res = requests.get("https://api.brewfather.app/v2/batches?limit=1", headers={"Authorization": f"Basic {auth_str}"}, timeout=5)
+                if res.status_code == 200:
+                    return api_response(status="success", message="Brewfather authenticated successfully!")
+                else:
+                    return api_response(status="error", error=f"Brewfather Error ({res.status_code}): {res.text}", code=400)
+            except requests.exceptions.RequestException as e:
+                return api_response(status="error", error=f"Brewfather Network Error: {str(e)}", code=400)
+                
+        elif integration == 'serpapi':
+            api_key = config.get('serp_api_key')
+            if not api_key:
+                return api_response(status="error", error="Missing SerpApi Key", code=400)
+            try:
+                res = requests.get(f"https://serpapi.com/search.json?q=test&api_key={api_key}", timeout=5)
+                if res.status_code == 200:
+                    return api_response(status="success", message="SerpApi authenticated successfully!")
+                else:
+                    return api_response(status="error", error=f"SerpApi Error ({res.status_code}): {res.text}", code=400)
+            except requests.exceptions.RequestException as e:
+                return api_response(status="error", error=f"SerpApi Network Error: {str(e)}", code=400)
+                
+        elif integration == 'ollama':
+            host = config.get('ollama_host', 'localhost')
+            model = config.get('ollama_model', 'llama3')
+            
+            if not host.startswith('http'):
+                host = f"http://{host}:11434"
+            else:
+                host = host.rstrip('/')
+                
+            try:
+                res = requests.get(f"{host}/api/tags", timeout=5)
+                if res.status_code == 200:
+                    models = res.json().get('models', [])
+                    if any(m.get('name', '').startswith(model) for m in models):
+                        return api_response(status="success", message=f"Ollama connected. Model '{model}' is installed and ready.")
+                    else:
+                        installed = ", ".join([m.get('name') for m in models]) or "None"
+                        return api_response(status="error", error=f"Connected to Ollama, but model '{model}' not found. Installed models: {installed}", code=400)
+                else:
+                    return api_response(status="error", error=f"Ollama Error ({res.status_code}): {res.text}", code=400)
+            except requests.exceptions.ConnectionError:
+                 return api_response(status="error", error=f"Could not connect to Ollama at {host}. Is the service running?", code=400)
+            except requests.exceptions.RequestException as e:
+                 return api_response(status="error", error=f"Ollama Network Error: {str(e)}", code=400)
+        
+        else:
+            return api_response(status="error", error=f"Unknown integration target: {integration}", code=400)
+            
+    except Exception as e:
+        return handle_error(e, "Integration Test Error")
