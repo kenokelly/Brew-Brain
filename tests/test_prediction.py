@@ -32,7 +32,7 @@ class TestPrediction(unittest.TestCase):
         X, y_fg, y_time = prepare_features(data)
 
         self.assertEqual(len(X), 1)
-        self.assertEqual(X[0][0], 1.050)  # OG
+        self.assertAlmostEqual(X[0][0], 0.4166666666666667)  # OG normalized
         self.assertGreater(X[0][1], 0)    # Velocity
         self.assertEqual(y_fg[0], 1.010)
         self.assertGreater(y_time[0], 0)
@@ -92,7 +92,7 @@ class TestPrediction(unittest.TestCase):
         with patch('os.path.exists', return_value=False):
             result = predict_fg(og=1.050)
             self.assertEqual(result["method"], "formula")
-            self.assertEqual(result["predicted_fg"], 1.013)  # 75% attenuation
+            self.assertEqual(result["predicted_fg"], 1.012)  # 75% attenuation (rounds 1.0125 to 1.012)
 
     def test_predict_time_to_fg(self):
         from app.ml.prediction import predict_time_to_fg

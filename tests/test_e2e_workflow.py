@@ -14,7 +14,7 @@ import logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("E2E_Test")
 
-def test_e2e_workflow():
+def run_e2e_workflow():
     """
     Tests the complete Scout-to-Log workflow.
     Returns: dict with test results
@@ -189,12 +189,18 @@ def test_e2e_workflow():
     return results
 
 
+def test_e2e_workflow():
+    """Pytest entrypoint that returns None."""
+    results = run_e2e_workflow()
+    assert results["summary"]["overall"] == "PASS"
+
+
 if __name__ == "__main__":
     # Add app to path
     sys.path.insert(0, '.')
     sys.path.insert(0, './app')
     
-    results = test_e2e_workflow()
+    results = run_e2e_workflow()
     
     print("\n" + "=" * 50)
     print("FULL RESULTS:")

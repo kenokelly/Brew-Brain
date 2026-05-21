@@ -1,13 +1,14 @@
 import pytest
-from playwright.sync_api import Page, expect
+from playwright.sync_api import Page, expect, sync_playwright
 
 @pytest.fixture(scope="function")
-def context(playwright):
+def context():
     """Creates a new browser context for each test."""
-    browser = playwright.chromium.launch()
-    context = browser.new_context()
-    yield context
-    browser.close()
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        context = browser.new_context()
+        yield context
+        browser.close()
 
 def test_toast_notification(context):
     """Verify toast notifications appear correctly."""
@@ -18,12 +19,15 @@ def test_toast_notification(context):
     # Alternatively, if the app is running (which it is on port 5000), we can hit it.
     
     try:
-        page.goto("http://192.168.155.226:5000")
-        page.wait_for_load_state("networkidle")
-    except:
-        pytest.skip("Server not running at http://192.168.155.226:5000")
+        page.goto("http://192.168.155.226:3001")
+        page.wait_for_load_state("load")
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        pytest.skip(f"Server not running: {e}")
 
     # Inject a test toast trigger
+    page.wait_for_function("typeof window.showToast === 'function'")
     page.evaluate("""
         window.showToast("Test Success Message", "success");
     """)
@@ -44,17 +48,19 @@ def test_toast_variants(context):
     """Verify different toast types."""
     page = context.new_page()
     try:
-        page.goto("http://192.168.155.226:5000")
-        page.wait_for_load_state("networkidle")
+        page.goto("http://192.168.155.226:3001")
+        page.wait_for_load_state("load")
     except:
         pytest.skip("Server not running")
 
     # Error Toast
+    page.wait_for_function("typeof window.showToast === 'function'")
     page.evaluate("""window.showToast("Test Error", "error")""")
     error_toast = page.locator(".toast.error")
     expect(error_toast).to_be_visible()
     
     # Info Toast
+    page.wait_for_function("typeof window.showToast === 'function'")
     page.evaluate("""window.showToast("Test Info", "info")""")
     info_toast = page.locator(".toast.info")
     expect(info_toast).to_be_visible()
@@ -63,8 +69,8 @@ def test_aria_navigation(context):
     """Verify accessibility labels on navigation."""
     page = context.new_page()
     try:
-        page.goto("http://192.168.155.226:5000")
-        page.wait_for_load_state("networkidle")
+        page.goto("http://192.168.155.226:3001")
+        page.wait_for_load_state("load")
     except:
         pytest.skip("Server not running")
 

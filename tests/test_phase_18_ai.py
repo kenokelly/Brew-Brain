@@ -4,6 +4,15 @@ from datetime import datetime, timezone, timedelta
 import sys
 import os
 
+# Save original modules
+_original_modules = {}
+_keys_to_remove = []
+for key in ["influxdb_client", "core.influx", "core.cache", "serpapi"]:
+    if key in sys.modules:
+        _original_modules[key] = sys.modules[key]
+    else:
+        _keys_to_remove.append(key)
+
 # Mock dependencies
 sys.modules["influxdb_client"] = MagicMock()
 sys.modules["core.influx"] = MagicMock()
@@ -16,7 +25,25 @@ sys.path.append(os.path.join(os.getcwd(), 'app'))
 from services.yeast import search_yeast_meta, YEAST_DATABASE
 from services.ai import get_proactive_advice, predict_issues
 
+# Restore original modules to prevent side-effects on other test files
+for key, val in _original_modules.items():
+    sys.modules[key] = val
+for key in _keys_to_remove:
+    if key in sys.modules:
+        del sys.modules[key]
+
 class TestPhase18AI(unittest.TestCase):
+    def setUp(self):
+        self.sys_modules_patcher = patch.dict(sys.modules, {
+            "influxdb_client": MagicMock(),
+            "core.influx": MagicMock(),
+            "core.cache": MagicMock(),
+            "serpapi": MagicMock()
+        })
+        self.sys_modules_patcher.start()
+
+    def tearDown(self):
+        self.sys_modules_patcher.stop()
 
     def test_yeast_fuzzy_match(self):
         """Verify local database fuzzy matching in yeast service."""

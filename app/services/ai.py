@@ -55,6 +55,9 @@ def analyze_yeast_history(yeast_name: str) -> Optional[dict]:
                 for r in t.records:
                     avg_temp = r.get_value()
 
+        if not drops:
+            return None
+
         result = {
             "avg_attenuation": 75.0, # Placeholder for complex multi-batch OG/FG calc
             "avg_temp": round(float(avg_temp), 1),

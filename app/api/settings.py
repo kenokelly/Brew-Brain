@@ -33,6 +33,8 @@ def settings() -> Tuple[Response, int]:
             
         data = payload.model_dump(exclude_unset=True)
         for key, value in data.items():
+            if value == "********":
+                continue
             set_config(key, value)
         return api_response(status="updated")
     except Exception as e:
@@ -143,6 +145,11 @@ def test_integration() -> Tuple[Response, int]:
         if integration == 'telegram':
             token = config.get('alert_telegram_token')
             chat_id = config.get('alert_telegram_chat')
+            
+            from core.config import get_config
+            if token == "********":
+                token = get_config("alert_telegram_token")
+                
             if not token or not chat_id:
                 return api_response(status="error", error="Missing Telegram Token or Chat ID", code=400)
             
@@ -163,6 +170,11 @@ def test_integration() -> Tuple[Response, int]:
         elif integration == 'brewfather':
             user_id = config.get('bf_user')
             api_key = config.get('bf_key')
+            
+            from core.config import get_config
+            if api_key == "********":
+                api_key = get_config("bf_key")
+                
             if not user_id or not api_key:
                 return api_response(status="error", error="Missing Brewfather User ID or API Key", code=400)
             
@@ -179,6 +191,11 @@ def test_integration() -> Tuple[Response, int]:
                 
         elif integration == 'serpapi':
             api_key = config.get('serp_api_key')
+            
+            from core.config import get_config
+            if api_key == "********":
+                api_key = get_config("serp_api_key")
+                
             if not api_key:
                 return api_response(status="error", error="Missing SerpApi Key", code=400)
             try:

@@ -15,6 +15,7 @@ from datetime import datetime, timezone
 from typing import Dict, Optional, Any
 from core.config import get_config
 from core.influx import query_api, INFLUX_BUCKET
+from core.cache import cache
 from services.notifications import send_telegram_message, broadcast_alert, troubleshoot_tiltpi
 
 logger = logging.getLogger(__name__)
@@ -213,25 +214,51 @@ def check_temperature_deviation(
     batch_name: str = "Current Batch"
 ) -> Dict[str, Any]:
     """
-    Detects temperature outside yeast tolerance range.
-    Uses config values if not provided.
+    Detects temperature outside safe fermentation range.
+
+    Uses yeast profile (min/max from config) when available, otherwise falls
+    back to: floor=15°C (below which most ale yeasts slow significantly) and
+    ceiling=temp_max from global settings.
+
+    Alert fires when temp breaches either bound by more than TEMP_DEVIATION_C
+    (1°C hysteresis) and respects the full alert-fatigue pipeline via
+    send_telegram_message().
     """
     try:
-        # Get target from config if not provided
-        if target_temp is None:
-            # Try to get from yeast metadata in config
-            yeast_min = yeast_min or float(get_config("yeast_min_temp") or 60)
-            yeast_max = yeast_max or float(get_config("yeast_max_temp") or 75)
-            # If yeast_min/max > 40, they are likely Fahrenheit
-            if yeast_min > 40:
-                yeast_min_c = (yeast_min - 32) * 5/9
-                yeast_max_c = (yeast_max - 32) * 5/9
+        # --- Determine safe temperature bounds ---
+        temp_min_c: float
+        temp_max_c: float
+        profile_source: str
+
+        if target_temp is not None:
+            # Caller supplied an explicit target — use TEMP_DEVIATION_C as symmetric band
+            temp_min_c = target_temp - TEMP_DEVIATION_C
+            temp_max_c = target_temp + TEMP_DEVIATION_C
+            profile_source = "explicit"
+        else:
+            raw_yeast_min = get_config("yeast_min_temp")
+            raw_yeast_max = get_config("yeast_max_temp")
+
+            if raw_yeast_min is not None and raw_yeast_max is not None:
+                y_min = yeast_min or float(raw_yeast_min)
+                y_max = yeast_max or float(raw_yeast_max)
+                # Auto-detect Fahrenheit (values > 40 are almost certainly °F)
+                if y_min > 40:
+                    temp_min_c = (y_min - 32) * 5 / 9
+                    temp_max_c = (y_max - 32) * 5 / 9
+                else:
+                    temp_min_c = float(y_min)
+                    temp_max_c = float(y_max)
+                profile_source = "yeast_profile"
             else:
-                yeast_min_c = yeast_min
-                yeast_max_c = yeast_max
-            target_temp = (yeast_min_c + yeast_max_c) / 2
-        
-        # Query last 30 minutes of temperature
+                # No yeast profile — use global temp_max ceiling + 15°C floor.
+                # 15°C is a conservative lower bound: below this most ale yeasts
+                # slow significantly even if not technically out of spec.
+                temp_max_c = float(get_config("temp_max") or 28.0)
+                temp_min_c = 15.0
+                profile_source = "global_limits"
+
+        # --- Query last 30 minutes of temperature (average) ---
         query = f'''
         from(bucket: "{INFLUX_BUCKET}")
             |> range(start: -30m)
@@ -240,47 +267,55 @@ def check_temperature_deviation(
             |> mean()
         '''
         tables = query_api.query(query)
-        
-        avg_temp = None
+
+        avg_temp: Optional[float] = None
         for table in tables:
             for record in table.records:
                 raw_val = record.get_value()
-                avg_temp = (raw_val - 32) * 5/9 if raw_val > 40 else raw_val # Defensive conversion
-        
+                # Defensive °F → °C conversion
+                avg_temp = (raw_val - 32) * 5 / 9 if raw_val > 40 else raw_val
+
         if avg_temp is None:
             return {"status": "no_data"}
-        
-        # Check deviation
-        deviation = avg_temp - target_temp
-        
-        if abs(deviation) > TEMP_DEVIATION_C:
-            direction = "HIGH" if deviation > 0 else "LOW"
-            emoji = "🔥" if deviation > 0 else "❄️"
-            
-            alert_msg = (
-                f"{emoji} *TEMP DEVIATION: {batch_name}*\n\n"
-                f"Current Temp: {avg_temp:.1f}°C\n"
-                f"Target: {target_temp:.1f}°C (±{TEMP_DEVIATION_C}°C)\n"
-                f"Deviation: {abs(deviation):.1f}°C {direction}\n\n"
-                f"*Action:* Check glycol chiller / heating wrap"
-            )
-            send_telegram_message(alert_msg)
-            broadcast_alert("temp_deviation", f"Temp {direction}: {avg_temp:.1f}°C", "warning", {"temp": avg_temp})
+
+        range_str = f"{temp_min_c:.0f}–{temp_max_c:.0f}°C"
+
+        # --- Bounds check with TEMP_DEVIATION_C hysteresis ---
+        if avg_temp > temp_max_c + TEMP_DEVIATION_C:
+            direction = "HIGH"
+            emoji = "🔥"
+            deviation = avg_temp - temp_max_c
+        elif avg_temp < temp_min_c - TEMP_DEVIATION_C:
+            direction = "LOW"
+            emoji = "❄️"
+            deviation = temp_min_c - avg_temp
+        else:
             return {
-                "status": "deviation",
-                "alert_sent": True,
+                "status": "normal",
                 "current_temp": round(avg_temp, 1),
-                "target_temp": round(target_temp, 1),
-                "deviation": round(deviation, 1)
+                "safe_range": range_str,
+                "profile_source": profile_source,
             }
-        
+
+        alert_msg = (
+            f"{emoji} *TEMP DEVIATION: {batch_name}*\n\n"
+            f"Current Temp: *{avg_temp:.1f}°C*\n"
+            f"Safe Range: {range_str}\n"
+            f"Out by: {deviation:.1f}°C {direction}\n"
+            f"Profile: {profile_source}\n\n"
+            f"*Action:* Check glycol chiller / heating wrap"
+        )
+        send_telegram_message(alert_msg, current_values={"temp": avg_temp})
+        broadcast_alert("temp_deviation", f"Temp {direction}: {avg_temp:.1f}°C", "warning", {"temp": avg_temp})
         return {
-            "status": "normal",
+            "status": "deviation",
+            "alert_sent": True,
             "current_temp": round(avg_temp, 1),
-            "target_temp": round(target_temp, 1),
-            "deviation": round(deviation, 1)
+            "safe_range": range_str,
+            "deviation": round(deviation, 1),
+            "profile_source": profile_source,
         }
-        
+
     except Exception as e:
         logger.error(f"Temp deviation check error: {e}")
         return {"status": "error", "error": str(e)}
@@ -394,7 +429,7 @@ def check_signal_loss(batch_name: str = "Current Batch") -> Dict[str, Any]:
         now = datetime.now(timezone.utc)
         minutes_since = (now - last_reading_time).total_seconds() / 60
         
-        timeout_min = int(get_config("tilt_timeout_min") or 60)
+        timeout_min = int(get_config("tilt_timeout_min") or SIGNAL_LOSS_MINUTES)
         
         if minutes_since > timeout_min:
             # TRIGGER AUTO-TROUBLESHOOTING FIRST
@@ -431,6 +466,96 @@ def check_signal_loss(batch_name: str = "Current Batch") -> Dict[str, Any]:
         return {"status": "error", "error": str(e)}
 
 
+def check_fg_reached(batch_name: str = "Current Batch") -> Dict[str, Any]:
+    """
+    Fires a one-time Telegram alert when fermentation reaches the target final
+    gravity (SG ≤ target_fg + 0.002).
+
+    Uses a Redis cache key scoped to the batch name so the alert fires once
+    per batch and resets automatically when the batch name changes.
+    Bypasses quiet hours (force=True) because reaching FG is a milestone the
+    brewer always wants to know about immediately.
+    """
+    try:
+        target_fg = float(get_config("target_fg") or 1.010)
+        og = float(get_config("og") or 1.050)
+
+        # Only meaningful if there is an active fermentation with real drop
+        if og <= target_fg + 0.010:
+            return {"status": "insufficient_og_delta"}
+
+        # Query latest SG
+        query = f'''
+        from(bucket: "{INFLUX_BUCKET}")
+            |> range(start: -1h)
+            |> filter(fn: (r) => r["_measurement"] == "sensor_data")
+            |> filter(fn: (r) => r["_field"] == "SG")
+            |> last()
+        '''
+        tables = query_api.query(query)
+        current_sg: Optional[float] = None
+        for table in tables:
+            for record in table.records:
+                current_sg = record.get_value()
+
+        if current_sg is None:
+            return {"status": "no_data"}
+
+        fg_threshold = target_fg + 0.002
+
+        if current_sg > fg_threshold:
+            # Still fermenting — clear any stale alert flag so a new batch
+            # starting from a high SG will alert again
+            cache.delete(f"fg_reached_alerted_{batch_name}")
+            return {
+                "status": "fermenting",
+                "current_sg": round(current_sg, 4),
+                "target_fg": round(target_fg, 4),
+                "remaining": round(current_sg - target_fg, 4),
+            }
+
+        # SG is at or below FG threshold — check if we already alerted
+        cache_key = f"fg_reached_alerted_{batch_name}"
+        if cache.get(cache_key):
+            return {
+                "status": "fg_reached_already_alerted",
+                "current_sg": round(current_sg, 4),
+                "target_fg": round(target_fg, 4),
+            }
+
+        # First time we see FG — build and send the alert
+        abv = (og - current_sg) * 131.25
+        attenuation = ((og - current_sg) / (og - 1.0)) * 100 if og > 1.0 else 0.0
+
+        alert_msg = (
+            f"🍺 *FERMENTATION COMPLETE: {batch_name}*\n\n"
+            f"Final Gravity reached!\n"
+            f"*SG:* {current_sg:.3f}  _(Target: {target_fg:.3f})_\n"
+            f"*ABV:* ~{abv:.1f}%\n"
+            f"*Apparent Attenuation:* ~{attenuation:.0f}%\n\n"
+            f"*Next steps:* Cold crash, dry hop, or package when ready."
+        )
+        # force=True — FG is a milestone, bypass quiet hours
+        # The Redis cache ensures we only send it once per batch
+        result = send_telegram_message(alert_msg, force=True, category="alert")
+
+        if result.get("status") == "success":
+            # Cache for 7 days — covers any normal batch lifecycle
+            cache.set(cache_key, True, ttl=604800)
+
+        return {
+            "status": "fg_reached",
+            "alert_sent": result.get("status") == "success",
+            "current_sg": round(current_sg, 4),
+            "target_fg": round(target_fg, 4),
+            "abv": round(abv, 1),
+        }
+
+    except Exception as e:
+        logger.error(f"FG reached check error: {e}")
+        return {"status": "error", "error": str(e)}
+
+
 def run_all_anomaly_checks(batch_name: str = "Current Batch") -> Dict[str, Any]:
     """
     Runs all anomaly detection checks and returns combined results.
@@ -449,6 +574,7 @@ def run_all_anomaly_checks(batch_name: str = "Current Batch") -> Dict[str, Any]:
     results["checks"]["temp_deviation"] = check_temperature_deviation(batch_name=batch_name)
     results["checks"]["runaway"] = check_runaway_fermentation(batch_name)
     results["checks"]["signal_loss"] = check_signal_loss(batch_name)
+    results["checks"]["fg_reached"] = check_fg_reached(batch_name)
     
     # Run statistical anomaly detection
     results["checks"]["statistical"] = calculate_anomaly_score()
@@ -476,8 +602,5 @@ def run_all_anomaly_checks(batch_name: str = "Current Batch") -> Dict[str, Any]:
     else:
         results["anomaly_status"] = "ok"
         results["status"] = "ok"
-    
-    return results
-
     
     return results

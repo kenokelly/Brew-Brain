@@ -11,10 +11,6 @@ const nextConfig = {
   env: {
     NEXT_PUBLIC_GRAFANA_URL: process.env.NEXT_PUBLIC_GRAFANA_URL || '',
   },
-  experimental: {
-    // This is often needed when using plugins that use webpack with turbopack
-    turbo: {},
-  },
 };
 
 module.exports = withPWA(nextConfig);

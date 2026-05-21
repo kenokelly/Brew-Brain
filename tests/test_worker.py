@@ -1,7 +1,14 @@
-# Mock dependencies before import
-from unittest.mock import MagicMock, patch
+# Save original sys.modules keys/values to restore later
 import sys
-import numpy as np
+from unittest.mock import MagicMock, patch
+
+_original_modules = {}
+_keys_to_remove = []
+for key in ["core.config", "app.core.config", "influxdb_client", "core.influx", "services.telegram", "services.ai", "services.tilt_monitor", "scipy", "scipy.optimize", "scipy.signal"]:
+    if key in sys.modules:
+        _original_modules[key] = sys.modules[key]
+    else:
+        _keys_to_remove.append(key)
 
 # Create a robust mock for the config module
 mock_config = MagicMock()
@@ -31,7 +38,31 @@ import unittest
 from datetime import datetime, timezone, timedelta
 from app.services import worker
 
+# Restore original modules to prevent side-effects on other test files
+for key, val in _original_modules.items():
+    sys.modules[key] = val
+for key in _keys_to_remove:
+    if key in sys.modules:
+        del sys.modules[key]
+
+import numpy as np
+
 class TestWorker(unittest.TestCase):
+    def setUp(self):
+        self.sys_modules_patcher = patch.dict(sys.modules, {
+            "core.config": mock_config,
+            "app.core.config": mock_config,
+            "influxdb_client": MagicMock(),
+            "core.influx": MagicMock(),
+            "services.telegram": MagicMock(),
+            "services.ai": MagicMock(),
+            "services.tilt_monitor": MagicMock()
+        })
+        self.sys_modules_patcher.start()
+
+    def tearDown(self):
+        self.sys_modules_patcher.stop()
+
     def test_sigmoid(self):
         # Test basic sigmoid functionality
         # L=0.050, k=0.5, t0=24, C=1.010

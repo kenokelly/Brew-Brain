@@ -17,12 +17,12 @@ export function NavBar() {
         <>
             {/* Desktop Sidebar (Left) */}
             <aside className="hidden md:flex flex-col w-20 lg:w-64 fixed inset-y-0 left-0 z-[100] bg-card border-r border-border/50 transition-all duration-300">
-                <div className="h-16 flex items-center justify-center lg:justify-start lg:px-6 border-b border-border/50">
+                <header role="banner" className="h-16 flex items-center justify-center lg:justify-start lg:px-6 border-b border-border/50">
                     <Beer className="w-8 h-8 text-primary" />
                     <span className="hidden lg:block ml-3 font-bold text-xl bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/60">
                         Brew Brain
                     </span>
-                </div>
+                </header>
 
                 <nav className="flex-1 py-6 flex flex-col gap-2 px-3">
                     {NAV_ITEMS.map((item) => (

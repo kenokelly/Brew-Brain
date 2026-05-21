@@ -7,6 +7,15 @@ import os
 # Ensure app is in path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../app')))
 
+# Save original modules
+_original_modules = {}
+_keys_to_remove = []
+for key in ["influxdb_client", "influxdb_client.client", "influxdb_client.client.write_api", "redis", "extensions", "core.cache"]:
+    if key in sys.modules:
+        _original_modules[key] = sys.modules[key]
+    else:
+        _keys_to_remove.append(key)
+
 # Mock dependencies BEFORE ANY IMPORTS
 mock_influx = MagicMock()
 sys.modules["influxdb_client"] = mock_influx
@@ -24,11 +33,33 @@ from app.services import notifications
 # Force mock
 notifications.cache = mock_cache_obj
 
+# Restore original modules to prevent side-effects on other test files
+for key, val in _original_modules.items():
+    sys.modules[key] = val
+for key in _keys_to_remove:
+    if key in sys.modules:
+        del sys.modules[key]
+
 class TestNotifications(unittest.TestCase):
     def setUp(self):
         notifications.logger = MagicMock()
         self.cache = mock_cache_obj
         self.cache.reset_mock()
+        self.cache.get.side_effect = None
+        self.cache.get.return_value = None
+        self.cache.set.side_effect = None
+        self.cache.set.return_value = None
+        
+        self.sys_modules_patcher = patch.dict(sys.modules, {
+            "core.cache": mock_core_cache,
+            "influxdb_client": mock_influx,
+            "redis": MagicMock(),
+            "extensions": MagicMock()
+        })
+        self.sys_modules_patcher.start()
+
+    def tearDown(self):
+        self.sys_modules_patcher.stop()
 
     @patch("app.services.notifications.get_config")
     def test_is_quiet_hours_standard(self, mock_get_config):
@@ -39,6 +70,17 @@ class TestNotifications(unittest.TestCase):
         with patch("app.services.notifications.datetime") as mock_dt:
             mock_dt.now.return_value = datetime(2026, 5, 11, 23, 0)
             self.assertTrue(notifications.is_quiet_hours())
+
+    @patch("app.services.notifications.get_config")
+    def test_is_quiet_hours_overnight(self, mock_get_config):
+        # Quiet hours span midnight (active 22:00 to 06:00, quiet 06:00 to 22:00)
+        mock_get_config.side_effect = lambda k: "22:00" if k == "alert_start_time" else "06:00"
+        with patch("app.services.notifications.datetime") as mock_dt:
+            mock_dt.now.return_value = datetime(2026, 5, 11, 12, 0)
+            self.assertTrue(notifications.is_quiet_hours())
+        with patch("app.services.notifications.datetime") as mock_dt:
+            mock_dt.now.return_value = datetime(2026, 5, 11, 23, 0)
+            self.assertFalse(notifications.is_quiet_hours())
 
     @patch("app.services.notifications.requests.post")
     @patch("app.services.notifications.get_config")
@@ -60,12 +102,6 @@ class TestNotifications(unittest.TestCase):
             self.assertEqual(result.get("status"), "success")
             mock_post.assert_called_once()
 
-    @patch("app.services.notifications.get_config")
-    def test_send_telegram_skipped_inactive(self, mock_get_config):
-        mock_get_config.side_effect = lambda k: "false" if k == "brew_active" else "0"
-        result = notifications.send_telegram_message("Test message")
-        self.assertEqual(result.get("status"), "skipped")
-        self.assertEqual(result.get("reason"), "brew_inactive")
 
     @patch("app.services.notifications.requests.post")
     @patch("app.services.notifications.get_config")
@@ -74,7 +110,6 @@ class TestNotifications(unittest.TestCase):
         mock_get_config.side_effect = lambda k: {
             "alert_telegram_token": "fake",
             "alert_telegram_chat": "fake",
-            "brew_active": "false", # Gate should be bypassed
             "alert_verbosity_min": "0"
         }.get(k)
         

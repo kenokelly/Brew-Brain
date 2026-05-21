@@ -3,6 +3,15 @@ import os
 import unittest
 from unittest.mock import MagicMock, patch
 
+# Save original modules
+_original_modules = {}
+_keys_to_remove = []
+for key in ['github', 'core.config']:
+    if key in sys.modules:
+        _original_modules[key] = sys.modules[key]
+    else:
+        _keys_to_remove.append(key)
+
 # Mock github dependency
 mock_github_module = MagicMock()
 sys.modules['github'] = mock_github_module
@@ -16,6 +25,13 @@ sys.modules['core.config'] = mock_core_config
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "app"))
 from services.github_integration import push_recipe_to_repo
+
+# Restore original modules to prevent side-effects on other test files
+for key, val in _original_modules.items():
+    sys.modules[key] = val
+for key in _keys_to_remove:
+    if key in sys.modules:
+        del sys.modules[key]
 
 class TestGithubIntegration(unittest.TestCase):
     def setUp(self):

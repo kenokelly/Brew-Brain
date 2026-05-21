@@ -20,10 +20,12 @@ export const NAV_ITEMS = [
 export function SidebarItem({ href, icon: Icon, label }: typeof NAV_ITEMS[0]) {
     const pathname = usePathname();
     const active = pathname === href;
+    const ariaLabel = label === 'Help' ? 'Help & Documentation' : label;
 
     return (
         <Link
             href={href}
+            aria-label={ariaLabel}
             className={cn(
                 "flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 group relative overflow-hidden focus-visible:ring-2 focus-visible:ring-primary outline-none",
                 active
@@ -41,11 +43,13 @@ export function SidebarItem({ href, icon: Icon, label }: typeof NAV_ITEMS[0]) {
 export function MobileMenuItem({ href, icon: Icon, label, onClick }: typeof NAV_ITEMS[0] & { onClick: () => void }) {
     const pathname = usePathname();
     const active = pathname === href;
+    const ariaLabel = label === 'Help' ? 'Help & Documentation' : label;
 
     return (
         <Link
             href={href}
             onClick={onClick}
+            aria-label={ariaLabel}
             className={cn(
                 "flex items-center gap-4 p-4 rounded-2xl text-lg font-medium border border-transparent focus-visible:ring-2 focus-visible:ring-primary outline-none",
                 active

@@ -167,10 +167,6 @@ def send_telegram_message(message: str, force: bool = False, category: str = "al
     verbosity_key = f"last_notified_{category}"
 
     if not force:
-        brew_active_val = get_config("brew_active")
-        if str(brew_active_val).lower() == 'false':
-            return {"status": "skipped", "reason": "brew_inactive"}
-            
         # Check quiet hours
         if is_quiet_hours():
             return {"status": "skipped", "reason": "quiet_hours"}

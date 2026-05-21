@@ -9,6 +9,15 @@ app_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../app'))
 if app_dir not in sys.path:
     sys.path.insert(0, app_dir)
 
+# Save original modules
+_original_modules = {}
+_keys_to_remove = []
+for key in ["influxdb_client", "influxdb_client.client", "influxdb_client.client.write_api", "core.config", "core.influx", "services.tilt_monitor", "ml.prediction"]:
+    if key in sys.modules:
+        _original_modules[key] = sys.modules[key]
+    else:
+        _keys_to_remove.append(key)
+
 # Mock dependencies before import to avoid real connections/failures
 mock_influx = MagicMock()
 sys.modules["influxdb_client"] = MagicMock()
@@ -27,6 +36,13 @@ from app.services.status import (
     get_daily_telemetry,
     get_maintenance_summary
 )
+
+# Restore original modules to prevent side-effects on other test files
+for key, val in _original_modules.items():
+    sys.modules[key] = val
+for key in _keys_to_remove:
+    if key in sys.modules:
+        del sys.modules[key]
 
 
 def test_get_pi_temp_success():

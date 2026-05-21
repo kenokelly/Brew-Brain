@@ -3,6 +3,15 @@ import os
 import unittest
 from unittest.mock import MagicMock, patch
 
+# Save original sys.modules keys/values to restore later
+_original_modules = {}
+_keys_to_remove = []
+for key in ["influxdb_client", "influxdb_client.client", "influxdb_client.client.write_api", "serpapi"]:
+    if key in sys.modules:
+        _original_modules[key] = sys.modules[key]
+    else:
+        _keys_to_remove.append(key)
+
 # Mock dependencies before import
 sys.modules["influxdb_client"] = MagicMock()
 sys.modules["influxdb_client.client"] = MagicMock()
@@ -10,6 +19,13 @@ sys.modules["influxdb_client.client.write_api"] = MagicMock()
 sys.modules["serpapi"] = MagicMock()
 
 from app.services.sourcing import extract_price, parse_product_page
+
+# Restore original modules to prevent side-effects on other test files
+for key, val in _original_modules.items():
+    sys.modules[key] = val
+for key in _keys_to_remove:
+    if key in sys.modules:
+        del sys.modules[key]
 
 class TestSourcing(unittest.TestCase):
     def test_extract_price(self):

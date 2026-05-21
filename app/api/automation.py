@@ -252,3 +252,26 @@ def calc_strike():
         return api_response(data=res)
     except Exception as e:
         return handle_error(e, "Calculator Error")
+
+
+# ============ TiltPi Diagnostics ============
+
+@automation_bp.route('/api/automation/tiltpi/troubleshoot', methods=['GET'])
+@require_api_token
+def tiltpi_troubleshoot():
+    """
+    Run the TiltPi connectivity diagnostic and return results.
+
+    Response:
+      status: 'healthy' | 'data_issue' | 'connectivity_issue' | 'config_error'
+      checks: list of individual check results
+      suggested_actions: list of human-readable remediation steps
+    """
+    try:
+        from services.notifications import troubleshoot_tiltpi
+        result = troubleshoot_tiltpi()
+        # Surface connectivity issues as 503 so the UI can distinguish
+        code = 200 if result["status"] == "healthy" else 503
+        return api_response(data=result), code
+    except Exception as e:
+        return handle_error(e, "TiltPi Troubleshoot Error")

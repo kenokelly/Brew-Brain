@@ -4,3 +4,245 @@
 2026-01-25 22:28:42,798 - ERROR - Failed to save config 'style' to InfluxDB: HTTPConnection(host='influxdb', port=8086): Failed to resolve 'influxdb' ([Errno 8] nodename nor servname provided, or not known)
 2026-05-15 13:55:21,694 - WARNING - Empty smoothed data, skipping prediction
 2026-05-15 13:55:21,694 - WARNING - Empty smoothed data, skipping prediction
+2026-05-20 00:18:10,097 - WARNING - Empty smoothed data, skipping prediction
+2026-05-20 00:18:10,097 - WARNING - Empty smoothed data, skipping prediction
+2026-05-20 00:30:39,667 - WARNING - Empty smoothed data, skipping prediction
+2026-05-20 00:30:39,667 - WARNING - Empty smoothed data, skipping prediction
+2026-05-20 00:34:04,473 - WARNING - Empty smoothed data, skipping prediction
+2026-05-20 00:34:04,473 - WARNING - Empty smoothed data, skipping prediction
+2026-05-20 00:35:16,357 - WARNING - Empty smoothed data, skipping prediction
+2026-05-20 00:35:16,357 - WARNING - Empty smoothed data, skipping prediction
+2026-05-20 00:37:15,987 - WARNING - Empty smoothed data, skipping prediction
+2026-05-20 00:37:15,987 - WARNING - Empty smoothed data, skipping prediction
+2026-05-20 00:37:20,300 - ERROR - Failed to refresh config from InfluxDB: HTTPConnection(host='influxdb', port=8086): Failed to resolve 'influxdb' ([Errno 8] nodename nor servname provided, or not known)
+2026-05-20 00:37:20,300 - ERROR - Failed to refresh config from InfluxDB: HTTPConnection(host='influxdb', port=8086): Failed to resolve 'influxdb' ([Errno 8] nodename nor servname provided, or not known)
+2026-05-20 00:37:42,339 - WARNING - Empty smoothed data, skipping prediction
+2026-05-20 00:37:42,339 - WARNING - Empty smoothed data, skipping prediction
+2026-05-20 00:49:21,301 - ERROR - Failed to refresh config from InfluxDB: HTTPConnection(host='influxdb', port=8086): Failed to resolve 'influxdb' ([Errno 8] nodename nor servname provided, or not known)
+2026-05-20 00:49:21,301 - ERROR - Failed to refresh config from InfluxDB: HTTPConnection(host='influxdb', port=8086): Failed to resolve 'influxdb' ([Errno 8] nodename nor servname provided, or not known)
+2026-05-20 00:49:43,765 - WARNING - Empty smoothed data, skipping prediction
+2026-05-20 00:49:43,765 - WARNING - Empty smoothed data, skipping prediction
+2026-05-20 00:59:15,882 - CRITICAL - ============================================================
+2026-05-20 00:59:15,883 - CRITICAL - SECURITY WARNING: BREW_BRAIN_API_TOKEN environment variable not set!
+2026-05-20 00:59:15,883 - CRITICAL - A temporary secure token has been generated for this session: 5b071d8c0f5ce6262dd0b5051fa95aff
+2026-05-20 00:59:15,883 - CRITICAL - Please set BREW_BRAIN_API_TOKEN in your docker-compose.yml or environment.
+2026-05-20 00:59:15,883 - CRITICAL - ============================================================
+2026-05-20 00:59:15,908 - WARNING - Unauthorized API access attempt from 127.0.0.1 to /api/settings/test
+2026-05-20 00:59:15,915 - ERROR - Integration Test Error: api_response() got an unexpected keyword argument 'message'
+2026-05-20 00:59:15,976 - ERROR - Integration Test Error: api_response() got an unexpected keyword argument 'message'
+2026-05-20 00:59:15,987 - ERROR - Integration Test Error: api_response() got an unexpected keyword argument 'message'
+2026-05-20 00:59:16,002 - ERROR - Integration Test Error: api_response() got an unexpected keyword argument 'message'
+2026-05-20 00:59:29,489 - CRITICAL - ============================================================
+2026-05-20 00:59:29,489 - CRITICAL - SECURITY WARNING: BREW_BRAIN_API_TOKEN environment variable not set!
+2026-05-20 00:59:29,490 - CRITICAL - A temporary secure token has been generated for this session: b35dae8f49fa244371cbec9fdad70ec3
+2026-05-20 00:59:29,490 - CRITICAL - Please set BREW_BRAIN_API_TOKEN in your docker-compose.yml or environment.
+2026-05-20 00:59:29,490 - CRITICAL - ============================================================
+2026-05-20 00:59:29,505 - WARNING - Unauthorized API access attempt from 127.0.0.1 to /api/settings/test
+2026-05-20 00:59:42,274 - ERROR - Failed to refresh config from InfluxDB: HTTPConnection(host='influxdb', port=8086): Failed to resolve 'influxdb' ([Errno 8] nodename nor servname provided, or not known)
+2026-05-20 00:59:42,274 - ERROR - Failed to refresh config from InfluxDB: HTTPConnection(host='influxdb', port=8086): Failed to resolve 'influxdb' ([Errno 8] nodename nor servname provided, or not known)
+2026-05-20 01:00:06,696 - WARNING - Empty smoothed data, skipping prediction
+2026-05-20 01:00:06,696 - WARNING - Empty smoothed data, skipping prediction
+2026-05-20 01:01:15,929 - ERROR - Failed to refresh config from InfluxDB: HTTPConnection(host='influxdb', port=8086): Failed to resolve 'influxdb' ([Errno 8] nodename nor servname provided, or not known)
+2026-05-20 01:01:15,929 - ERROR - Failed to refresh config from InfluxDB: HTTPConnection(host='influxdb', port=8086): Failed to resolve 'influxdb' ([Errno 8] nodename nor servname provided, or not known)
+2026-05-20 01:01:37,852 - WARNING - Empty smoothed data, skipping prediction
+2026-05-20 01:01:37,852 - WARNING - Empty smoothed data, skipping prediction
+2026-05-20 01:04:38,628 - CRITICAL - ============================================================
+2026-05-20 01:04:38,628 - CRITICAL - ============================================================
+2026-05-20 01:04:38,628 - CRITICAL - SECURITY WARNING: BREW_BRAIN_API_TOKEN environment variable not set!
+2026-05-20 01:04:38,628 - CRITICAL - SECURITY WARNING: BREW_BRAIN_API_TOKEN environment variable not set!
+2026-05-20 01:04:38,628 - CRITICAL - A temporary secure token has been generated for this session: eaac72d0635853d37a1b8fe7c377cac9
+2026-05-20 01:04:38,628 - CRITICAL - A temporary secure token has been generated for this session: eaac72d0635853d37a1b8fe7c377cac9
+2026-05-20 01:04:38,628 - CRITICAL - Please set BREW_BRAIN_API_TOKEN in your docker-compose.yml or environment.
+2026-05-20 01:04:38,628 - CRITICAL - Please set BREW_BRAIN_API_TOKEN in your docker-compose.yml or environment.
+2026-05-20 01:04:38,628 - CRITICAL - ============================================================
+2026-05-20 01:04:38,628 - CRITICAL - ============================================================
+2026-05-20 01:04:39,309 - ERROR - Failed to refresh config from InfluxDB: HTTPConnection(host='influxdb', port=8086): Failed to resolve 'influxdb' ([Errno 8] nodename nor servname provided, or not known)
+2026-05-20 01:04:39,309 - ERROR - Failed to refresh config from InfluxDB: HTTPConnection(host='influxdb', port=8086): Failed to resolve 'influxdb' ([Errno 8] nodename nor servname provided, or not known)
+2026-05-20 01:05:02,366 - WARNING - Empty smoothed data, skipping prediction
+2026-05-20 01:05:02,366 - WARNING - Empty smoothed data, skipping prediction
+2026-05-20 01:05:02,484 - ERROR - Ollama proactive advice failed at http://ollama:11434/api/generate: HTTPConnectionPool(host='ollama', port=11434): Max retries exceeded with url: /api/generate (Caused by NameResolutionError("HTTPConnection(host='ollama', port=11434): Failed to resolve 'ollama' ([Errno 8] nodename nor servname provided, or not known)"))
+2026-05-20 01:05:02,484 - ERROR - Ollama proactive advice failed at http://ollama:11434/api/generate: HTTPConnectionPool(host='ollama', port=11434): Max retries exceeded with url: /api/generate (Caused by NameResolutionError("HTTPConnection(host='ollama', port=11434): Failed to resolve 'ollama' ([Errno 8] nodename nor servname provided, or not known)"))
+2026-05-20 01:05:02,497 - ERROR - AI Predictive Issue Error: HTTPConnectionPool(host='ollama', port=11434): Max retries exceeded with url: /api/generate (Caused by NameResolutionError("HTTPConnection(host='ollama', port=11434): Failed to resolve 'ollama' ([Errno 8] nodename nor servname provided, or not known)"))
+2026-05-20 01:05:02,497 - ERROR - AI Predictive Issue Error: HTTPConnectionPool(host='ollama', port=11434): Max retries exceeded with url: /api/generate (Caused by NameResolutionError("HTTPConnection(host='ollama', port=11434): Failed to resolve 'ollama' ([Errno 8] nodename nor servname provided, or not known)"))
+2026-05-20 01:05:12,087 - WARNING - Unauthorized API access attempt from 127.0.0.1 to /api/settings/test
+2026-05-20 01:05:12,087 - WARNING - Unauthorized API access attempt from 127.0.0.1 to /api/settings/test
+2026-05-20 01:05:52,914 - CRITICAL - ============================================================
+2026-05-20 01:05:52,914 - CRITICAL - SECURITY WARNING: BREW_BRAIN_API_TOKEN environment variable not set!
+2026-05-20 01:05:52,914 - CRITICAL - A temporary secure token has been generated for this session: b213d2c201b7b19a6942e885cb3158a3
+2026-05-20 01:05:52,915 - CRITICAL - Please set BREW_BRAIN_API_TOKEN in your docker-compose.yml or environment.
+2026-05-20 01:05:52,915 - CRITICAL - ============================================================
+2026-05-20 01:05:52,931 - WARNING - Unauthorized API access attempt from 127.0.0.1 to /api/settings/test
+2026-05-20 01:07:20,738 - CRITICAL - ============================================================
+2026-05-20 01:07:20,738 - CRITICAL - ============================================================
+2026-05-20 01:07:20,738 - CRITICAL - SECURITY WARNING: BREW_BRAIN_API_TOKEN environment variable not set!
+2026-05-20 01:07:20,738 - CRITICAL - SECURITY WARNING: BREW_BRAIN_API_TOKEN environment variable not set!
+2026-05-20 01:07:20,738 - CRITICAL - A temporary secure token has been generated for this session: 706782662d02125563f77b8918947e59
+2026-05-20 01:07:20,738 - CRITICAL - A temporary secure token has been generated for this session: 706782662d02125563f77b8918947e59
+2026-05-20 01:07:20,738 - CRITICAL - Please set BREW_BRAIN_API_TOKEN in your docker-compose.yml or environment.
+2026-05-20 01:07:20,738 - CRITICAL - Please set BREW_BRAIN_API_TOKEN in your docker-compose.yml or environment.
+2026-05-20 01:07:20,738 - CRITICAL - ============================================================
+2026-05-20 01:07:20,738 - CRITICAL - ============================================================
+2026-05-20 01:07:22,672 - WARNING - Empty smoothed data, skipping prediction
+2026-05-20 01:07:22,672 - WARNING - Empty smoothed data, skipping prediction
+2026-05-20 01:07:31,814 - WARNING - Unauthorized API access attempt from 127.0.0.1 to /api/settings/test
+2026-05-20 01:07:31,814 - WARNING - Unauthorized API access attempt from 127.0.0.1 to /api/settings/test
+2026-05-20 01:21:57,263 - CRITICAL - ============================================================
+2026-05-20 01:21:57,263 - CRITICAL - ============================================================
+2026-05-20 01:21:57,264 - CRITICAL - SECURITY WARNING: BREW_BRAIN_API_TOKEN environment variable not set!
+2026-05-20 01:21:57,264 - CRITICAL - SECURITY WARNING: BREW_BRAIN_API_TOKEN environment variable not set!
+2026-05-20 01:21:57,264 - CRITICAL - A temporary secure token has been generated for this session: 45e8d2e086b71a7a1b77f55fd6482579
+2026-05-20 01:21:57,264 - CRITICAL - A temporary secure token has been generated for this session: 45e8d2e086b71a7a1b77f55fd6482579
+2026-05-20 01:21:57,264 - CRITICAL - Please set BREW_BRAIN_API_TOKEN in your docker-compose.yml or environment.
+2026-05-20 01:21:57,264 - CRITICAL - Please set BREW_BRAIN_API_TOKEN in your docker-compose.yml or environment.
+2026-05-20 01:21:57,264 - CRITICAL - ============================================================
+2026-05-20 01:21:57,264 - CRITICAL - ============================================================
+2026-05-20 01:21:59,035 - WARNING - Empty smoothed data, skipping prediction
+2026-05-20 01:21:59,035 - WARNING - Empty smoothed data, skipping prediction
+2026-05-20 01:22:08,942 - WARNING - Unauthorized API access attempt from 127.0.0.1 to /api/settings/test
+2026-05-20 01:22:08,942 - WARNING - Unauthorized API access attempt from 127.0.0.1 to /api/settings/test
+2026-05-20 01:22:50,729 - CRITICAL - ============================================================
+2026-05-20 01:22:50,729 - CRITICAL - ============================================================
+2026-05-20 01:22:50,730 - CRITICAL - SECURITY WARNING: BREW_BRAIN_API_TOKEN environment variable not set!
+2026-05-20 01:22:50,730 - CRITICAL - SECURITY WARNING: BREW_BRAIN_API_TOKEN environment variable not set!
+2026-05-20 01:22:50,730 - CRITICAL - A temporary secure token has been generated for this session: 8a141bcecb180c6584cd274a8e30d557
+2026-05-20 01:22:50,730 - CRITICAL - A temporary secure token has been generated for this session: 8a141bcecb180c6584cd274a8e30d557
+2026-05-20 01:22:50,730 - CRITICAL - Please set BREW_BRAIN_API_TOKEN in your docker-compose.yml or environment.
+2026-05-20 01:22:50,730 - CRITICAL - Please set BREW_BRAIN_API_TOKEN in your docker-compose.yml or environment.
+2026-05-20 01:22:50,730 - CRITICAL - ============================================================
+2026-05-20 01:22:50,730 - CRITICAL - ============================================================
+2026-05-20 01:22:52,612 - WARNING - Empty smoothed data, skipping prediction
+2026-05-20 01:22:52,612 - WARNING - Empty smoothed data, skipping prediction
+2026-05-20 01:23:01,999 - WARNING - Unauthorized API access attempt from 127.0.0.1 to /api/settings/test
+2026-05-20 01:23:01,999 - WARNING - Unauthorized API access attempt from 127.0.0.1 to /api/settings/test
+2026-05-20 09:36:32,352 - CRITICAL - ============================================================
+2026-05-20 09:36:32,352 - CRITICAL - ============================================================
+2026-05-20 09:36:32,354 - CRITICAL - SECURITY WARNING: BREW_BRAIN_API_TOKEN environment variable not set!
+2026-05-20 09:36:32,354 - CRITICAL - SECURITY WARNING: BREW_BRAIN_API_TOKEN environment variable not set!
+2026-05-20 09:36:32,354 - CRITICAL - A temporary secure token has been generated for this session: c88fb0189ecdb337cf1b03bb2ce681dc
+2026-05-20 09:36:32,354 - CRITICAL - A temporary secure token has been generated for this session: c88fb0189ecdb337cf1b03bb2ce681dc
+2026-05-20 09:36:32,354 - CRITICAL - Please set BREW_BRAIN_API_TOKEN in your docker-compose.yml or environment.
+2026-05-20 09:36:32,354 - CRITICAL - Please set BREW_BRAIN_API_TOKEN in your docker-compose.yml or environment.
+2026-05-20 09:36:32,354 - CRITICAL - ============================================================
+2026-05-20 09:36:32,354 - CRITICAL - ============================================================
+2026-05-20 09:36:41,048 - CRITICAL - ============================================================
+2026-05-20 09:36:41,048 - CRITICAL - ============================================================
+2026-05-20 09:36:41,048 - CRITICAL - SECURITY WARNING: BREW_BRAIN_API_TOKEN environment variable not set!
+2026-05-20 09:36:41,048 - CRITICAL - SECURITY WARNING: BREW_BRAIN_API_TOKEN environment variable not set!
+2026-05-20 09:36:41,048 - CRITICAL - A temporary secure token has been generated for this session: 293c7ba7e726702b21c201e7e42374c4
+2026-05-20 09:36:41,048 - CRITICAL - A temporary secure token has been generated for this session: 293c7ba7e726702b21c201e7e42374c4
+2026-05-20 09:36:41,048 - CRITICAL - Please set BREW_BRAIN_API_TOKEN in your docker-compose.yml or environment.
+2026-05-20 09:36:41,048 - CRITICAL - Please set BREW_BRAIN_API_TOKEN in your docker-compose.yml or environment.
+2026-05-20 09:36:41,049 - CRITICAL - ============================================================
+2026-05-20 09:36:41,049 - CRITICAL - ============================================================
+2026-05-20 09:36:46,448 - CRITICAL - ============================================================
+2026-05-20 09:36:46,448 - CRITICAL - ============================================================
+2026-05-20 09:36:46,448 - CRITICAL - SECURITY WARNING: BREW_BRAIN_API_TOKEN environment variable not set!
+2026-05-20 09:36:46,448 - CRITICAL - SECURITY WARNING: BREW_BRAIN_API_TOKEN environment variable not set!
+2026-05-20 09:36:46,449 - CRITICAL - A temporary secure token has been generated for this session: 3c42326ec98c7ce0c1cd66cbe9cfed0a
+2026-05-20 09:36:46,449 - CRITICAL - A temporary secure token has been generated for this session: 3c42326ec98c7ce0c1cd66cbe9cfed0a
+2026-05-20 09:36:46,449 - CRITICAL - Please set BREW_BRAIN_API_TOKEN in your docker-compose.yml or environment.
+2026-05-20 09:36:46,449 - CRITICAL - Please set BREW_BRAIN_API_TOKEN in your docker-compose.yml or environment.
+2026-05-20 09:36:46,449 - CRITICAL - ============================================================
+2026-05-20 09:36:46,449 - CRITICAL - ============================================================
+2026-05-20 09:36:51,737 - CRITICAL - ============================================================
+2026-05-20 09:36:51,737 - CRITICAL - ============================================================
+2026-05-20 09:36:51,737 - CRITICAL - SECURITY WARNING: BREW_BRAIN_API_TOKEN environment variable not set!
+2026-05-20 09:36:51,737 - CRITICAL - SECURITY WARNING: BREW_BRAIN_API_TOKEN environment variable not set!
+2026-05-20 09:36:51,737 - CRITICAL - A temporary secure token has been generated for this session: 045e6adfd75c19b7674fdf9fd283c03d
+2026-05-20 09:36:51,737 - CRITICAL - A temporary secure token has been generated for this session: 045e6adfd75c19b7674fdf9fd283c03d
+2026-05-20 09:36:51,738 - CRITICAL - Please set BREW_BRAIN_API_TOKEN in your docker-compose.yml or environment.
+2026-05-20 09:36:51,738 - CRITICAL - Please set BREW_BRAIN_API_TOKEN in your docker-compose.yml or environment.
+2026-05-20 09:36:51,738 - CRITICAL - ============================================================
+2026-05-20 09:36:51,738 - CRITICAL - ============================================================
+2026-05-20 09:36:54,166 - WARNING - Empty smoothed data, skipping prediction
+2026-05-20 09:36:54,166 - WARNING - Empty smoothed data, skipping prediction
+2026-05-20 09:37:05,558 - WARNING - Unauthorized API access attempt from 127.0.0.1 to /api/settings/test
+2026-05-20 09:37:05,558 - WARNING - Unauthorized API access attempt from 127.0.0.1 to /api/settings/test
+2026-05-20 09:44:44,981 - CRITICAL - ============================================================
+2026-05-20 09:44:44,981 - CRITICAL - SECURITY WARNING: BREW_BRAIN_API_TOKEN environment variable not set!
+2026-05-20 09:44:44,981 - CRITICAL - A temporary secure token has been generated for this session: 2615f55832984176819ff4ce3b88d3e3
+2026-05-20 09:44:44,981 - CRITICAL - Please set BREW_BRAIN_API_TOKEN in your docker-compose.yml or environment.
+2026-05-20 09:44:44,981 - CRITICAL - ============================================================
+2026-05-20 09:44:44,996 - WARNING - Unauthorized API access attempt from 127.0.0.1 to /api/settings/test
+2026-05-20 11:05:00,404 - CRITICAL - ============================================================
+2026-05-20 11:05:00,404 - CRITICAL - ============================================================
+2026-05-20 11:05:00,404 - CRITICAL - SECURITY WARNING: BREW_BRAIN_API_TOKEN environment variable not set!
+2026-05-20 11:05:00,404 - CRITICAL - SECURITY WARNING: BREW_BRAIN_API_TOKEN environment variable not set!
+2026-05-20 11:05:00,404 - CRITICAL - A temporary secure token has been generated for this session: 1ed52fc78cf0083af83881ed02fefb7a
+2026-05-20 11:05:00,404 - CRITICAL - A temporary secure token has been generated for this session: 1ed52fc78cf0083af83881ed02fefb7a
+2026-05-20 11:05:00,404 - CRITICAL - Please set BREW_BRAIN_API_TOKEN in your docker-compose.yml or environment.
+2026-05-20 11:05:00,404 - CRITICAL - Please set BREW_BRAIN_API_TOKEN in your docker-compose.yml or environment.
+2026-05-20 11:05:00,404 - CRITICAL - ============================================================
+2026-05-20 11:05:00,404 - CRITICAL - ============================================================
+2026-05-20 11:05:02,465 - WARNING - Empty smoothed data, skipping prediction
+2026-05-20 11:05:02,465 - WARNING - Empty smoothed data, skipping prediction
+2026-05-20 11:05:28,236 - CRITICAL - ============================================================
+2026-05-20 11:05:28,236 - CRITICAL - ============================================================
+2026-05-20 11:05:28,237 - CRITICAL - SECURITY WARNING: BREW_BRAIN_API_TOKEN environment variable not set!
+2026-05-20 11:05:28,237 - CRITICAL - SECURITY WARNING: BREW_BRAIN_API_TOKEN environment variable not set!
+2026-05-20 11:05:28,237 - CRITICAL - A temporary secure token has been generated for this session: 1aa49c7ece91ff96c9ba0c7f046c5519
+2026-05-20 11:05:28,237 - CRITICAL - A temporary secure token has been generated for this session: 1aa49c7ece91ff96c9ba0c7f046c5519
+2026-05-20 11:05:28,237 - CRITICAL - Please set BREW_BRAIN_API_TOKEN in your docker-compose.yml or environment.
+2026-05-20 11:05:28,237 - CRITICAL - Please set BREW_BRAIN_API_TOKEN in your docker-compose.yml or environment.
+2026-05-20 11:05:28,237 - CRITICAL - ============================================================
+2026-05-20 11:05:28,237 - CRITICAL - ============================================================
+2026-05-20 11:05:30,126 - WARNING - Empty smoothed data, skipping prediction
+2026-05-20 11:05:30,126 - WARNING - Empty smoothed data, skipping prediction
+2026-05-20 11:05:39,236 - WARNING - Unauthorized API access attempt from 127.0.0.1 to /api/settings/test
+2026-05-20 11:05:39,236 - WARNING - Unauthorized API access attempt from 127.0.0.1 to /api/settings/test
+2026-05-20 12:25:41,782 - CRITICAL - ============================================================
+2026-05-20 12:25:41,782 - CRITICAL - ============================================================
+2026-05-20 12:25:41,783 - CRITICAL - SECURITY WARNING: BREW_BRAIN_API_TOKEN environment variable not set!
+2026-05-20 12:25:41,783 - CRITICAL - SECURITY WARNING: BREW_BRAIN_API_TOKEN environment variable not set!
+2026-05-20 12:25:41,784 - CRITICAL - A temporary secure token has been generated for this session: 8234ca8d6914c21e8e7d47e31875aae0
+2026-05-20 12:25:41,784 - CRITICAL - A temporary secure token has been generated for this session: 8234ca8d6914c21e8e7d47e31875aae0
+2026-05-20 12:25:41,784 - CRITICAL - Please set BREW_BRAIN_API_TOKEN in your docker-compose.yml or environment.
+2026-05-20 12:25:41,784 - CRITICAL - Please set BREW_BRAIN_API_TOKEN in your docker-compose.yml or environment.
+2026-05-20 12:25:41,784 - CRITICAL - ============================================================
+2026-05-20 12:25:41,784 - CRITICAL - ============================================================
+2026-05-20 12:25:45,425 - WARNING - Empty smoothed data, skipping prediction
+2026-05-20 12:25:45,425 - WARNING - Empty smoothed data, skipping prediction
+2026-05-20 12:26:00,081 - WARNING - Unauthorized API access attempt from 127.0.0.1 to /api/settings/test
+2026-05-20 12:26:00,081 - WARNING - Unauthorized API access attempt from 127.0.0.1 to /api/settings/test
+2026-05-20 22:45:07,233 - CRITICAL - ============================================================
+2026-05-20 22:45:07,233 - CRITICAL - ============================================================
+2026-05-20 22:45:07,234 - CRITICAL - SECURITY WARNING: BREW_BRAIN_API_TOKEN environment variable not set!
+2026-05-20 22:45:07,234 - CRITICAL - SECURITY WARNING: BREW_BRAIN_API_TOKEN environment variable not set!
+2026-05-20 22:45:07,234 - CRITICAL - A temporary secure token has been generated for this session: 2c747944f88b6d5d6f7c74f1b99cc40f
+2026-05-20 22:45:07,234 - CRITICAL - A temporary secure token has been generated for this session: 2c747944f88b6d5d6f7c74f1b99cc40f
+2026-05-20 22:45:07,234 - CRITICAL - Please set BREW_BRAIN_API_TOKEN in your docker-compose.yml or environment.
+2026-05-20 22:45:07,234 - CRITICAL - Please set BREW_BRAIN_API_TOKEN in your docker-compose.yml or environment.
+2026-05-20 22:45:07,234 - CRITICAL - ============================================================
+2026-05-20 22:45:07,234 - CRITICAL - ============================================================
+2026-05-20 22:45:09,913 - WARNING - Empty smoothed data, skipping prediction
+2026-05-20 22:45:09,913 - WARNING - Empty smoothed data, skipping prediction
+2026-05-20 22:45:22,077 - WARNING - Unauthorized API access attempt from 127.0.0.1 to /api/settings/test
+2026-05-20 22:45:22,077 - WARNING - Unauthorized API access attempt from 127.0.0.1 to /api/settings/test
+2026-05-21 10:53:41,916 - CRITICAL - ============================================================
+2026-05-21 10:53:41,916 - CRITICAL - ============================================================
+2026-05-21 10:53:41,917 - CRITICAL - SECURITY WARNING: BREW_BRAIN_API_TOKEN environment variable not set!
+2026-05-21 10:53:41,917 - CRITICAL - SECURITY WARNING: BREW_BRAIN_API_TOKEN environment variable not set!
+2026-05-21 10:53:41,917 - CRITICAL - A temporary secure token has been generated for this session: 57fcec9f53ae978e38d1dc32041097b1
+2026-05-21 10:53:41,917 - CRITICAL - A temporary secure token has been generated for this session: 57fcec9f53ae978e38d1dc32041097b1
+2026-05-21 10:53:41,918 - CRITICAL - Please set BREW_BRAIN_API_TOKEN in your docker-compose.yml or environment.
+2026-05-21 10:53:41,918 - CRITICAL - Please set BREW_BRAIN_API_TOKEN in your docker-compose.yml or environment.
+2026-05-21 10:53:41,918 - CRITICAL - ============================================================
+2026-05-21 10:53:41,918 - CRITICAL - ============================================================
+2026-05-21 10:53:46,563 - WARNING - Empty smoothed data, skipping prediction
+2026-05-21 10:53:46,563 - WARNING - Empty smoothed data, skipping prediction
+2026-05-21 10:54:03,193 - WARNING - Unauthorized API access attempt from 127.0.0.1 to /api/settings/test
+2026-05-21 10:54:03,193 - WARNING - Unauthorized API access attempt from 127.0.0.1 to /api/settings/test
+2026-05-21 10:56:22,110 - CRITICAL - ============================================================
+2026-05-21 10:56:22,110 - CRITICAL - ============================================================
+2026-05-21 10:56:22,110 - CRITICAL - SECURITY WARNING: BREW_BRAIN_API_TOKEN environment variable not set!
+2026-05-21 10:56:22,110 - CRITICAL - SECURITY WARNING: BREW_BRAIN_API_TOKEN environment variable not set!
+2026-05-21 10:56:22,110 - CRITICAL - A temporary secure token has been generated for this session: 75694ba0b4c6381e0c21c32199f22916
+2026-05-21 10:56:22,110 - CRITICAL - A temporary secure token has been generated for this session: 75694ba0b4c6381e0c21c32199f22916
+2026-05-21 10:56:22,110 - CRITICAL - Please set BREW_BRAIN_API_TOKEN in your docker-compose.yml or environment.
+2026-05-21 10:56:22,110 - CRITICAL - Please set BREW_BRAIN_API_TOKEN in your docker-compose.yml or environment.
+2026-05-21 10:56:22,110 - CRITICAL - ============================================================
+2026-05-21 10:56:22,110 - CRITICAL - ============================================================
+2026-05-21 10:56:23,897 - WARNING - Empty smoothed data, skipping prediction
+2026-05-21 10:56:23,897 - WARNING - Empty smoothed data, skipping prediction
+2026-05-21 10:56:34,823 - WARNING - Unauthorized API access attempt from 127.0.0.1 to /api/settings/test
+2026-05-21 10:56:34,823 - WARNING - Unauthorized API access attempt from 127.0.0.1 to /api/settings/test

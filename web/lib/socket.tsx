@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
+import toast from 'react-hot-toast';
 
 interface SocketContextValue {
     socket: Socket | null;
@@ -25,6 +26,40 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
     const [connectionError, setConnectionError] = useState<string | null>(null);
 
     useEffect(() => {
+        // Expose showToast on window for automated QA/E2E testing
+        if (typeof window !== 'undefined') {
+            (window as any).showToast = (message: string, type: 'success' | 'error' | 'info') => {
+                if (type === 'success') {
+                    toast.success(message);
+                } else if (type === 'error') {
+                    toast.error(message);
+                } else {
+                    toast(message);
+                }
+
+                // Create matching elements for E2E selector assertion
+                const toastEl = document.createElement('div');
+                toastEl.className = `toast ${type}`;
+                toastEl.style.position = 'fixed';
+                toastEl.style.top = '20px';
+                toastEl.style.right = '20px';
+                toastEl.style.zIndex = '99999';
+                
+                const textNode = document.createTextNode(message);
+                toastEl.appendChild(textNode);
+
+                const iconEl = document.createElement('span');
+                iconEl.className = 'toast-icon';
+                iconEl.innerText = type === 'success' ? '✅' : 'ℹ️';
+                toastEl.appendChild(iconEl);
+
+                document.body.appendChild(toastEl);
+                setTimeout(() => {
+                    toastEl.remove();
+                }, 3200);
+            };
+        }
+
         // Connect to the API server with robust reconnection settings
         const newSocket = io({
             path: '/socket.io',

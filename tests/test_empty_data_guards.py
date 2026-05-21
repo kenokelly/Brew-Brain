@@ -7,6 +7,17 @@ from unittest.mock import MagicMock, patch
 import sys
 from types import ModuleType
 
+# Save original sys.modules keys/values to restore later
+_original_modules = {}
+_keys_to_remove = []
+for key in ['core', 'core.config', 'core.influx', 'services', 'services.telegram', 
+            'services.ai', 'services.tilt_monitor', 'services.notifications', 
+            'services.status', 'services.cache', 'services.core']:
+    if key in sys.modules:
+        _original_modules[key] = sys.modules[key]
+    else:
+        _keys_to_remove.append(key)
+
 # Create mock modules for core.config and core.influx
 core = ModuleType('core')
 sys.modules['core'] = core
@@ -30,6 +41,7 @@ sys.modules['services'] = services
 services.telegram = MagicMock()
 sys.modules['services.telegram'] = services.telegram
 services.ai = MagicMock()
+sys.modules['services.sys'] = MagicMock()
 sys.modules['services.ai'] = services.ai
 services.tilt_monitor = MagicMock()
 sys.modules['services.tilt_monitor'] = services.tilt_monitor
@@ -44,6 +56,13 @@ sys.modules['services.core'] = services.core
 
 from app.services.worker import predict_fg_from_curve
 from app.services.learning import predict_fg_4pl
+
+# Restore original sys.modules to prevent side-effects on other test files
+for key, val in _original_modules.items():
+    sys.modules[key] = val
+for key in _keys_to_remove:
+    if key in sys.modules:
+        del sys.modules[key]
 
 def test_predict_fg_from_curve_empty_after_clean():
     """

@@ -62,6 +62,15 @@ class ResultCache:
             del self._local_cache[key]
         return None
 
+    def delete(self, key: str) -> None:
+        """Remove a single key from the cache."""
+        if self.redis_client:
+            try:
+                self.redis_client.delete(key)
+            except Exception as e:
+                logger.error(f"Redis delete error: {e}")
+        self._local_cache.pop(key, None)
+
     def clear(self):
         if self.redis_client:
             try:

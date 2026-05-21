@@ -115,7 +115,7 @@ class TestCheckTempStability(unittest.TestCase):
 class TestGetPageContentNoPlaywright(unittest.TestCase):
     """Verifies Playwright fallback is removed."""
 
-    @patch("app.services.sourcing.requests.get")
+    @patch("app.services.scraper_utils.requests.get")
     def test_returns_none_on_403(self, mock_get):
         from app.services.sourcing import get_page_content
         import requests as req
@@ -126,10 +126,10 @@ class TestGetPageContentNoPlaywright(unittest.TestCase):
         mock_resp.raise_for_status.side_effect = http_err
         mock_get.return_value = mock_resp
 
-        result = get_page_content("https://example.com", retries=0)
+        result = get_page_content("https://www.themaltmiller.co.uk", retries=0)
         self.assertIsNone(result)
 
-    @patch("app.services.sourcing.requests.get")
+    @patch("app.services.scraper_utils.requests.get")
     def test_success_returns_html(self, mock_get):
         from app.services.sourcing import get_page_content
 
@@ -139,7 +139,7 @@ class TestGetPageContentNoPlaywright(unittest.TestCase):
         mock_resp.raise_for_status.return_value = None
         mock_get.return_value = mock_resp
 
-        result = get_page_content("https://example.com", retries=0)
+        result = get_page_content("https://www.themaltmiller.co.uk", retries=0)
         self.assertEqual(result, "<html>OK</html>")
 
 

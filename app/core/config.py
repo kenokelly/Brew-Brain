@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from influxdb_client import Point
 from core.influx import write_api, query_api, INFLUX_BUCKET, INFLUX_ORG
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, ValidationInfo
 import tempfile
 import shutil
 
@@ -30,6 +30,10 @@ logger.addHandler(file_handler)
 
 # --- PYDANTIC V2 SCHEMA ---
 class BrewBrainConfig(BaseModel):
+    model_config = {
+        "extra": "forbid"
+    }
+
     # Hardware/General
     offset: float = 0.0
     test_mode: bool = False
@@ -50,6 +54,7 @@ class BrewBrainConfig(BaseModel):
     bf_key: str = ""
     alert_telegram_token: str = ""
     alert_telegram_chat: str = ""
+    tiltpi_url: str = ""
     
     # AI/Services
     ollama_host: str = "ollama"
@@ -68,6 +73,21 @@ class BrewBrainConfig(BaseModel):
     bypass_temp_threshold: float = 0.5
     bypass_sg_threshold: float = 0.005
 
+    # Extra Batch / Yeast Details
+    yeast_min_temp: Optional[float] = None
+    yeast_max_temp: Optional[float] = None
+    yeast_attenuation: Optional[float] = None
+    yeast_flocculation: Optional[str] = None
+    # User-defined fermentation target temperature in °C (optional).
+    # When set, overrides the yeast-profile-based bounds in temp deviation checks.
+    target_temp: Optional[float] = None
+
+    # Prediction
+    prediction_end_date: str = ""
+    
+    # Tap Configurations
+    taps: Dict[str, Any] = {}
+
     @field_validator('start_date')
     @classmethod
     def validate_date(cls, v: str) -> str:
@@ -80,13 +100,33 @@ class BrewBrainConfig(BaseModel):
             return datetime.now().strftime("%Y-%m-%d")
 
     @field_validator('batch_name', 'batch_notes', 'style', 'yeast_strain', 
-                     'bf_user', 'bf_key', 'alert_telegram_token', 'alert_telegram_chat', 
-                     'ollama_host', 'ollama_model', 'serp_api_key', 'alert_start_time', 'alert_end_time', mode='before')
+                     'bf_user', 'bf_key', 'alert_telegram_token', 'alert_telegram_chat', 'tiltpi_url',
+                     'ollama_host', 'ollama_model', 'serp_api_key', 'alert_start_time', 'alert_end_time',
+                     'prediction_end_date', 'yeast_flocculation', mode='before')
     @classmethod
     def coerce_string(cls, v: Any) -> str:
         if v is None:
             return ""
         return str(v)
+
+    @field_validator('yeast_min_temp', 'yeast_max_temp', 'yeast_attenuation', mode='before')
+    @classmethod
+    def coerce_optional_floats(cls, v: Any) -> Optional[float]:
+        if v is None or v == "":
+            return None
+        try:
+            return float(v)
+        except (ValueError, TypeError):
+            return None
+
+    @field_validator('taps', mode='before')
+    @classmethod
+    def coerce_dict(cls, v: Any) -> Dict[str, Any]:
+        if v is None or v == "":
+            return {}
+        if isinstance(v, dict):
+            return v
+        return {}
 
     @field_validator('og', mode='before')
     @classmethod
@@ -107,6 +147,55 @@ class BrewBrainConfig(BaseModel):
             return float(v)
         except (ValueError, TypeError):
             return 1.010
+
+    @field_validator('offset', 'temp_max', 'test_sg_start', 'test_temp_base', 
+                     'bypass_temp_threshold', 'bypass_sg_threshold', mode='before')
+    @classmethod
+    def coerce_floats(cls, v: Any, info: ValidationInfo) -> float:
+        default_map = {
+            'offset': 0.0,
+            'temp_max': 28.0,
+            'test_sg_start': 1.060,
+            'test_temp_base': 20.0,
+            'bypass_temp_threshold': 0.5,
+            'bypass_sg_threshold': 0.005
+        }
+        name = info.field_name
+        fallback = default_map.get(name, 0.0)
+        if v is None or v == "":
+            return fallback
+        try:
+            return float(v)
+        except (ValueError, TypeError):
+            return fallback
+
+    @field_validator('tilt_timeout_min', 'alert_verbosity_min', 'report_verbosity_min', mode='before')
+    @classmethod
+    def coerce_ints(cls, v: Any, info: ValidationInfo) -> int:
+        default_map = {
+            'tilt_timeout_min': 60,
+            'alert_verbosity_min': 0,
+            'report_verbosity_min': 60
+        }
+        name = info.field_name
+        fallback = default_map.get(name, 0)
+        if v is None or v == "":
+            return fallback
+        try:
+            return int(float(v))
+        except (ValueError, TypeError):
+            return fallback
+
+    @field_validator('test_mode', mode='before')
+    @classmethod
+    def coerce_bool(cls, v: Any) -> bool:
+        if v is None:
+            return False
+        if isinstance(v, bool):
+            return v
+        if str(v).lower() in ('true', '1', 'yes', 'on'):
+            return True
+        return False
 
 # Config Instance (Defaults to starting state)
 _config_instance = BrewBrainConfig()

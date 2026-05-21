@@ -2,12 +2,6 @@ import sys
 import os
 from unittest.mock import MagicMock, patch
 
-# Mock missing dependencies
-sys.modules['influxdb_client'] = MagicMock()
-sys.modules['influxdb_client.client.write_api'] = MagicMock()
-sys.modules['serpapi'] = MagicMock() # Mock serpapi directly too
-sys.modules['pandas'] = MagicMock() # Just in case
-
 # Add app to path
 sys.path.append(os.getcwd())
 
