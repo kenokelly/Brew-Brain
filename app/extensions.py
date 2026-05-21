@@ -33,7 +33,7 @@ def make_celery(app_name=__name__):
             'schedule': 300.0,
         },
         'predict-batch-stats': {
-            'task': 'ml.tasks.predict_batch_stats',
+            'task': 'services.tasks.predict_batch_stats',
             'schedule': 300.0,
         },
         'daily-report-weekday': {

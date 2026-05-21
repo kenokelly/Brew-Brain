@@ -43,7 +43,7 @@ def run_anomaly_detection():
         logger.error(f"Anomaly detection task failed: {e}")
         return {"status": "error", "message": str(e)}
 
-@celery.task(name="ml.tasks.predict_batch_stats")
+@celery.task(name="services.tasks.predict_batch_stats")
 def predict_batch_stats():
     """Background task to run ML predictions and update cache."""
     try:

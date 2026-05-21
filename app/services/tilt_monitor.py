@@ -22,16 +22,34 @@ def poll_tilt_api():
     """
     Directly poll the TiltPi Node-RED API for the latest sensor metrics.
     Updates the global TILT_STATE.
+
+    URL priority:
+      1. tiltpi_url from config (user-configured, highest priority)
+      2. Docker gateway fallbacks (172.17.0.1, host.docker.internal)
+      3. Hardcoded Pi IP (last resort — only works on the original network)
     """
     global TILT_STATE
-    
-    # Try multiple possible endpoints for robustness against Docker network modes
-    possible_urls = [
-        "http://192.168.155.226:1880/macid/all", # Direct IP
-        "http://172.17.0.1:1880/macid/all",      # Docker Direct Gateway (Linux default)
-        "http://host.docker.internal:1880/macid/all" # Docker Desktop / Mac
+    from core.config import get_config
+
+    configured_url = get_config("tiltpi_url")
+
+    # Build ordered candidate list: configured URL always goes first.
+    fallback_urls = [
+        "http://172.17.0.1:1880/macid/all",         # Docker gateway (Linux)
+        "http://host.docker.internal:1880/macid/all", # Docker Desktop / Mac
+        "http://192.168.155.226:1880/macid/all",     # Last-resort hardcoded IP
     ]
-    
+    possible_urls = []
+    if configured_url:
+        # Normalise: strip trailing slash, ensure path
+        base = configured_url.rstrip("/")
+        if not base.endswith("/macid/all"):
+            base = base + "/macid/all"
+        possible_urls.append(base)
+        # Don't repeat in fallbacks if user already configured one of them
+        fallback_urls = [u for u in fallback_urls if u != base]
+    possible_urls.extend(fallback_urls)
+
     success = False
     
     for url in possible_urls:

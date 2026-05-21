@@ -329,7 +329,6 @@ def process_data():
         except Exception as e:
             logger.error(f"Sync Loop Error: {e}")
             time.sleep(60)
-            time.sleep(60)
 
 def perform_signal_loss_check(now, timeout_min, cooldown=14400):
     """
@@ -404,33 +403,9 @@ def check_alerts():
             local_hour = time.localtime(now).tm_hour
             
             # Quiet Hours Check
-            start_str = get_config("alert_start_time") or "08:00"
-            end_str = get_config("alert_end_time") or "22:00"
-            try:
-                start_h = int(start_str.split(":")[0])
-                end_h = int(end_str.split(":")[0])
-                
-                # If start < end (e.g. 08 to 22), we alert if start < now < end
-                # If start > end (e.g. 22 to 08), we alert if now > start OR now < end (night shift)
-                # ... Wait, user wants "Quiet Hours" or "Active Hours"?
-                # Request said: "not disturbed during the night". So we define ACTIVE hours.
-                # Default 08:00 to 22:00 are ACTIVE hours.
-                
-                is_active_time = False
-                if start_h < end_h:
-                    if start_h <= local_hour < end_h: is_active_time = True
-                else:
-                    # Spans midnight (e.g. 22:00 to 08:00 active? Unlikely for "Quiet Night")
-                    # Assuming inputs are ACTIVE hours.
-                    if local_hour >= start_h or local_hour < end_h: is_active_time = True
-                    
-                if not is_active_time:
-                    # It is quiet time, skip alerts
-                    continue
-
-            except Exception as e:
-                logger.error(f"Time Check Error: {e}")
-                # Fail open (allow alerts) if config is bad
+            from services.notifications import is_quiet_hours
+            if is_quiet_hours():
+                continue
             
             COOLDOWN = 14400 # 4 hours
             timeout_min = int(get_config("tilt_timeout_min") or 60)
@@ -548,23 +523,9 @@ def check_alerts_once():
         local_hour = time.localtime(now).tm_hour
         
         # Quiet Hours Check
-        start_str = get_config("alert_start_time") or "08:00"
-        end_str = get_config("alert_end_time") or "22:00"
-        try:
-            start_h = int(start_str.split(":")[0])
-            end_h = int(end_str.split(":")[0])
-            
-            is_active_time = False
-            if start_h < end_h:
-                if start_h <= local_hour < end_h: is_active_time = True
-            else:
-                if local_hour >= start_h or local_hour < end_h: is_active_time = True
-                
-            if not is_active_time:
-                return  # Quiet time, skip alerts
-
-        except Exception as e:
-            logger.error(f"Time Check Error: {e}")
+        from services.notifications import is_quiet_hours
+        if is_quiet_hours():
+            return  # Quiet time, skip alerts
         
         COOLDOWN = 14400
         timeout_min = int(get_config("tilt_timeout_min") or 60)
