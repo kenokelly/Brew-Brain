@@ -73,6 +73,39 @@ def analyze_yeast_history(yeast_name: str) -> Optional[dict]:
         logger.error(f"AI Yeast History Error: {e}")
         return None
 
+def simulate_brew_insight(yeast_name, brew_count, mean_fg, p95_fg):
+    """
+    B10: Ask Ollama for insights based on Monte Carlo simulation results.
+    Returns null if Ollama fails.
+    """
+    ollama_host = os.environ.get("OLLAMA_HOST", get_config("ollama_host") or "ollama")
+    ollama_url = f"http://{ollama_host}:11434/api/generate"
+    
+    prompt = (
+        f"We just ran a Monte Carlo simulation for a brew using {yeast_name}. "
+        f"Based on {brew_count} historical data points, the median predicted FG is {round(mean_fg, 3)}. "
+        f"However, there is a 5% risk of stalling at {round(p95_fg, 3)} or higher. "
+        f"Provide a brief, 2-sentence technical recommendation on how to mitigate this stall risk during fermentation."
+    )
+    
+    try:
+        payload = {
+            "model": get_config("ollama_model") or "llama3:latest",
+            "prompt": prompt,
+            "system": "You are an expert AI brewmaster assisting with fermentation risk analysis. Keep it under 2 sentences.",
+            "stream": False,
+            "keep_alive": 0
+        }
+        res = requests.post(ollama_url, json=payload, timeout=60)
+        if res.status_code == 200:
+            text = res.json().get("response")
+            if text:
+                return text.strip()
+    except Exception as e:
+        logger.warning(f"Ollama simulation insight failed: {e}")
+    
+    return None
+
 def generate_chat_response(message: str, history: Optional[list] = None) -> dict:
     """
     Generates a response from the Brewmaster AI (Local Ollama).

@@ -1,4 +1,4 @@
-from flask import Blueprint, request
+from flask import Blueprint, request, jsonify
 from core.auth import require_api_token
 from services import scout, calculator, alerts, yeast, sourcing, learning, inventory
 import logging
@@ -76,6 +76,106 @@ def trigger_simulation():
         return api_response(data={"status": "queued", "task_id": task.id})
     except Exception as e:
         return handle_error(e, "Simulation Trigger Error")
+
+@automation_bp.route('/api/automation/learning/simulate', methods=['POST'])
+@require_api_token
+def learning_simulate():
+    """Endpoint for Simulation.tsx to run a synchronous Brew Day simulator."""
+    try:
+        from services.learning import simulate_brew_day, run_monte_carlo_simulation
+        data = request.json or {}
+        grains = data.get('grains', [])
+        volume = data.get('volume', 23)
+        efficiency = data.get('efficiency', 75)
+        yeast = data.get('yeast')
+        mash_temp_c = data.get('mash_temp_c', 65.0)
+        
+        # 1. Simulate OG
+        og_result = simulate_brew_day(grains, volume, efficiency)
+        if "error" in og_result:
+            return api_response(status="error", error=og_result["error"], code=400)
+            
+        predicted_og = og_result["predicted_og"]
+        result = {
+            "predicted_og": predicted_og,
+            "hardware_warning": og_result.get("ph_warning")
+        }
+        
+        # 2. Simulate FG if yeast is provided
+        if yeast:
+            fg_result = run_monte_carlo_simulation(predicted_og, yeast, mash_temp_c)
+            if "error" not in fg_result:
+                result["predicted_fg"] = fg_result.get("predicted_fg_mean")
+                result["expected_fg"] = str(fg_result.get("predicted_fg_mean", "N/A"))
+                result["yeast_found"] = True # assume true if it didn't error wildly
+                if result["predicted_fg"]:
+                    result["predicted_abv"] = (predicted_og - result["predicted_fg"]) * 131.25
+                result["llm_analysis"] = fg_result.get("llm_analysis")
+            else:
+                result["yeast_found"] = False
+                
+        return jsonify(result) # Simulation.tsx expects raw object without wrapper currently
+    except Exception as e:
+        return handle_error(e, "Learning Simulate Error")
+
+@automation_bp.route('/api/automation/simulate/timeline', methods=['POST'])
+@require_api_token
+def simulate_timeline():
+    """B04: Generate a fermentation timeline projection."""
+    try:
+        from services.learning import simulate_brew_day, run_monte_carlo_simulation
+        data = request.json or {}
+        grains = data.get('grains', [])
+        volume = data.get('volume', 23)
+        efficiency = data.get('efficiency', 75)
+        yeast = data.get('yeast')
+        mash_temp_c = data.get('mash_temp_c', 65.0)
+        
+        og_result = simulate_brew_day(grains, volume, efficiency)
+        if "error" in og_result:
+            return api_response(status="error", error=og_result["error"], code=400)
+            
+        og = og_result["predicted_og"]
+        fg = og - 0.040 # default drop if no yeast
+        llm_analysis = None
+        
+        if yeast:
+            fg_result = run_monte_carlo_simulation(og, yeast, mash_temp_c)
+            if "error" not in fg_result:
+                fg = fg_result.get("predicted_fg_mean", fg)
+                llm_analysis = fg_result.get("llm_analysis")
+                
+        # Generate a naive 14-day timeline curve (Lag, Active, Terminal)
+        timeline = []
+        current_sg = og
+        total_drop = og - fg
+        
+        for day in range(1, 15):
+            if day == 1:
+                phase = "Lag Phase"
+                drop = 0.05 * total_drop
+            elif day <= 5:
+                phase = "Active Fermentation"
+                drop = 0.20 * total_drop
+            elif day <= 10:
+                phase = "Diacetyl Rest / Cleanup"
+                drop = 0.03 * total_drop
+            else:
+                phase = "Terminal / Conditioning"
+                drop = 0.005 * total_drop
+                
+            current_sg = max(fg, current_sg - drop)
+            timeline.append({
+                "day": day,
+                "expected_sg": round(current_sg, 3),
+                "phase": phase
+            })
+            if current_sg <= fg and day > 10:
+                break # Reached FG, truncate
+                
+        return api_response(data={"timeline": timeline, "llm_analysis": llm_analysis})
+    except Exception as e:
+        return handle_error(e, "Timeline Simulate Error")
 
 @automation_bp.route('/api/automation/simulate/status/<task_id>', methods=['GET'])
 @require_api_token

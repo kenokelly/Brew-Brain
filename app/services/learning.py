@@ -308,19 +308,16 @@ def run_monte_carlo_simulation(target_og, yeast_name, mash_temp_c):
     p5_fg = np.percentile(results_fg, 5)
     p95_fg = np.percentile(results_fg, 95)
     
-    # Generate Mock LLM Insight (In production, this is passed to Llama3)
-    llm_mock = (
-        f"Based on {len(yeast_brews) if yeast_brews else 'manufacturer'} batches with {yeast_name}, "
-        f"the Monte Carlo simulation predicts a median FG of {round(mean_fg, 3)}. "
-        f"There is a 5% risk of stalling at {round(p95_fg, 3)} or higher. "
-        f"Consider pitching a healthy starter to tighten this variance."
-    )
+    # B10: Wire Ollama call; return null not mock string
+    from services.ai import simulate_brew_insight
+    brew_count = len(yeast_brews) if yeast_brews else 'manufacturer'
+    llm_analysis = simulate_brew_insight(yeast_name, brew_count, mean_fg, p95_fg)
     
     return {
         "predicted_fg_mean": round(mean_fg, 3),
         "predicted_fg_p5": round(p5_fg, 3),
         "predicted_fg_p95": round(p95_fg, 3),
-        "llm_analysis": llm_mock
+        "llm_analysis": llm_analysis
     }
 
 def simulate_brew_day(grains, volume_l, mash_efficiency_pct):

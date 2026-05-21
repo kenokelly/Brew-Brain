@@ -246,3 +246,27 @@
 2026-05-21 10:56:23,897 - WARNING - Empty smoothed data, skipping prediction
 2026-05-21 10:56:34,823 - WARNING - Unauthorized API access attempt from 127.0.0.1 to /api/settings/test
 2026-05-21 10:56:34,823 - WARNING - Unauthorized API access attempt from 127.0.0.1 to /api/settings/test
+2026-05-21 13:42:22,093 - ERROR - Failed to refresh config from InfluxDB: HTTPConnection(host='influxdb', port=8086): Failed to resolve 'influxdb' ([Errno 8] No address found)
+2026-05-21 13:42:22,129 - CRITICAL - ============================================================
+2026-05-21 13:42:22,129 - CRITICAL - SECURITY WARNING: BREW_BRAIN_API_TOKEN environment variable not set!
+2026-05-21 13:42:22,129 - CRITICAL - A temporary secure token has been generated for this session: 64c8cebfb15dff0bb4ff31d009280e08
+2026-05-21 13:42:22,129 - CRITICAL - Please set BREW_BRAIN_API_TOKEN in your docker-compose.yml or environment.
+2026-05-21 13:42:22,129 - CRITICAL - ============================================================
+2026-05-21 13:42:24,486 - WARNING - Unauthorized API access attempt from 127.0.0.1 to /api/automation/simulate/timeline
+2026-05-21 13:42:24,492 - WARNING - Unauthorized API access attempt from 127.0.0.1 to /api/automation/learning/simulate
+2026-05-21 13:43:09,027 - CRITICAL - ============================================================
+2026-05-21 13:43:09,028 - CRITICAL - SECURITY WARNING: BREW_BRAIN_API_TOKEN environment variable not set!
+2026-05-21 13:43:09,028 - CRITICAL - A temporary secure token has been generated for this session: b625ff9521cffd82f76cd59705903895
+2026-05-21 13:43:09,028 - CRITICAL - Please set BREW_BRAIN_API_TOKEN in your docker-compose.yml or environment.
+2026-05-21 13:43:09,028 - CRITICAL - ============================================================
+2026-05-21 13:43:10,992 - ERROR - Timeline Simulate Error: cannot import name 'predict_fg_monte_carlo' from 'services.learning' (/Users/kokelly/Brew-Brain/app/services/learning.py)
+2026-05-21 13:43:10,999 - ERROR - Learning Simulate Error: cannot import name 'predict_fg_monte_carlo' from 'services.learning' (/Users/kokelly/Brew-Brain/app/services/learning.py)
+2026-05-21 13:44:01,334 - CRITICAL - ============================================================
+2026-05-21 13:44:01,335 - CRITICAL - SECURITY WARNING: BREW_BRAIN_API_TOKEN environment variable not set!
+2026-05-21 13:44:01,335 - CRITICAL - A temporary secure token has been generated for this session: 9379f3b143d8a79cf631f5a597f992b4
+2026-05-21 13:44:01,335 - CRITICAL - Please set BREW_BRAIN_API_TOKEN in your docker-compose.yml or environment.
+2026-05-21 13:44:01,335 - CRITICAL - ============================================================
+2026-05-21 13:44:03,750 - WARNING - Ollama simulation insight failed: Ollama offline
+2026-05-21 13:44:03,938 - WARNING - Ollama simulation insight failed: HTTPConnectionPool(host='ollama', port=11434): Max retries exceeded with url: /api/generate (Caused by NameResolutionError("HTTPConnection(host='ollama', port=11434): Failed to resolve 'ollama' ([Errno 8] No address found)"))
+2026-05-21 13:44:03,951 - WARNING - Ollama simulation insight failed: HTTPConnectionPool(host='ollama', port=11434): Max retries exceeded with url: /api/generate (Caused by NameResolutionError("HTTPConnection(host='ollama', port=11434): Failed to resolve 'ollama' ([Errno 8] No address found)"))
+2026-05-21 13:44:03,952 - ERROR - Learning Simulate Error: name 'jsonify' is not defined
