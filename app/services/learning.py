@@ -439,11 +439,6 @@ def predict_efficiency(grain_weight_kg):
         "model": model
     }
 
-    return {
-        "predicted_efficiency": round(pred, 1),
-        "model": model
-    }
-
 def predict_fg_from_history_knn(yeast_name, original_gravity, style=None):
     """
     Predicts FG using K-Nearest Neighbors (KNN) logic.
@@ -589,7 +584,8 @@ def check_batch_health(current_sg, original_gravity, yeast_name, days_in, temp=N
     # We'll rely on the alerting system to assume the 'monitoring' client calculates and sends 'stability'.
     # If not present, we skip.
     
-    current_stability = 0.5 # Default 'good'
+    if current_stability is None:
+        current_stability = 0.5 # Default 'good'
     # Hack: Using 'temp' arg as is, but if we want stability we need a new arg.
     # Let's add 'current_stability' to args in next iteration if needed.
     # For now, let's just use the attenuation checks which are robust.
