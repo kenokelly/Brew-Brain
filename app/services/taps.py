@@ -73,10 +73,14 @@ def pour_tap(tap_id: str, amount_ml: float) -> dict:
     keg_vol_l = tap.get('keg_volume_l', 19.0)
     
     new_ml = max(0.0, current_ml - amount_ml)
-    new_pct = (new_ml / (keg_vol_l * 1000.0)) * 100.0
+    new_pct = (new_ml / (keg_vol_l * 1000.0)) * 100.0 if keg_vol_l > 0 else 0.0
     
     tap['volume_remaining_ml'] = new_ml
     tap['remaining_pct'] = round(new_pct, 1)
+    
+    # Keep legacy fields in sync for settings UI
+    tap['keg_remaining'] = round(new_ml / 1000.0, 2)
+    tap['keg_total'] = keg_vol_l
     
     taps[tap_id] = tap
     set_config("taps", taps)
@@ -120,6 +124,9 @@ def update_tap(tap_id: str, data: dict) -> dict:
         return {"status": "success", "message": "Tap cleared"}
         
     elif action == "manual":
+        keg_total_l = float(data.get("keg_total") or 19.0)
+        keg_remaining_l = float(data.get("keg_remaining") or 19.0)
+        
         taps[tap_id] = {
             "active": True,
             "name": data.get("name", "Unknown"),
@@ -127,8 +134,11 @@ def update_tap(tap_id: str, data: dict) -> dict:
             "abv": float(data.get("abv") or 0.0),
             "srm": float(data.get("srm") or 0.0),
             "ibu": float(data.get("ibu") or 0.0),
-            "keg_total": float(data.get("keg_total") or 19.0),
-            "keg_remaining": float(data.get("keg_remaining") or 19.0),
+            "keg_total": keg_total_l,
+            "keg_remaining": keg_remaining_l,
+            "keg_volume_l": keg_total_l,
+            "volume_remaining_ml": keg_remaining_l * 1000.0,
+            "remaining_pct": (keg_remaining_l / keg_total_l) * 100.0 if keg_total_l > 0 else 0.0,
             "volume_unit": data.get("volume_unit", "L"),
             "untappd_url": data.get("untappd_url", "")
         }

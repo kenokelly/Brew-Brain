@@ -10,7 +10,6 @@ import { apiFetch } from "@/lib/api";
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 export default function TapList() {
-  const [adminMode, setAdminMode] = useState(false);
   const { data, error, isLoading, mutate } = useSWR("/api/taps", fetcher, {
     refreshInterval: 10000,
   });
@@ -41,13 +40,6 @@ export default function TapList() {
           <h1 className="text-4xl font-black tracking-tight mb-2">On Tap</h1>
           <p className="text-muted-foreground">What's currently pouring in the brewery.</p>
         </div>
-        <button 
-          onClick={() => setAdminMode(!adminMode)}
-          className={`flex items-center gap-2 px-4 py-2 rounded-full font-bold transition-all text-sm ${adminMode ? 'bg-primary text-primary-foreground shadow-sm' : 'bg-secondary text-muted-foreground hover:bg-secondary/80'}`}
-        >
-          <Settings2 className="w-4 h-4" />
-          {adminMode ? "Admin Active" : "Admin Mode"}
-        </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
@@ -118,18 +110,37 @@ export default function TapList() {
               </div>
             )}
 
-            {/* Admin Pour Controls */}
-            {adminMode && (
-               <div className="border-t border-border/50 bg-primary/5 p-4 space-y-3">
-                 <div className="text-[10px] font-bold text-primary uppercase tracking-widest text-center">Record Pour</div>
-                 <div className="grid grid-cols-2 gap-2">
-                   <button onClick={() => handlePour(tap.tap_id || `tap_${index+1}`, 568)} className="bg-background border border-border/50 hover:bg-secondary py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1"><GlassWater className="w-3 h-3"/> 1 Pint (568ml)</button>
-                   <button onClick={() => handlePour(tap.tap_id || `tap_${index+1}`, 379)} className="bg-background border border-border/50 hover:bg-secondary py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1"><GlassWater className="w-3 h-3"/> 2/3 Pint (379ml)</button>
-                   <button onClick={() => handlePour(tap.tap_id || `tap_${index+1}`, 284)} className="bg-background border border-border/50 hover:bg-secondary py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1"><GlassWater className="w-3 h-3"/> 1/2 Pint (284ml)</button>
-                   <button onClick={() => handlePour(tap.tap_id || `tap_${index+1}`, 189)} className="bg-background border border-border/50 hover:bg-secondary py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1"><GlassWater className="w-3 h-3"/> 1/3 Pint (189ml)</button>
-                 </div>
-               </div>
-            )}
+            {/* Pour Controls (Always Visible) */}
+            <div className="border-t border-border/50 bg-primary/5 p-4">
+              <div className="text-[10px] font-bold text-primary uppercase tracking-widest text-center mb-3">Record Pour</div>
+              <div className="flex justify-around items-end gap-2 h-20">
+                
+                {/* 1 Pint */}
+                <button onClick={() => handlePour(tap.tap_id || `tap_${index+1}`, 568)} className="group flex flex-col items-center justify-end h-full flex-1 hover:bg-white/5 rounded-xl transition-all">
+                  <Beer className="w-8 h-8 text-amber-500 group-hover:scale-110 transition-transform mb-2" />
+                  <span className="text-[9px] font-bold text-muted-foreground uppercase">1 Pint</span>
+                </button>
+                
+                {/* 2/3 Pint */}
+                <button onClick={() => handlePour(tap.tap_id || `tap_${index+1}`, 379)} className="group flex flex-col items-center justify-end h-full flex-1 hover:bg-white/5 rounded-xl transition-all">
+                  <Beer className="w-6 h-6 text-amber-500 group-hover:scale-110 transition-transform mb-2" />
+                  <span className="text-[9px] font-bold text-muted-foreground uppercase">2/3 Pint</span>
+                </button>
+
+                {/* 1/2 Pint */}
+                <button onClick={() => handlePour(tap.tap_id || `tap_${index+1}`, 284)} className="group flex flex-col items-center justify-end h-full flex-1 hover:bg-white/5 rounded-xl transition-all">
+                  <GlassWater className="w-6 h-6 text-amber-500/80 group-hover:scale-110 transition-transform mb-2" />
+                  <span className="text-[9px] font-bold text-muted-foreground uppercase">1/2 Pint</span>
+                </button>
+
+                {/* 1/3 Pint */}
+                <button onClick={() => handlePour(tap.tap_id || `tap_${index+1}`, 189)} className="group flex flex-col items-center justify-end h-full flex-1 hover:bg-white/5 rounded-xl transition-all">
+                  <GlassWater className="w-4 h-4 text-amber-500/80 group-hover:scale-110 transition-transform mb-2" />
+                  <span className="text-[9px] font-bold text-muted-foreground uppercase">1/3 Pint</span>
+                </button>
+
+              </div>
+            </div>
           </motion.div>
         ))}
       </div>
