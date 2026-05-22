@@ -33,7 +33,7 @@ ssh $HOST "cd $REMOTE_DIR && docker compose up -d --build"
 
 # 3. Verification (Fast check)
 echo "🔍 Verifying Deployment..."
-ssh $HOST "sleep 5" # Reliable stabilization
+ssh $HOST "sleep 30" # Wait for containers to initialize on Raspberry Pi
 
 echo "   [1/2] Checking API..."
 if ssh $HOST "curl -s http://localhost:5000/api/health | grep -q 'healthy'"; then

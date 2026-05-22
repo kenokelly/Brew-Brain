@@ -46,7 +46,7 @@ export default function SettingsPage() {
     // Manual Form State
     const [manualForm, setManualForm] = useState({
         name: "", style: "", abv: "5.0", srm: "5", ibu: "20",
-        keg_total: "19", keg_remaining: "19", unit: "L"
+        keg_total: "19", keg_remaining: "19", unit: "L", untappd_url: ""
     });
     
     // Untappd State
