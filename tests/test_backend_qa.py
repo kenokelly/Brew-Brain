@@ -88,10 +88,16 @@ class TestMonteCarloSimulation:
         # With ~78% avg attenuation, FG should be around 1.011
         assert 1.005 < result["predicted_fg_mean"] < 1.020
 
+    @patch('services.ai.requests.post')
     @patch('services.learning.get_history')
-    def test_llm_analysis_is_non_empty_string(self, mock_history):
+    def test_llm_analysis_is_non_empty_string(self, mock_history, mock_post):
         """The LLM analysis field must be a meaningful string."""
         mock_history.return_value = []
+        
+        mock_res = MagicMock()
+        mock_res.status_code = 200
+        mock_res.json.return_value = {"response": "This is a mocked LLM response that is definitely longer than 20 characters."}
+        mock_post.return_value = mock_res
         
         from services.learning import run_monte_carlo_simulation
         result = run_monte_carlo_simulation(1.050, "US-05", 65.0)

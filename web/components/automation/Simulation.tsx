@@ -319,10 +319,14 @@ export function Simulation() {
                                     </AreaChart>
                                 </ResponsiveContainer>
                             </div>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                <div className="bg-black/30 p-3 rounded-xl border-l-2 border-purple-500 text-center">
+                                    <div className="text-xl font-bold text-white">{result.predicted_og?.toFixed(3)}</div>
+                                    <div className="text-xs text-muted-foreground">Original Gravity</div>
                                 </div>
                                 <div className="bg-black/30 p-3 rounded-xl border-l-2 border-green-500 text-center">
-                                    <div className="text-xl font-bold text-white">{result.timeline[result.timeline.length - 1].expected_sg.toFixed(3)}</div>
-                                    <div className="text-xs text-muted-foreground">Final Gravity</div>
+                                    <div className="text-xl font-bold text-white">{result.predicted_fg_mean?.toFixed(3)}</div>
+                                    <div className="text-xs text-muted-foreground">Mean Final Gravity</div>
                                 </div>
                                 <div className="bg-black/30 p-3 rounded-xl text-center md:col-span-2 flex flex-col justify-center">
                                     <div className="text-sm font-medium text-white">Yeast Selected</div>

@@ -1,3 +1,5 @@
+import os
+os.environ["INFLUX_TOKEN"] = "mock"
 import pytest
 from unittest.mock import MagicMock, patch
 
