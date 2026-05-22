@@ -19,7 +19,7 @@ def get_taps() -> Tuple[Response, int]:
         return handle_error(e, "Tap Fetch Error")
 
 
-@taps_bp.route('/<tap_id>/init', methods=['POST'])
+@taps_bp.route('/taps/<tap_id>/init', methods=['POST'])
 @require_api_token
 def init_tap_endpoint(tap_id: str) -> Tuple[Response, int]:
     """Admin endpoint to initialize a new keg on a tap."""
@@ -42,7 +42,7 @@ def init_tap_endpoint(tap_id: str) -> Tuple[Response, int]:
         return handle_error(e, "Tap Init Error")
 
 
-@taps_bp.route('/<tap_id>/pour', methods=['POST'])
+@taps_bp.route('/taps/<tap_id>/pour', methods=['POST'])
 @require_api_token
 def pour_tap_endpoint(tap_id: str) -> Tuple[Response, int]:
     """Decrement volume from a tap."""

@@ -25,9 +25,9 @@ export default function PublicTapPage() {
     useEffect(() => {
         const fetchTaps = async () => {
             try {
-                const res = await apiFetch<{taps: Tap[]}>("/api/taps");
-                if (res.taps) {
-                    const found = res.taps.find(t => t.tap_id === id);
+                const res = await apiFetch<any>("/api/taps");
+                if (res?.data?.taps) {
+                    const found = res.data.taps.find((t: Tap) => t.tap_id === id);
                     if (found) setTap(found);
                 }
             } catch (err) {

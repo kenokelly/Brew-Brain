@@ -22,9 +22,9 @@ export default function KioskPage() {
 
     const fetchTaps = async () => {
         try {
-            const res = await apiFetch<{taps: Tap[]}>("/api/taps");
-            if (res.taps) {
-                setTaps(res.taps);
+            const res = await apiFetch<any>("/api/taps");
+            if (res?.data?.taps) {
+                setTaps(res.data.taps);
             }
         } catch (err) {
             console.error("Failed to load taps", err);
