@@ -64,7 +64,7 @@ def pour_tap_endpoint(tap_id: str) -> Tuple[Response, int]:
         return handle_error(e, "Tap Pour Error")
 
 
-@taps_bp.route('/<tap_id>', methods=['POST'])
+@taps_bp.route('/taps/<tap_id>', methods=['POST'])
 @require_api_token
 def manage_tap_endpoint(tap_id: str) -> Tuple[Response, int]:
     """Handle manual assignments, snapshots, and clearing taps from UI."""
