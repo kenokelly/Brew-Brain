@@ -304,7 +304,7 @@ export function Simulation() {
                                         />
                                         <Tooltip 
                                             contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', border: '1px solid rgba(168, 85, 247, 0.5)', borderRadius: '8px' }}
-                                            formatter={(value: number) => [value, 'Simulated Batches']}
+                                            formatter={(value: any) => [value, 'Simulated Batches']}
                                             labelFormatter={(label) => `FG: ${Number(label).toFixed(3)}`}
                                         />
                                         <Area type="monotone" dataKey="frequency" stroke="#a855f7" fillOpacity={1} fill="url(#colorFreq)" />
