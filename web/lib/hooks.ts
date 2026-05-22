@@ -81,7 +81,7 @@ export function useStatus() {
  * Fetch tap data with 10s refresh interval
  */
 export function useTaps() {
-    const { data, error, mutate, isLoading } = useSWR<any>('/api/taps', fetcher, {
+    const { data, error, mutate, isLoading } = useSWR<any>('/api/taps/config', fetcher, {
         refreshInterval: 10000,
         revalidateOnFocus: false,
     });

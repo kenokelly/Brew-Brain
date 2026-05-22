@@ -18,6 +18,16 @@ def get_taps() -> Tuple[Response, int]:
     except Exception as e:
         return handle_error(e, "Tap Fetch Error")
 
+@taps_bp.route('/taps/config', methods=['GET'])
+@require_api_token
+def get_taps_config() -> Tuple[Response, int]:
+    """Get raw tap configuration for Settings menu."""
+    try:
+        taps_config = get_config("taps") or {}
+        return api_response(data=taps_config)
+    except Exception as e:
+        return handle_error(e, "Tap Config Fetch Error")
+
 
 @taps_bp.route('/taps/<tap_id>/init', methods=['POST'])
 @require_api_token
