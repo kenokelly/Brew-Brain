@@ -201,14 +201,50 @@ def predict_fg_4pl(times, readings, og=None, yeast_attenuation=None):
 
 
 def get_history():
-    if not os.path.exists(HISTORY_FILE):
-        return []
+    """
+    Fetches historical brew data.
+    First tries Brewfather completed batches, falls back to local brew_history.json.
+    """
+    history = []
+    
+    # Try fetching from Brewfather completed batches first (more robust)
     try:
-        with open(HISTORY_FILE, 'r') as f:
-            return json.load(f)
+        from services.batch_exporter import get_completed_batches
+        bf_batches = get_completed_batches()
+        for b in bf_batches:
+            recipe = b.get("recipe", {})
+            batch_meta = b.get("batch", {})
+            og = recipe.get("og", 1.050)
+            fg = recipe.get("fg", 1.010)
+            yeast = "Unknown"
+            if recipe.get("yeasts") and len(recipe.get("yeasts")) > 0:
+                yeast = recipe["yeasts"][0].get("name", "Unknown")
+            
+            # Attenuation = (OG - FG) / (OG - 1)
+            attenuation = ((og - fg) / (og - 1.0)) * 100 if og > 1.0 else 75.0
+            
+            history.append({
+                "name": batch_meta.get("name", "Unknown"),
+                "yeast": yeast,
+                "og": og,
+                "fg": fg,
+                "attenuation": attenuation,
+                "success": True,
+                "source": "Brewfather"
+            })
     except Exception as e:
-        logger.warning(f"Failed to load history: {e}")
-        return []
+        logger.warning(f"Failed to load Brewfather history: {e}")
+
+    # Fallback/Merge with local JSON history
+    if os.path.exists(HISTORY_FILE):
+        try:
+            with open(HISTORY_FILE, 'r') as f:
+                local_history = json.load(f)
+                history.extend(local_history)
+        except Exception as e:
+            logger.warning(f"Failed to load local history: {e}")
+            
+    return history
 
 def save_brew_outcome(data):
     """
@@ -308,6 +344,15 @@ def run_monte_carlo_simulation(target_og, yeast_name, mash_temp_c):
     p5_fg = np.percentile(results_fg, 5)
     p95_fg = np.percentile(results_fg, 95)
     
+    # Generate histogram for UI Bell Curve
+    hist, bin_edges = np.histogram(results_fg, bins=20)
+    distribution_bins = []
+    for i in range(len(hist)):
+        distribution_bins.append({
+            "fg_bin": round(float(bin_edges[i]), 3),
+            "frequency": int(hist[i])
+        })
+    
     # B10: Wire Ollama call; return null not mock string
     from services.ai import simulate_brew_insight
     brew_count = len(yeast_brews) if yeast_brews else 'manufacturer'
@@ -317,6 +362,7 @@ def run_monte_carlo_simulation(target_og, yeast_name, mash_temp_c):
         "predicted_fg_mean": round(mean_fg, 3),
         "predicted_fg_p5": round(p5_fg, 3),
         "predicted_fg_p95": round(p95_fg, 3),
+        "distribution_bins": distribution_bins,
         "llm_analysis": llm_analysis
     }
 

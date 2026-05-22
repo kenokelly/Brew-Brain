@@ -25,10 +25,12 @@ from services.scraper_utils import (
     extract_json_ld_products, 
     extract_price
 )
+from core.cache import cache
+import os
 
-# In-memory cache for ingredient search results to avoid redundant network hits
-_ingredient_cache = {}
-_ingredient_cache_lock = threading.Lock()
+# SERP API Key
+def get_serpapi_key():
+    return os.environ.get("SERPAPI_KEY") or get_config("serp_api_key")
 
 def check_inventory_hop_freshness(inventory: dict = None) -> list:
     """
@@ -138,7 +140,7 @@ def search_ingredient(name, ingredient_type="hop"):
     """
     Searches for an ingredient on The Malt Miller and Get Er Brewed.
     """
-    api_key = get_config("serp_api_key")
+    api_key = get_serpapi_key()
     if not api_key: return {"error": "Missing SerpApi Key"}
 
     # Targeted Search
@@ -290,7 +292,7 @@ def check_price_watch():
         # 10% Drop Threshold
         target_price = baseline * 0.90
         
-        api_key = get_config("serp_api_key")
+        api_key = get_serpapi_key()
         if not api_key: continue
         
         params = {
@@ -415,7 +417,7 @@ def compare_recipe_prices(recipe_details, recipe_tag=None, debug_mode=False):
     total_tmm = 0.0
     total_geb = 0.0
     
-    api_key = get_config("serp_api_key")
+    api_key = get_serpapi_key()
     use_serp = bool(api_key)  # SerpAPI is now OPTIONAL
     
     logger.info(f"[PRICE-CMP] Mode: {'SerpAPI' if use_serp else 'Direct Scraping'}")
@@ -607,16 +609,15 @@ def compare_recipe_prices(recipe_details, recipe_tag=None, debug_mode=False):
         
         def get_cached_or_fetch(vendor, names):
             for try_name in names:
-                cache_key = f"{vendor}_{try_name}"
-                with _ingredient_cache_lock:
-                    cached = _ingredient_cache.get(cache_key)
-                    if cached and (std_time.time() - cached['ts']) < 14400: # 4 hours TTL
-                        return cached['data']
+                cache_key = f"sourcing_{vendor}_{try_name.lower().replace(' ', '_')}"
+                
+                cached_data = cache.get(cache_key)
+                if cached_data:
+                    return cached_data
                         
                 res = search_vendor_direct(try_name, vendor)
                 if res and res.get('price'):
-                    with _ingredient_cache_lock:
-                        _ingredient_cache[cache_key] = {"data": res, "ts": std_time.time()}
+                    cache.set(cache_key, res, ttl=86400) # 24 hours TTL
                     return res
             return None
 
@@ -781,7 +782,7 @@ def get_restock_suggestions():
         "salts": 50 # g
     }
     
-    api_key = get_config("serp_api_key")
+    api_key = get_serpapi_key()
     
     def search_tmm_link(query):
         if not api_key: return "#"

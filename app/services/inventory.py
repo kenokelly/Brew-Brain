@@ -1,51 +1,49 @@
 import logging
-import time
 from datetime import datetime, date, timedelta
 from services import alerts
 from services.hop_math import calculate_hop_freshness
+from extensions import celery
+from core.cache import cache
 
 logger = logging.getLogger(__name__)
 
-def fetch_inventory_with_backoff(max_retries=3, base_delay=1):
+@celery.task(bind=True, max_retries=3, name="services.inventory.fetch_inventory_with_backoff")
+def fetch_inventory_with_backoff(self, base_delay=1):
     """
     Fetches inventory from Brewfather, handling 429 Rate Limit errors 
-    with exponential backoff.
+    with exponential backoff using Celery.
     """
-    retries = 0
-    while retries <= max_retries:
-        try:
-            # We use the existing function from alerts.py which handles the API calls
-            inv = alerts.fetch_brewfather_inventory()
-            
-            # If it's a dict and has an error
-            if isinstance(inv, dict) and 'error' in inv:
-                if '429' in str(inv['error']):
-                    retries += 1
-                    if retries > max_retries:
-                        logger.error("Brewfather Inventory API rate limit exceeded. Max retries hit.")
-                        return inv
-                    
-                    delay = base_delay * (2 ** (retries - 1))
-                    logger.warning(f"Rate limited (429). Retrying in {delay} seconds...")
-                    time.sleep(delay)
-                    continue
-                else:
-                    return inv # Other errors (401, 500)
-            
-            return inv # Success
-            
-        except Exception as e:
-            logger.error(f"Inventory sync error: {e}")
-            return {"error": str(e)}
+    try:
+        inv = alerts.fetch_brewfather_inventory()
+        
+        if isinstance(inv, dict) and 'error' in inv:
+            if '429' in str(inv['error']):
+                delay = base_delay * (2 ** self.request.retries)
+                logger.warning(f"Rate limited (429). Celery retrying in {delay} seconds...")
+                raise self.retry(countdown=delay)
+            else:
+                return inv # Other errors (401, 500)
+        
+        cache.set("raw_inventory", inv, ttl=86400)
+        return {"status": "success", "message": "Inventory successfully synced"}
+        
+    except Exception as e:
+        from celery.exceptions import Retry
+        if isinstance(e, Retry):
+            raise
+        logger.error(f"Inventory sync error: {e}")
+        return {"error": str(e)}
 
 def get_processed_inventory():
     """
-    Fetches the raw inventory and applies data transformations:
+    Fetches the raw inventory from cache and applies data transformations:
     1. HSI Alpha Acid Degradation for Hops
     2. Threshold alerts (low stock)
     """
-    raw_inv = fetch_inventory_with_backoff()
-    if not raw_inv or ('error' in raw_inv):
+    raw_inv = cache.get("raw_inventory")
+    if not raw_inv:
+        return {"error": "No inventory synced. Please trigger a sync."}
+    if 'error' in raw_inv:
         return raw_inv
         
     processed = {

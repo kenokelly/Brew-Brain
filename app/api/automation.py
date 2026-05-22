@@ -23,15 +23,28 @@ def get_inventory():
 @automation_bp.route('/api/automation/inventory/sync', methods=['POST'])
 @require_api_token
 def sync_inventory():
-    # In a full production environment this would trigger a Celery task.
-    # For now, we perform a synchronous fetch.
     try:
-        results = inventory.fetch_inventory_with_backoff()
-        if isinstance(results, dict) and 'error' in results:
-            return api_response(status="error", error=results['error'], code=500)
-        return api_response(data={"message": "Inventory successfully synced", "raw_data": results})
+        task = inventory.fetch_inventory_with_backoff.delay()
+        return api_response(data={"message": "Inventory sync queued", "task_id": task.id})
     except Exception as e:
         return handle_error(e, "Inventory Sync Error")
+
+@automation_bp.route('/api/automation/inventory/sync/status/<task_id>', methods=['GET'])
+@require_api_token
+def get_sync_status(task_id):
+    from celery.result import AsyncResult
+    try:
+        task = AsyncResult(task_id)
+        if task.state == 'PENDING':
+            return api_response(data={"status": "pending"})
+        elif task.state == 'SUCCESS':
+            return api_response(data={"status": "success", "result": task.result})
+        elif task.state == 'FAILURE':
+            return api_response(status="error", error=str(task.info), code=500)
+        else:
+            return api_response(data={"status": task.state})
+    except Exception as e:
+        return handle_error(e, "Sync Status Error")
 
 # ============ Recipe Parser Endpoints ============
 
@@ -57,32 +70,15 @@ def parse_recipe():
 
 # ============ Simulation & R&D Endpoints ============
 
+
+
 @automation_bp.route('/api/automation/simulate', methods=['POST'])
 @require_api_token
 def trigger_simulation():
+    """Trigger background Monte Carlo simulation."""
     try:
-        data = request.json or {}
-        target_og = data.get('target_og')
-        yeast = data.get('yeast')
-        mash_temp_c = data.get('mash_temp_c')
-        
-        if not all([target_og, yeast, mash_temp_c]):
-            return api_response(status="error", error="Missing parameters. Requires target_og, yeast, and mash_temp_c.", code=400)
-            
-        # Trigger Celery Task
-        from services.tasks import run_monte_carlo_task
-        task = run_monte_carlo_task.delay(float(target_og), yeast, float(mash_temp_c))
-        
-        return api_response(data={"status": "queued", "task_id": task.id})
-    except Exception as e:
-        return handle_error(e, "Simulation Trigger Error")
-
-@automation_bp.route('/api/automation/learning/simulate', methods=['POST'])
-@require_api_token
-def learning_simulate():
-    """Endpoint for Simulation.tsx to run a synchronous Brew Day simulator."""
-    try:
-        from services.learning import simulate_brew_day, run_monte_carlo_simulation
+        from services.learning import simulate_brew_day
+        from services.tasks import run_simulation_task
         data = request.json or {}
         grains = data.get('grains', [])
         volume = data.get('volume', 23)
@@ -90,92 +86,30 @@ def learning_simulate():
         yeast = data.get('yeast')
         mash_temp_c = data.get('mash_temp_c', 65.0)
         
-        # 1. Simulate OG
+        # 1. Simulate OG synchronously (it's fast)
         og_result = simulate_brew_day(grains, volume, efficiency)
         if "error" in og_result:
             return api_response(status="error", error=og_result["error"], code=400)
             
         predicted_og = og_result["predicted_og"]
-        result = {
-            "predicted_og": predicted_og,
-            "hardware_warning": og_result.get("ph_warning")
-        }
         
-        # 2. Simulate FG if yeast is provided
+        # 2. Trigger background simulation for FG and distribution
         if yeast:
-            fg_result = run_monte_carlo_simulation(predicted_og, yeast, mash_temp_c)
-            if "error" not in fg_result:
-                result["predicted_fg"] = fg_result.get("predicted_fg_mean")
-                result["expected_fg"] = str(fg_result.get("predicted_fg_mean", "N/A"))
-                result["yeast_found"] = True # assume true if it didn't error wildly
-                if result["predicted_fg"]:
-                    result["predicted_abv"] = (predicted_og - result["predicted_fg"]) * 131.25
-                result["llm_analysis"] = fg_result.get("llm_analysis")
-            else:
-                result["yeast_found"] = False
-                
-        return jsonify(result) # Simulation.tsx expects raw object without wrapper currently
-    except Exception as e:
-        return handle_error(e, "Learning Simulate Error")
-
-@automation_bp.route('/api/automation/simulate/timeline', methods=['POST'])
-@require_api_token
-def simulate_timeline():
-    """B04: Generate a fermentation timeline projection."""
-    try:
-        from services.learning import simulate_brew_day, run_monte_carlo_simulation
-        data = request.json or {}
-        grains = data.get('grains', [])
-        volume = data.get('volume', 23)
-        efficiency = data.get('efficiency', 75)
-        yeast = data.get('yeast')
-        mash_temp_c = data.get('mash_temp_c', 65.0)
-        
-        og_result = simulate_brew_day(grains, volume, efficiency)
-        if "error" in og_result:
-            return api_response(status="error", error=og_result["error"], code=400)
-            
-        og = og_result["predicted_og"]
-        fg = og - 0.040 # default drop if no yeast
-        llm_analysis = None
-        
-        if yeast:
-            fg_result = run_monte_carlo_simulation(og, yeast, mash_temp_c)
-            if "error" not in fg_result:
-                fg = fg_result.get("predicted_fg_mean", fg)
-                llm_analysis = fg_result.get("llm_analysis")
-                
-        # Generate a naive 14-day timeline curve (Lag, Active, Terminal)
-        timeline = []
-        current_sg = og
-        total_drop = og - fg
-        
-        for day in range(1, 15):
-            if day == 1:
-                phase = "Lag Phase"
-                drop = 0.05 * total_drop
-            elif day <= 5:
-                phase = "Active Fermentation"
-                drop = 0.20 * total_drop
-            elif day <= 10:
-                phase = "Diacetyl Rest / Cleanup"
-                drop = 0.03 * total_drop
-            else:
-                phase = "Terminal / Conditioning"
-                drop = 0.005 * total_drop
-                
-            current_sg = max(fg, current_sg - drop)
-            timeline.append({
-                "day": day,
-                "expected_sg": round(current_sg, 3),
-                "phase": phase
+            task = run_simulation_task.delay(predicted_og, yeast, mash_temp_c)
+            return jsonify({
+                "status": "queued",
+                "task_id": task.id,
+                "predicted_og": predicted_og,
+                "hardware_warning": og_result.get("ph_warning")
             })
-            if current_sg <= fg and day > 10:
-                break # Reached FG, truncate
-                
-        return api_response(data={"timeline": timeline, "llm_analysis": llm_analysis})
+        else:
+            return jsonify({
+                "status": "completed",
+                "predicted_og": predicted_og,
+                "hardware_warning": og_result.get("ph_warning")
+            })
     except Exception as e:
-        return handle_error(e, "Timeline Simulate Error")
+        return handle_error(e, "Simulation Trigger Error")
 
 @automation_bp.route('/api/automation/simulate/status/<task_id>', methods=['GET'])
 @require_api_token

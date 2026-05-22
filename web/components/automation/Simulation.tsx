@@ -1,11 +1,11 @@
 'use client';
 
-import { useState } from 'react';
-import { FlaskConical, Play, Plus, Trash2, AlertTriangle, AlertCircle, CalendarClock, Brain } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { FlaskConical, Play, Plus, Trash2, AlertTriangle, AlertCircle, TrendingUp, Brain } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
-  LineChart,
-  Line,
+  AreaChart,
+  Area,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -20,17 +20,22 @@ interface Grain {
     potential: number;
 }
 
-interface TimelineEvent {
-    day: number;
-    expected_sg: number;
-    phase: string;
+interface DistributionBin {
+    fg_bin: number;
+    frequency: number;
 }
 
 interface SimResult {
-    timeline?: TimelineEvent[];
+    status?: string;
+    task_id?: string;
+    predicted_og?: number;
+    predicted_fg_mean?: number;
+    predicted_fg_p5?: number;
+    predicted_fg_p95?: number;
+    distribution_bins?: DistributionBin[];
     llm_analysis?: string;
     error?: string;
-    status?: string;
+    hardware_warning?: string;
 }
 
 export function Simulation() {
@@ -44,6 +49,7 @@ export function Simulation() {
     ]);
     const [result, setResult] = useState<SimResult | null>(null);
     const [loading, setLoading] = useState(false);
+    const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
 
     const addGrain = () => {
         const newId = Math.max(0, ...grains.map(g => g.id)) + 1;
@@ -60,12 +66,43 @@ export function Simulation() {
         setGrains(grains.map(g => g.id === id ? { ...g, [field]: value } : g));
     };
 
+    useEffect(() => {
+        return () => {
+            if (pollingInterval) clearInterval(pollingInterval);
+        };
+    }, [pollingInterval]);
+
+    const pollStatus = (taskId: string, og: number, warning?: string) => {
+        const interval = setInterval(async () => {
+            try {
+                const res = await fetch(`/api/automation/simulate/status/${taskId}`);
+                const { data, status, error } = await res.json();
+                
+                if (status === 'error') {
+                    clearInterval(interval);
+                    setResult({ error });
+                    setLoading(false);
+                } else if (data && data.status !== 'queued' && data.status !== 'PENDING') {
+                    clearInterval(interval);
+                    setResult({ ...data, predicted_og: og, hardware_warning: warning });
+                    setLoading(false);
+                }
+            } catch (e) {
+                clearInterval(interval);
+                setResult({ error: 'Failed to poll status' });
+                setLoading(false);
+            }
+        }, 2000);
+        setPollingInterval(interval);
+    };
+
     const runSim = async () => {
         setLoading(true);
         setResult(null);
+        if (pollingInterval) clearInterval(pollingInterval);
+        
         try {
-            // Using the new timeline API instead of the basic simulation
-            const res = await fetch('/api/automation/simulate/timeline', {
+            const res = await fetch('/api/automation/simulate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -75,15 +112,20 @@ export function Simulation() {
                     grains: grains.map(g => ({ weight_kg: g.weight_kg, potential: g.potential }))
                 })
             });
-            const { data, status, error } = await res.json();
-            if (status === 'error') {
-                setResult({ error });
+            const data = await res.json();
+            
+            if (data.status === 'error') {
+                setResult({ error: data.error });
+                setLoading(false);
+            } else if (data.status === 'queued' && data.task_id) {
+                setResult({ status: 'queued', predicted_og: data.predicted_og });
+                pollStatus(data.task_id, data.predicted_og, data.hardware_warning);
             } else {
                 setResult(data);
+                setLoading(false);
             }
         } catch (e) {
             setResult({ error: 'Failed to connect to simulation API' });
-        } finally {
             setLoading(false);
         }
     };
@@ -93,7 +135,6 @@ export function Simulation() {
     return (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                {/* Configuration Panel */}
                 <div className="lg:col-span-4 space-y-6">
                     <div className="bg-card/50 p-6 rounded-2xl border border-white/5 backdrop-blur-xl">
                         <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
@@ -131,7 +172,6 @@ export function Simulation() {
                             </div>
                         </div>
 
-                        {/* Grain Bill Section */}
                         <div className="border-t border-white/10 pt-4">
                             <div className="flex justify-between items-center mb-3">
                                 <h4 className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Grain Bill</h4>
@@ -187,13 +227,19 @@ export function Simulation() {
                             disabled={loading}
                             className="w-full mt-6 py-3 bg-purple-500 hover:bg-purple-600 text-white font-bold rounded-xl transition-all hover:scale-[1.02] flex items-center justify-center gap-2 disabled:opacity-50 disabled:hover:scale-100 shadow-lg shadow-purple-500/20"
                         >
-                            <Play className="w-4 h-4" /> {loading ? 'Simulating...' : 'Generate Timeline'}
+                            <Play className="w-4 h-4" /> {loading ? 'Simulating 1,000 runs...' : 'Simulate'}
                         </button>
                     </div>
                 </div>
 
-                {/* Timeline Visualization */}
                 <div className="lg:col-span-8 space-y-6">
+                    {result?.hardware_warning && (
+                        <div className="p-4 bg-orange-500/10 border border-orange-500/30 rounded-xl flex items-start gap-3">
+                            <AlertTriangle className="w-5 h-5 text-orange-400 shrink-0 mt-0.5" />
+                            <div className="text-sm text-orange-200">{result.hardware_warning}</div>
+                        </div>
+                    )}
+                    
                     {result?.error && (
                         <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-xl flex items-start gap-3">
                             <AlertCircle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
@@ -206,65 +252,73 @@ export function Simulation() {
 
                     {!result && !loading && (
                         <div className="h-full min-h-[400px] flex flex-col items-center justify-center text-muted-foreground border-2 border-dashed border-white/10 rounded-2xl bg-white/5">
-                            <CalendarClock className="w-12 h-12 mb-4 opacity-50" />
-                            <p>Configure your brew and run the simulation to project the fermentation timeline.</p>
+                            <TrendingUp className="w-12 h-12 mb-4 opacity-50" />
+                            <p>Configure your brew and run the simulation to project Final Gravity probabilities.</p>
+                        </div>
+                    )}
+                    
+                    {loading && result?.status === 'queued' && (
+                        <div className="h-full min-h-[400px] flex flex-col items-center justify-center text-purple-400 border border-purple-500/20 rounded-2xl bg-purple-500/5">
+                            <FlaskConical className="w-12 h-12 mb-4 animate-bounce" />
+                            <p className="font-bold mb-2">Simulating 1,000 Fermentations</p>
+                            <p className="text-sm opacity-70">Running Monte Carlo math via Celery worker...</p>
                         </div>
                     )}
 
-                    {result?.timeline && (
+                    {result?.distribution_bins && !loading && (
                         <div className="bg-card/50 p-6 rounded-2xl border border-white/5 backdrop-blur-xl animate-in fade-in zoom-in-95">
                             <div className="flex justify-between items-end mb-6">
                                 <div>
                                     <h4 className="text-lg font-bold text-purple-400 flex items-center gap-2">
-                                        <CalendarClock className="w-5 h-5" /> Fermentation Timeline
+                                        <TrendingUp className="w-5 h-5" /> Possibility Graph
                                     </h4>
-                                    <p className="text-sm text-muted-foreground">Predicted gravity curve over 14 days</p>
+                                    <p className="text-sm text-muted-foreground">Distribution of likely Final Gravities (1,000 runs)</p>
                                 </div>
                                 <div className="text-right">
-                                    <div className="text-sm text-muted-foreground uppercase">Target ABV</div>
+                                    <div className="text-sm text-muted-foreground uppercase">Predicted FG (Mean)</div>
                                     <div className="text-2xl font-bold text-green-400">
-                                        {((result.timeline[0].expected_sg - result.timeline[result.timeline.length - 1].expected_sg) * 131.25).toFixed(1)}%
+                                        {result.predicted_fg_mean?.toFixed(3)}
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="h-[300px] w-full">
+                            <div className="h-[300px] w-full mb-6">
                                 <ResponsiveContainer width="100%" height="100%">
-                                    <LineChart data={result.timeline} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                    <AreaChart data={result.distribution_bins} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                        <defs>
+                                            <linearGradient id="colorFreq" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="#a855f7" stopOpacity={0.8}/>
+                                                <stop offset="95%" stopColor="#a855f7" stopOpacity={0}/>
+                                            </linearGradient>
+                                        </defs>
                                         <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" vertical={false} />
                                         <XAxis 
-                                            dataKey="day" 
+                                            dataKey="fg_bin" 
                                             stroke="rgba(255,255,255,0.5)" 
-                                            tickFormatter={(val) => `Day ${val}`}
+                                            tickFormatter={(val) => val.toFixed(3)}
+                                            domain={['dataMin', 'dataMax']}
+                                            type="number"
                                         />
                                         <YAxis 
-                                            domain={['dataMin - 0.005', 'dataMax + 0.005']}
-                                            tickFormatter={(val) => val.toFixed(3)}
-                                            stroke="rgba(255,255,255,0.5)"
+                                            hide
                                         />
                                         <Tooltip 
                                             contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', border: '1px solid rgba(168, 85, 247, 0.5)', borderRadius: '8px' }}
-                                            formatter={(value: number) => [value.toFixed(3), 'Specific Gravity']}
-                                            labelFormatter={(label) => `Day ${label}`}
+                                            formatter={(value: number) => [value, 'Simulated Batches']}
+                                            labelFormatter={(label) => `FG: ${Number(label).toFixed(3)}`}
                                         />
-                                        <ReferenceLine y={result.timeline[result.timeline.length - 1].expected_sg} stroke="rgba(74, 222, 128, 0.5)" strokeDasharray="3 3" />
-                                        <Line 
-                                            type="monotone" 
-                                            dataKey="expected_sg" 
-                                            stroke="#a855f7" 
-                                            strokeWidth={3}
-                                            dot={{ r: 4, fill: '#a855f7', strokeWidth: 2, stroke: '#000' }}
-                                            activeDot={{ r: 6, fill: '#a855f7' }}
-                                        />
-                                    </LineChart>
+                                        <Area type="monotone" dataKey="frequency" stroke="#a855f7" fillOpacity={1} fill="url(#colorFreq)" />
+                                        {result.predicted_fg_p5 && (
+                                            <ReferenceLine x={result.predicted_fg_p5} stroke="rgba(248, 113, 113, 0.8)" strokeDasharray="3 3">
+                                            </ReferenceLine>
+                                        )}
+                                        {result.predicted_fg_p95 && (
+                                            <ReferenceLine x={result.predicted_fg_p95} stroke="rgba(248, 113, 113, 0.8)" strokeDasharray="3 3">
+                                            </ReferenceLine>
+                                        )}
+                                    </AreaChart>
                                 </ResponsiveContainer>
                             </div>
-
-                            {/* Phase breakdown */}
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6 pt-6 border-t border-white/10">
-                                <div className="bg-black/30 p-3 rounded-xl border-l-2 border-purple-500 text-center">
-                                    <div className="text-xl font-bold text-white">{result.timeline[0].expected_sg.toFixed(3)}</div>
-                                    <div className="text-xs text-muted-foreground">Original Gravity</div>
                                 </div>
                                 <div className="bg-black/30 p-3 rounded-xl border-l-2 border-green-500 text-center">
                                     <div className="text-xl font-bold text-white">{result.timeline[result.timeline.length - 1].expected_sg.toFixed(3)}</div>
