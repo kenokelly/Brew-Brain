@@ -26,3 +26,19 @@ These instructions are foundational mandates for the AI agent (Gemini CLI). They
 - **Turn vague instructions into verifiable targets before writing a line.**
 - **Example:** "Add validation" becomes "write tests for invalid inputs, then make them pass."
 - **Verification is the only path to finality.**
+
+### 5. End-to-End Local Verification First (Zero Blind Commits)
+- **No more assumptions.** Before any code is committed or handed to the SRE team for deployment, it must be proven to work locally.
+- **Mandatory Feature Proofs:** If an API endpoint is created or modified, the responsible agent *must* run a local `curl` or Python script hitting that exact endpoint. We must see a `200 OK` response before claiming it is "fixed".
+
+### 6. Frontend-Backend Contract Enforcement
+- When fixing UI bugs that interact with the backend, the agent must cross-reference both sides of the stack.
+- If the frontend calls an endpoint, the backend route must be explicitly searched (`grep`) and verified to match that exact path string.
+
+### 7. Deep QA, Not Shallow Health Checks
+- The SRE team's "Frontend/API Online" check merely confirms the web server hasn't crashed. It is fundamentally inadequate for verifying feature completeness.
+- **New QA Requirement:** QA agents (or the primary agent) must execute targeted integration tests for the specific feature being deployed, rather than just relying on the general test suite passing.
+
+### 8. Batch Processing over Ping-Pong Iteration
+- To reduce token burn, stop rushing single-line hotfixes through the entire deployment pipeline.
+- Plan the feature, implement the frontend, implement the backend, test the integration locally, and *only then* execute a single, comprehensive deployment.
