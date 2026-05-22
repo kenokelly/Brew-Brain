@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { apiFetch } from "@/lib/api";
-import { Loader2 } from "lucide-react";
+import { Loader2, Beer, GlassWater } from "lucide-react";
 import Image from "next/image";
+import toast from "react-hot-toast";
 
 interface Tap {
     tap_id: string;
@@ -30,6 +31,20 @@ export default function KioskPage() {
             console.error("Failed to load taps", err);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handlePour = async (tapId: string, amountMl: number) => {
+        const toastId = toast.loading("Pouring...");
+        try {
+            await apiFetch(`/api/taps/${tapId}/pour`, {
+                method: "POST",
+                body: { amount_ml: amountMl }
+            });
+            toast.success(`Poured ${amountMl}ml`, { id: toastId });
+            fetchTaps(); // Refresh data
+        } catch (e: any) {
+            toast.error(`Pour failed: ${e.message}`, { id: toastId });
         }
     };
 
@@ -102,6 +117,29 @@ export default function KioskPage() {
                                             </a>
                                         </div>
                                     )}
+                                </div>
+
+                                {/* Pour Controls */}
+                                <div className="flex justify-around items-end gap-4 h-20 px-4 flex-1">
+                                    <button onClick={() => handlePour(tap.tap_id || `tap_${i+1}`, 568)} className="group flex flex-col items-center justify-end h-full flex-1 hover:bg-white/5 rounded-xl transition-all">
+                                        <Beer className="w-8 h-8 text-amber-500 group-hover:scale-110 transition-transform mb-2" />
+                                        <span className="text-[10px] font-bold text-zinc-400 uppercase">1 Pint</span>
+                                    </button>
+                                    
+                                    <button onClick={() => handlePour(tap.tap_id || `tap_${i+1}`, 379)} className="group flex flex-col items-center justify-end h-full flex-1 hover:bg-white/5 rounded-xl transition-all">
+                                        <Beer className="w-6 h-6 text-amber-500 group-hover:scale-110 transition-transform mb-2" />
+                                        <span className="text-[10px] font-bold text-zinc-400 uppercase">2/3 Pint</span>
+                                    </button>
+
+                                    <button onClick={() => handlePour(tap.tap_id || `tap_${i+1}`, 284)} className="group flex flex-col items-center justify-end h-full flex-1 hover:bg-white/5 rounded-xl transition-all">
+                                        <GlassWater className="w-6 h-6 text-amber-500/80 group-hover:scale-110 transition-transform mb-2" />
+                                        <span className="text-[10px] font-bold text-zinc-400 uppercase">1/2 Pint</span>
+                                    </button>
+
+                                    <button onClick={() => handlePour(tap.tap_id || `tap_${i+1}`, 189)} className="group flex flex-col items-center justify-end h-full flex-1 hover:bg-white/5 rounded-xl transition-all">
+                                        <GlassWater className="w-4 h-4 text-amber-500/80 group-hover:scale-110 transition-transform mb-2" />
+                                        <span className="text-[10px] font-bold text-zinc-400 uppercase">1/3 Pint</span>
+                                    </button>
                                 </div>
 
                                 {/* QR Code */}
