@@ -12,6 +12,7 @@ interface Tap {
     abv: number;
     keg_volume_l: number;
     remaining_pct: number;
+    untappd_url?: string;
 }
 
 export default function PublicTapPage() {
@@ -85,6 +86,14 @@ export default function PublicTapPage() {
                         <div className="text-xs font-bold text-zinc-400 uppercase tracking-widest mt-1">Remaining</div>
                     </div>
                 </div>
+
+                {tap.untappd_url && (
+                    <div className="mt-8 text-center">
+                        <a href={tap.untappd_url} target="_blank" rel="noreferrer" className="inline-block w-full py-4 rounded-2xl bg-[#ffc000] text-amber-950 font-black tracking-wide text-lg shadow-lg shadow-amber-500/30 hover:scale-105 transition-transform">
+                            VIEW ON UNTAPPD
+                        </a>
+                    </div>
+                )}
 
                 <div className="mt-12 text-center">
                     <p className="text-zinc-500 italic">Brewed by Brew-Brain</p>

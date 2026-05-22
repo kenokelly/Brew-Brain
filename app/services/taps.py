@@ -101,7 +101,8 @@ def get_tap_list(base_url: str) -> list:
                 "abv": tap.get('abv', 0.0),
                 "keg_volume_l": tap.get('keg_volume_l', 19.0),
                 "remaining_pct": tap.get('remaining_pct', 0.0),
-                "qr_code_base64": generate_qr_code_base64(public_url)
+                "qr_code_base64": generate_qr_code_base64(public_url),
+                "untappd_url": tap.get('untappd_url', '')
             }
             result.append(formatted_tap)
             
@@ -128,7 +129,8 @@ def update_tap(tap_id: str, data: dict) -> dict:
             "ibu": float(data.get("ibu") or 0.0),
             "keg_total": float(data.get("keg_total") or 19.0),
             "keg_remaining": float(data.get("keg_remaining") or 19.0),
-            "volume_unit": data.get("volume_unit", "L")
+            "volume_unit": data.get("volume_unit", "L"),
+            "untappd_url": data.get("untappd_url", "")
         }
         set_config("taps", taps)
         return {"status": "success", "message": "Tap updated manually"}

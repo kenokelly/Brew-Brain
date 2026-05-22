@@ -24,7 +24,7 @@ p_sync() {
 }
 
 # Sync config and source files
-p_sync ./docker-compose.yml ./telegraf.conf ./grafana ./app ./web $HOST:$REMOTE_DIR/ &
+p_sync ./.env ./docker-compose.yml ./telegraf.conf ./grafana ./app ./web $HOST:$REMOTE_DIR/ &
 wait
 
 # 2. Rebuild & Up

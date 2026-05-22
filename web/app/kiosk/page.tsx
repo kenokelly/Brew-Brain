@@ -13,6 +13,7 @@ interface Tap {
     keg_volume_l: number;
     remaining_pct: number;
     qr_code_base64: string;
+    untappd_url?: string;
 }
 
 export default function KioskPage() {
@@ -94,6 +95,13 @@ export default function KioskPage() {
                                     <div className="text-xs text-zinc-500 font-medium">
                                         {tap.keg_volume_l}L Capacity
                                     </div>
+                                    {tap.untappd_url && (
+                                        <div className="pt-1">
+                                            <a href={tap.untappd_url} target="_blank" rel="noreferrer" className="text-xs font-bold text-amber-500 hover:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 px-2 py-1 rounded transition-colors inline-block">
+                                                VIEW ON UNTAPPD
+                                            </a>
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* QR Code */}

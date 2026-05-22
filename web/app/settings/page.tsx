@@ -118,15 +118,18 @@ export default function SettingsPage() {
                 ibu: existing.ibu?.toString() || "20",
                 keg_total: existing.keg_total?.toString() || existing.keg_volume_l?.toString() || "19",
                 keg_remaining: existing.keg_remaining?.toString() || "19",
-                unit: existing.volume_unit || "L"
+                unit: existing.volume_unit || "L",
+                untappd_url: existing.untappd_url || ""
             });
+            setUntappdUrl(existing.untappd_url || "");
         } else {
             setManualForm({
                 name: "", style: "", abv: "5.0", srm: "5", ibu: "20",
-                keg_total: "19", keg_remaining: "19", unit: "L"
+                keg_total: "19", keg_remaining: "19", unit: "L",
+                untappd_url: ""
             });
+            setUntappdUrl("");
         }
-        setUntappdUrl("");
         setActiveModal("manual");
     };
 
@@ -179,7 +182,8 @@ export default function SettingsPage() {
                     ibu: manualForm.ibu,
                     keg_total: manualForm.keg_total,
                     keg_remaining: manualForm.keg_remaining,
-                    volume_unit: manualForm.unit
+                    volume_unit: manualForm.unit,
+                    untappd_url: untappdUrl
                 }
             });
             toast.success(`Tap ${selectedTap.replace("tap_", "")} updated`, { id: toastId });
