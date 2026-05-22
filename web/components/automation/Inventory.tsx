@@ -142,7 +142,7 @@ export function Inventory() {
                                     <div className="font-bold flex items-center gap-2">
                                         {item.name}
                                         {item.low_stock_alert && (
-                                            <AlertTriangle className="w-4 h-4 text-orange-500" title="Low Stock" />
+                                            <span title="Low Stock"><AlertTriangle className="w-4 h-4 text-orange-500" /></span>
                                         )}
                                     </div>
                                     <div className="text-xs text-muted-foreground mt-1 space-y-1">
