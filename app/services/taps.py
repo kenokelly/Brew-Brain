@@ -69,8 +69,9 @@ def pour_tap(tap_id: str, amount_ml: float) -> dict:
     if not tap:
         return {"error": f"Tap {tap_id} not found or not initialized"}
         
-    current_ml = tap.get('volume_remaining_ml', 0.0)
-    keg_vol_l = tap.get('keg_volume_l', 19.0)
+    # Support legacy schema
+    current_ml = tap.get('volume_remaining_ml', tap.get('keg_remaining', 19.0) * 1000.0)
+    keg_vol_l = tap.get('keg_volume_l', tap.get('keg_total', 19.0))
     
     new_ml = max(0.0, current_ml - amount_ml)
     new_pct = (new_ml / (keg_vol_l * 1000.0)) * 100.0 if keg_vol_l > 0 else 0.0
@@ -94,17 +95,19 @@ def get_tap_list(base_url: str) -> list:
     
     for tap_id, tap in taps_config.items():
         if isinstance(tap, dict):
-            # Generate public URL for QR
-            # Format: http://<ip>/public/tap/<tap_id>
             public_url = f"{base_url}/public/tap/{tap_id}"
+            
+            # Migrate display logic for legacy manual entries
+            keg_vol_l = tap.get('keg_volume_l', tap.get('keg_total', 19.0))
+            rem_pct = tap.get('remaining_pct', (tap.get('keg_remaining', 0.0) / keg_vol_l * 100.0) if keg_vol_l > 0 else 0.0)
             
             formatted_tap = {
                 "tap_id": tap_id,
                 "beer_name": tap.get('name', 'Empty'),
                 "style": tap.get('style', 'N/A'),
                 "abv": tap.get('abv', 0.0),
-                "keg_volume_l": tap.get('keg_volume_l', 19.0),
-                "remaining_pct": tap.get('remaining_pct', 0.0),
+                "keg_volume_l": keg_vol_l,
+                "remaining_pct": rem_pct,
                 "qr_code_base64": generate_qr_code_base64(public_url),
                 "untappd_url": tap.get('untappd_url', '')
             }
