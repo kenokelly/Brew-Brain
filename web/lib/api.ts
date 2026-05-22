@@ -72,9 +72,14 @@ export async function apiFetch<T>(
         if (!response.ok) {
             let errorData: unknown;
             try {
-                errorData = await response.json();
-            } catch {
-                errorData = await response.text();
+                const text = await response.text();
+                try {
+                    errorData = JSON.parse(text);
+                } catch {
+                    errorData = text;
+                }
+            } catch (e) {
+                errorData = 'Unable to parse response body';
             }
             throw new ApiClientError(
                 `Request failed with status ${response.status}`,
