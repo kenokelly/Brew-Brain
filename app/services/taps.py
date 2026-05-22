@@ -106,3 +106,54 @@ def get_tap_list(base_url: str) -> list:
             result.append(formatted_tap)
             
     return result
+
+def update_tap(tap_id: str, data: dict) -> dict:
+    """Handles manual assignments, snapshots, and clearing taps from UI."""
+    action = data.get('action')
+    taps = get_config("taps") or {}
+    
+    if action == "clear":
+        if tap_id in taps:
+            del taps[tap_id]
+            set_config("taps", taps)
+        return {"status": "success", "message": "Tap cleared"}
+        
+    elif action == "manual":
+        taps[tap_id] = {
+            "active": True,
+            "name": data.get("name", "Unknown"),
+            "style": data.get("style", "N/A"),
+            "abv": float(data.get("abv") or 0.0),
+            "srm": float(data.get("srm") or 0.0),
+            "ibu": float(data.get("ibu") or 0.0),
+            "keg_total": float(data.get("keg_total") or 19.0),
+            "keg_remaining": float(data.get("keg_remaining") or 19.0),
+            "volume_unit": data.get("volume_unit", "L")
+        }
+        set_config("taps", taps)
+        return {"status": "success", "message": "Tap updated manually"}
+        
+    elif action == "assign_current":
+        # Get current batch config, default to some values if not found
+        name = get_config("batch_name") or "Unknown Batch"
+        
+        # Calculate ABV if possible
+        og = float(get_config("og") or 1.050)
+        fg = float(get_config("target_fg") or 1.010)
+        
+        # In a real system we'd use the actual current gravity from the sensor
+        abv = (og - fg) * 131.25
+        
+        taps[tap_id] = {
+            "active": True,
+            "name": name,
+            "style": "Current Batch",
+            "abv": round(abv, 1),
+            "keg_total": float(data.get("keg_total") or 19.0),
+            "keg_remaining": float(data.get("keg_remaining") or 19.0),
+            "volume_unit": data.get("volume_unit", "L")
+        }
+        set_config("taps", taps)
+        return {"status": "success", "message": "Snapshot assigned"}
+        
+    return {"error": f"Invalid action: {action}"}

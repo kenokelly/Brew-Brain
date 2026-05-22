@@ -63,3 +63,20 @@ def pour_tap_endpoint(tap_id: str) -> Tuple[Response, int]:
     except Exception as e:
         return handle_error(e, "Tap Pour Error")
 
+
+@taps_bp.route('/<tap_id>', methods=['POST'])
+@require_api_token
+def manage_tap_endpoint(tap_id: str) -> Tuple[Response, int]:
+    """Handle manual assignments, snapshots, and clearing taps from UI."""
+    try:
+        data = request.json or {}
+        from services.taps import update_tap
+        result = update_tap(tap_id, data)
+        
+        if "error" in result:
+            return api_response(status="error", error=result["error"], code=400)
+            
+        return api_response(status="success", data=result)
+    except Exception as e:
+        return handle_error(e, "Tap Management Error")
+
