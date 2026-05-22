@@ -48,6 +48,10 @@ export default function SettingsPage() {
         name: "", style: "", abv: "5.0", srm: "5", ibu: "20",
         keg_total: "19", keg_remaining: "19", unit: "L"
     });
+    
+    // Untappd State
+    const [untappdUrl, setUntappdUrl] = useState("");
+    const [isFetchingUntappd, setIsFetchingUntappd] = useState(false);
 
     // Snapshot Form State
     const [snapshotForm, setSnapshotForm] = useState({
@@ -104,11 +108,54 @@ export default function SettingsPage() {
 
     const openManualTap = (tapId: string) => {
         setSelectedTap(tapId);
-        setManualForm({
-            name: "", style: "", abv: "5.0", srm: "5", ibu: "20",
-            keg_total: "19", keg_remaining: "19", unit: "L"
-        });
+        const existing = taps?.[tapId];
+        if (existing) {
+            setManualForm({
+                name: existing.name || "",
+                style: existing.style || "",
+                abv: existing.abv?.toString() || "5.0",
+                srm: existing.srm?.toString() || "5",
+                ibu: existing.ibu?.toString() || "20",
+                keg_total: existing.keg_total?.toString() || existing.keg_volume_l?.toString() || "19",
+                keg_remaining: existing.keg_remaining?.toString() || "19",
+                unit: existing.volume_unit || "L"
+            });
+        } else {
+            setManualForm({
+                name: "", style: "", abv: "5.0", srm: "5", ibu: "20",
+                keg_total: "19", keg_remaining: "19", unit: "L"
+            });
+        }
+        setUntappdUrl("");
         setActiveModal("manual");
+    };
+
+    const fetchUntappdDetails = async () => {
+        if (!untappdUrl) return;
+        setIsFetchingUntappd(true);
+        const toastId = toast.loading("Scraping Untappd...");
+        try {
+            const res = await apiFetch<any>("/api/untappd/fetch", {
+                method: "POST",
+                body: { url: untappdUrl }
+            });
+            if (res.status === "success" && res.data) {
+                setManualForm(prev => ({
+                    ...prev,
+                    name: res.data.name || prev.name,
+                    style: res.data.style || prev.style,
+                    abv: res.data.abv?.toString() || prev.abv,
+                    ibu: res.data.ibu?.toString() || prev.ibu
+                }));
+                toast.success("Successfully retrieved Untappd data!", { id: toastId });
+            } else {
+                toast.error(res.error || "Failed to retrieve data", { id: toastId });
+            }
+        } catch (err: any) {
+            toast.error(`Error: ${err.message}`, { id: toastId });
+        } finally {
+            setIsFetchingUntappd(false);
+        }
     };
 
     const openSnapshotTap = (tapId: string) => {
@@ -750,24 +797,65 @@ export default function SettingsPage() {
 
                         {activeModal === "manual" && (
                             <div className="space-y-4">
-                                <input
-                                    placeholder="Batch Name"
-                                    value={manualForm.name}
-                                    onChange={e => setManualForm({ ...manualForm, name: e.target.value })}
-                                    className="w-full bg-secondary/50 rounded-lg px-4 py-3 border border-border/50 focus:ring-2 focus:ring-primary outline-none"
-                                />
-                                <div className="grid grid-cols-2 gap-3">
-                                    <input placeholder="Style" value={manualForm.style} onChange={e => setManualForm({ ...manualForm, style: e.target.value })} className="bg-secondary/50 rounded-lg px-4 py-2 border border-border/50 focus:ring-2 focus:ring-primary outline-none" />
-                                    <input placeholder="ABV %" type="number" step="0.1" value={manualForm.abv} onChange={e => setManualForm({ ...manualForm, abv: e.target.value })} className="bg-secondary/50 rounded-lg px-4 py-2 border border-border/50 focus:ring-2 focus:ring-primary outline-none" />
-                                    <input placeholder="IBU" type="number" value={manualForm.ibu} onChange={e => setManualForm({ ...manualForm, ibu: e.target.value })} className="bg-secondary/50 rounded-lg px-4 py-2 border border-border/50 focus:ring-2 focus:ring-primary outline-none" />
-                                    <input placeholder="SRM" type="number" value={manualForm.srm} onChange={e => setManualForm({ ...manualForm, srm: e.target.value })} className="bg-secondary/50 rounded-lg px-4 py-2 border border-border/50 focus:ring-2 focus:ring-primary outline-none" />
+                                <div className="space-y-2 bg-secondary/30 p-3 rounded-lg border border-border/50">
+                                    <label className="text-xs font-bold uppercase text-muted-foreground tracking-wider">Untappd Quick Fetch</label>
+                                    <div className="flex gap-2">
+                                        <input
+                                            placeholder="https://untappd.com/b/..."
+                                            value={untappdUrl}
+                                            onChange={e => setUntappdUrl(e.target.value)}
+                                            className="flex-1 bg-secondary/50 rounded-lg px-3 py-2 border border-border/50 focus:ring-2 focus:ring-primary outline-none text-sm"
+                                        />
+                                        <button 
+                                            type="button" 
+                                            onClick={fetchUntappdDetails}
+                                            disabled={isFetchingUntappd || !untappdUrl}
+                                            className="bg-primary/20 text-primary px-3 py-2 rounded-lg font-bold hover:bg-primary/30 text-sm disabled:opacity-50"
+                                        >
+                                            {isFetchingUntappd ? "..." : "Retrieve"}
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div className="space-y-1">
+                                    <label className="text-xs font-bold uppercase text-muted-foreground tracking-wider ml-1">Batch Name</label>
+                                    <input
+                                        placeholder="Batch Name"
+                                        value={manualForm.name}
+                                        onChange={e => setManualForm({ ...manualForm, name: e.target.value })}
+                                        className="w-full bg-secondary/50 rounded-lg px-4 py-3 border border-border/50 focus:ring-2 focus:ring-primary outline-none"
+                                    />
                                 </div>
                                 <div className="grid grid-cols-2 gap-3">
-                                    <input placeholder="Total Vol" type="number" value={manualForm.keg_total} onChange={e => setManualForm({ ...manualForm, keg_total: e.target.value })} className="bg-secondary/50 rounded-lg px-4 py-2 border border-border/50 focus:ring-2 focus:ring-primary outline-none" />
-                                    <select value={manualForm.unit} onChange={e => setManualForm({ ...manualForm, unit: e.target.value })} className="bg-secondary/50 rounded-lg px-4 py-2 border border-border/50 focus:ring-2 focus:ring-primary outline-none">
-                                        <option value="L">Litres</option>
-                                        <option value="oz">Ounces</option>
-                                    </select>
+                                    <div className="space-y-1">
+                                        <label className="text-xs font-bold uppercase text-muted-foreground tracking-wider ml-1">Style</label>
+                                        <input placeholder="Style" value={manualForm.style} onChange={e => setManualForm({ ...manualForm, style: e.target.value })} className="w-full bg-secondary/50 rounded-lg px-4 py-2 border border-border/50 focus:ring-2 focus:ring-primary outline-none" />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-xs font-bold uppercase text-muted-foreground tracking-wider ml-1">ABV %</label>
+                                        <input placeholder="ABV %" type="number" step="0.1" value={manualForm.abv} onChange={e => setManualForm({ ...manualForm, abv: e.target.value })} className="w-full bg-secondary/50 rounded-lg px-4 py-2 border border-border/50 focus:ring-2 focus:ring-primary outline-none" />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-xs font-bold uppercase text-muted-foreground tracking-wider ml-1">IBU</label>
+                                        <input placeholder="IBU" type="number" value={manualForm.ibu} onChange={e => setManualForm({ ...manualForm, ibu: e.target.value })} className="w-full bg-secondary/50 rounded-lg px-4 py-2 border border-border/50 focus:ring-2 focus:ring-primary outline-none" />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-xs font-bold uppercase text-muted-foreground tracking-wider ml-1">SRM</label>
+                                        <input placeholder="SRM" type="number" value={manualForm.srm} onChange={e => setManualForm({ ...manualForm, srm: e.target.value })} className="w-full bg-secondary/50 rounded-lg px-4 py-2 border border-border/50 focus:ring-2 focus:ring-primary outline-none" />
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="space-y-1">
+                                        <label className="text-xs font-bold uppercase text-muted-foreground tracking-wider ml-1">Total Vol</label>
+                                        <input placeholder="Total Vol" type="number" value={manualForm.keg_total} onChange={e => setManualForm({ ...manualForm, keg_total: e.target.value })} className="w-full bg-secondary/50 rounded-lg px-4 py-2 border border-border/50 focus:ring-2 focus:ring-primary outline-none" />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-xs font-bold uppercase text-muted-foreground tracking-wider ml-1">Unit</label>
+                                        <select value={manualForm.unit} onChange={e => setManualForm({ ...manualForm, unit: e.target.value })} className="w-full bg-secondary/50 rounded-lg px-4 py-2 border border-border/50 focus:ring-2 focus:ring-primary outline-none">
+                                            <option value="L">Litres</option>
+                                            <option value="oz">Ounces</option>
+                                        </select>
+                                    </div>
                                 </div>
                                 <div className="flex gap-2 pt-2">
                                     <button type="button" onClick={() => setActiveModal(null)} className="flex-1 py-3 rounded-xl text-muted-foreground hover:bg-secondary font-semibold">Cancel</button>
