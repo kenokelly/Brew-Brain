@@ -71,7 +71,7 @@ def pour_tap(tap_id: str, amount_ml: float) -> dict:
         
     # Support legacy schema and string values
     keg_rem_val = tap.get('keg_remaining', 19.0)
-    current_ml = tap.get('volume_remaining_ml', float(keg_rem_val) * 1000.0)
+    current_ml = float(tap.get('volume_remaining_ml', float(keg_rem_val) * 1000.0))
     
     keg_vol_val = tap.get('keg_volume_l', tap.get('keg_total', 19.0))
     keg_vol_l = float(keg_vol_val)

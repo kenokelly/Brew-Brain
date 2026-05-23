@@ -13,6 +13,11 @@ export function NavBar() {
     const pathname = usePathname();
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+    // Hide NavBar entirely on kiosk
+    if (pathname === '/kiosk') {
+        return null;
+    }
+
     return (
         <>
             {/* Desktop Sidebar (Left) */}
@@ -98,6 +103,10 @@ export function NavBar() {
 }
 
 export function PageContainer({ children }: { children: React.ReactNode }) {
+    const pathname = usePathname();
+    if (pathname === '/kiosk') {
+        return <div className="min-h-screen w-full">{children}</div>;
+    }
     return (
         <div className="md:pl-20 lg:pl-64 min-h-screen pt-[calc(4rem+env(safe-area-inset-top))] md:pt-0 pb-[calc(4rem+env(safe-area-inset-bottom)+env(safe-area-inset-bottom))] md:pb-0">
             {children}
