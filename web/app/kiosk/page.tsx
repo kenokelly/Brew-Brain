@@ -81,7 +81,7 @@ export default function KioskPage() {
                         <div key={tap.tap_id} className="relative bg-zinc-900 border border-zinc-800 rounded-3xl p-8 flex flex-col gap-6 overflow-hidden group shadow-2xl transition-all duration-500 hover:border-amber-500/30 hover:shadow-amber-500/10">
                             {/* Number Badge */}
                             <div className="absolute -top-6 -right-6 text-9xl font-black text-white/[0.03] pointer-events-none transition-transform duration-500 group-hover:scale-110">
-                                {i + 1}
+                                {tap.tap_id.replace('tap_', '')}
                             </div>
                             
                             <div className="space-y-2 z-10">
@@ -125,28 +125,28 @@ export default function KioskPage() {
 
                                 {/* Controls & QR Code Row */}
                                 <div className="flex items-end justify-between gap-4 mt-auto w-full">
-                                    {/* Pour Controls */}
-                                    <div className="flex justify-start items-end gap-2 sm:gap-4 h-20 flex-1">
-                                        <button onClick={() => handlePour(tap.tap_id || `tap_${i+1}`, 568)} className="group flex flex-col items-center justify-end h-full flex-1 hover:bg-white/5 rounded-xl transition-all pb-1">
-                                            <Beer className="w-8 h-8 text-amber-500 group-hover:scale-110 transition-transform mb-2" />
-                                            <span className="text-[10px] font-bold text-zinc-400 uppercase">1 Pint</span>
-                                        </button>
-                                        
-                                        <button onClick={() => handlePour(tap.tap_id || `tap_${i+1}`, 379)} className="group flex flex-col items-center justify-end h-full flex-1 hover:bg-white/5 rounded-xl transition-all pb-1">
-                                            <Beer className="w-6 h-6 text-amber-500 group-hover:scale-110 transition-transform mb-2" />
-                                            <span className="text-[10px] font-bold text-zinc-400 uppercase">2/3 Pint</span>
-                                        </button>
+                                {/* Pour Controls */}
+                                <div className="flex justify-start items-end gap-2 sm:gap-4 h-20 flex-1">
+                                    <button onClick={() => handlePour(tap.tap_id, 568)} className="group flex flex-col items-center justify-end h-full flex-1 hover:bg-white/5 rounded-xl transition-all pb-1">
+                                        <Beer className="w-8 h-8 text-amber-500 group-hover:scale-110 transition-transform mb-2" />
+                                        <span className="text-[10px] font-bold text-zinc-400 uppercase">1 Pint</span>
+                                    </button>
+                                    
+                                    <button onClick={() => handlePour(tap.tap_id, 379)} className="group flex flex-col items-center justify-end h-full flex-1 hover:bg-white/5 rounded-xl transition-all pb-1">
+                                        <Beer className="w-6 h-6 text-amber-500 group-hover:scale-110 transition-transform mb-2" />
+                                        <span className="text-[10px] font-bold text-zinc-400 uppercase">2/3 Pint</span>
+                                    </button>
 
-                                        <button onClick={() => handlePour(tap.tap_id || `tap_${i+1}`, 284)} className="group flex flex-col items-center justify-end h-full flex-1 hover:bg-white/5 rounded-xl transition-all pb-1">
-                                            <GlassWater className="w-6 h-6 text-amber-500/80 group-hover:scale-110 transition-transform mb-2" />
-                                            <span className="text-[10px] font-bold text-zinc-400 uppercase">1/2 Pint</span>
-                                        </button>
+                                    <button onClick={() => handlePour(tap.tap_id, 284)} className="group flex flex-col items-center justify-end h-full flex-1 hover:bg-white/5 rounded-xl transition-all pb-1">
+                                        <GlassWater className="w-6 h-6 text-amber-500/80 group-hover:scale-110 transition-transform mb-2" />
+                                        <span className="text-[10px] font-bold text-zinc-400 uppercase">1/2 Pint</span>
+                                    </button>
 
-                                        <button onClick={() => handlePour(tap.tap_id || `tap_${i+1}`, 189)} className="group flex flex-col items-center justify-end h-full flex-1 hover:bg-white/5 rounded-xl transition-all pb-1">
-                                            <GlassWater className="w-4 h-4 text-amber-500/80 group-hover:scale-110 transition-transform mb-2" />
-                                            <span className="text-[10px] font-bold text-zinc-400 uppercase">1/3 Pint</span>
-                                        </button>
-                                    </div>
+                                    <button onClick={() => handlePour(tap.tap_id, 189)} className="group flex flex-col items-center justify-end h-full flex-1 hover:bg-white/5 rounded-xl transition-all pb-1">
+                                        <GlassWater className="w-4 h-4 text-amber-500/80 group-hover:scale-110 transition-transform mb-2" />
+                                        <span className="text-[10px] font-bold text-zinc-400 uppercase">1/3 Pint</span>
+                                    </button>
+                                </div>
 
                                     {/* QR Code */}
                                     {tap.qr_code_base64 && (

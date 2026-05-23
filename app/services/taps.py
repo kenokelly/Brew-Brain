@@ -93,7 +93,8 @@ def get_tap_list(base_url: str) -> list:
     taps_config = get_config("taps") or {}
     result = []
     
-    for tap_id, tap in taps_config.items():
+    for tap_id in sorted(taps_config.keys()):
+        tap = taps_config[tap_id]
         if isinstance(tap, dict):
             public_url = f"{base_url}/public/tap/{tap_id}"
             
