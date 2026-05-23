@@ -12,6 +12,7 @@ interface Tap {
     style: string;
     abv: number;
     keg_volume_l: number;
+    keg_remaining_l?: number;
     remaining_pct: number;
     qr_code_base64: string;
     untappd_url?: string;
@@ -94,67 +95,67 @@ export default function KioskPage() {
                                 </div>
                             </div>
 
-                            <div className="flex-1 flex items-center justify-between gap-6 z-10 mt-4">
+                            <div className="flex flex-col z-10 mt-6 gap-6 h-full justify-between">
                                 {/* Keg Level */}
-                                <div className="flex-1 space-y-3">
-                                    <div className="flex justify-between text-xs font-bold text-zinc-400 uppercase tracking-wider">
-                                        <span>Keg Level</span>
-                                        <span className="text-white">{tap.remaining_pct.toFixed(0)}%</span>
+                                <div className="space-y-3">
+                                    <div className="flex justify-between items-end">
+                                        <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Keg Level</span>
+                                        <div className="text-right">
+                                            <span className="text-white text-lg font-bold">{tap.remaining_pct.toFixed(0)}%</span>
+                                            <span className="text-amber-500 font-medium ml-2">{tap.keg_remaining_l?.toFixed(1) || 0}L</span>
+                                            <span className="text-zinc-500 text-xs ml-1">/ {tap.keg_volume_l}L</span>
+                                        </div>
                                     </div>
+                                    
                                     <div className="h-4 bg-zinc-800 rounded-full overflow-hidden border border-zinc-700/50">
                                         <div 
                                             className="h-full bg-gradient-to-r from-amber-600 to-amber-400 rounded-full transition-all duration-1000 ease-out"
                                             style={{ width: `${Math.max(0, Math.min(100, tap.remaining_pct))}%` }}
                                         />
                                     </div>
-                                    <div className="text-xs text-zinc-500 font-medium">
-                                        {tap.keg_volume_l}L Capacity
-                                    </div>
+                                    
                                     {tap.untappd_url && (
-                                        <div className="pt-1">
-                                            <a href={tap.untappd_url} target="_blank" rel="noreferrer" className="text-xs font-bold text-amber-500 hover:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 px-2 py-1 rounded transition-colors inline-block">
+                                        <div className="pt-2">
+                                            <a href={tap.untappd_url} target="_blank" rel="noreferrer" className="text-xs font-bold text-amber-500 hover:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 px-3 py-1.5 rounded-lg transition-colors inline-block">
                                                 VIEW ON UNTAPPD
                                             </a>
                                         </div>
                                     )}
                                 </div>
 
-                                {/* Pour Controls */}
-                                <div className="flex justify-around items-end gap-4 h-20 px-4 flex-1">
-                                    <button onClick={() => handlePour(tap.tap_id || `tap_${i+1}`, 568)} className="group flex flex-col items-center justify-end h-full flex-1 hover:bg-white/5 rounded-xl transition-all">
-                                        <Beer className="w-8 h-8 text-amber-500 group-hover:scale-110 transition-transform mb-2" />
-                                        <span className="text-[10px] font-bold text-zinc-400 uppercase">1 Pint</span>
-                                    </button>
-                                    
-                                    <button onClick={() => handlePour(tap.tap_id || `tap_${i+1}`, 379)} className="group flex flex-col items-center justify-end h-full flex-1 hover:bg-white/5 rounded-xl transition-all">
-                                        <Beer className="w-6 h-6 text-amber-500 group-hover:scale-110 transition-transform mb-2" />
-                                        <span className="text-[10px] font-bold text-zinc-400 uppercase">2/3 Pint</span>
-                                    </button>
+                                {/* Controls & QR Code Row */}
+                                <div className="flex items-end justify-between gap-4 mt-auto w-full">
+                                    {/* Pour Controls */}
+                                    <div className="flex justify-start items-end gap-2 sm:gap-4 h-20 flex-1">
+                                        <button onClick={() => handlePour(tap.tap_id || `tap_${i+1}`, 568)} className="group flex flex-col items-center justify-end h-full flex-1 hover:bg-white/5 rounded-xl transition-all pb-1">
+                                            <Beer className="w-8 h-8 text-amber-500 group-hover:scale-110 transition-transform mb-2" />
+                                            <span className="text-[10px] font-bold text-zinc-400 uppercase">1 Pint</span>
+                                        </button>
+                                        
+                                        <button onClick={() => handlePour(tap.tap_id || `tap_${i+1}`, 379)} className="group flex flex-col items-center justify-end h-full flex-1 hover:bg-white/5 rounded-xl transition-all pb-1">
+                                            <Beer className="w-6 h-6 text-amber-500 group-hover:scale-110 transition-transform mb-2" />
+                                            <span className="text-[10px] font-bold text-zinc-400 uppercase">2/3 Pint</span>
+                                        </button>
 
-                                    <button onClick={() => handlePour(tap.tap_id || `tap_${i+1}`, 284)} className="group flex flex-col items-center justify-end h-full flex-1 hover:bg-white/5 rounded-xl transition-all">
-                                        <GlassWater className="w-6 h-6 text-amber-500/80 group-hover:scale-110 transition-transform mb-2" />
-                                        <span className="text-[10px] font-bold text-zinc-400 uppercase">1/2 Pint</span>
-                                    </button>
+                                        <button onClick={() => handlePour(tap.tap_id || `tap_${i+1}`, 284)} className="group flex flex-col items-center justify-end h-full flex-1 hover:bg-white/5 rounded-xl transition-all pb-1">
+                                            <GlassWater className="w-6 h-6 text-amber-500/80 group-hover:scale-110 transition-transform mb-2" />
+                                            <span className="text-[10px] font-bold text-zinc-400 uppercase">1/2 Pint</span>
+                                        </button>
 
-                                    <button onClick={() => handlePour(tap.tap_id || `tap_${i+1}`, 189)} className="group flex flex-col items-center justify-end h-full flex-1 hover:bg-white/5 rounded-xl transition-all">
-                                        <GlassWater className="w-4 h-4 text-amber-500/80 group-hover:scale-110 transition-transform mb-2" />
-                                        <span className="text-[10px] font-bold text-zinc-400 uppercase">1/3 Pint</span>
-                                    </button>
-                                </div>
-
-                                {/* QR Code */}
-                                {tap.qr_code_base64 && (
-                                    <div className="bg-white p-2 rounded-xl shadow-lg shrink-0">
-                                        <Image 
-                                            src={`data:image/png;base64,${tap.qr_code_base64}`} 
-                                            alt="Tap Info QR"
-                                            width={100}
-                                            height={100}
-                                            className="rounded-lg opacity-90"
-                                        />
-                                        <p className="text-[9px] text-center text-zinc-500 font-bold uppercase mt-1">Scan to View</p>
+                                        <button onClick={() => handlePour(tap.tap_id || `tap_${i+1}`, 189)} className="group flex flex-col items-center justify-end h-full flex-1 hover:bg-white/5 rounded-xl transition-all pb-1">
+                                            <GlassWater className="w-4 h-4 text-amber-500/80 group-hover:scale-110 transition-transform mb-2" />
+                                            <span className="text-[10px] font-bold text-zinc-400 uppercase">1/3 Pint</span>
+                                        </button>
                                     </div>
-                                )}
+
+                                    {/* QR Code */}
+                                    {tap.qr_code_base64 && (
+                                        <div className="shrink-0 bg-white p-2 rounded-xl shadow-lg flex flex-col items-center justify-center w-20 h-20 sm:w-24 sm:h-24 transition-transform hover:scale-105 ml-2">
+                                            <img src={`data:image/png;base64,${tap.qr_code_base64}`} alt="QR" className="w-full h-full object-contain" />
+                                            <span className="text-[7px] sm:text-[8px] font-black text-black/50 tracking-widest mt-1">SCAN</span>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     ))

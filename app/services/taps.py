@@ -97,9 +97,11 @@ def get_tap_list(base_url: str) -> list:
         if isinstance(tap, dict):
             public_url = f"{base_url}/public/tap/{tap_id}"
             
-            # Migrate display logic for legacy manual entries
             keg_vol_l = tap.get('keg_volume_l', tap.get('keg_total', 19.0))
-            rem_pct = tap.get('remaining_pct', (tap.get('keg_remaining', 0.0) / keg_vol_l * 100.0) if keg_vol_l > 0 else 0.0)
+            keg_rem_l = tap.get('keg_remaining', tap.get('volume_remaining_ml', 0.0) / 1000.0)
+            
+            # Default fallback for percentage if keg_rem_l is not calculated directly
+            rem_pct = tap.get('remaining_pct', (keg_rem_l / keg_vol_l * 100.0) if keg_vol_l > 0 else 0.0)
             
             formatted_tap = {
                 "tap_id": tap_id,
@@ -107,6 +109,7 @@ def get_tap_list(base_url: str) -> list:
                 "style": tap.get('style', 'N/A'),
                 "abv": tap.get('abv', 0.0),
                 "keg_volume_l": keg_vol_l,
+                "keg_remaining_l": keg_rem_l,
                 "remaining_pct": rem_pct,
                 "qr_code_base64": generate_qr_code_base64(public_url),
                 "untappd_url": tap.get('untappd_url', '')
@@ -156,9 +159,10 @@ def update_tap(tap_id: str, data: dict) -> dict:
         og = float(get_config("og") or 1.050)
         fg = float(get_config("target_fg") or 1.010)
         
-        # In a real system we'd use the actual current gravity from the sensor
-        abv = (og - fg) * 131.25
-        
+        # Prevent negative ABV
+        calculated_abv = (og - fg) * 131.25
+        abv = max(0.0, calculated_abv)
+                
         taps[tap_id] = {
             "active": True,
             "name": name,

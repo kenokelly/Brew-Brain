@@ -20,7 +20,8 @@ import {
     Sparkles,
     Server,
     Cpu,
-    ArrowLeftRight
+    ArrowLeftRight,
+    Settings2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSettings, useTaps, useStatus } from "@/lib/hooks";
@@ -348,13 +349,22 @@ export default function SettingsPage() {
                                                     Keg: {tap.keg_remaining}/{tap.keg_total} {tap.volume_unit}
                                                 </div>
                                             </div>
-                                            <button
-                                                type="button"
-                                                onClick={() => clearTap(tapKey)}
-                                                className="w-full text-xs bg-red-500/10 hover:bg-red-500/20 text-red-400 py-2 rounded-lg transition-colors flex items-center justify-center gap-2 font-medium"
-                                            >
-                                                <Trash2 className="w-4 h-4" /> Clear Tap
-                                            </button>
+                                            <div className="flex gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => openManualTap(tapKey)}
+                                                    className="w-full text-xs bg-secondary hover:bg-secondary/80 text-foreground py-2 rounded-lg transition-colors flex items-center justify-center gap-2 font-medium"
+                                                >
+                                                    <Settings2 className="w-4 h-4" /> Edit Tap
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => clearTap(tapKey)}
+                                                    className="w-full text-xs bg-red-500/10 hover:bg-red-500/20 text-red-400 py-2 rounded-lg transition-colors flex items-center justify-center gap-2 font-medium"
+                                                >
+                                                    <Trash2 className="w-4 h-4" /> Clear
+                                                </button>
+                                            </div>
                                         </>
                                     ) : (
                                         <div className="flex flex-col gap-2 mt-auto">
