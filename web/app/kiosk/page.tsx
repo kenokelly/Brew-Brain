@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { apiFetch } from "@/lib/api";
-import { Loader2, Beer, GlassWater } from "lucide-react";
+import { Loader2, Beer, GlassWater, Maximize, Minimize, Home } from "lucide-react";
 import Image from "next/image";
 import toast from "react-hot-toast";
+import { useRouter } from "next/navigation";
 
 interface Tap {
     tap_id: string;
@@ -21,6 +22,8 @@ interface Tap {
 export default function KioskPage() {
     const [taps, setTaps] = useState<Tap[]>([]);
     const [loading, setLoading] = useState(true);
+    const [isFullscreen, setIsFullscreen] = useState(false);
+    const router = useRouter();
 
     const fetchTaps = async () => {
         try {
@@ -49,6 +52,28 @@ export default function KioskPage() {
         }
     };
 
+    const toggleFullscreen = async () => {
+        if (!document.fullscreenElement) {
+            try {
+                await document.documentElement.requestFullscreen();
+            } catch (err) {
+                console.error("Error attempting to enable fullscreen:", err);
+            }
+        } else {
+            if (document.exitFullscreen) {
+                await document.exitFullscreen();
+            }
+        }
+    };
+
+    useEffect(() => {
+        const handleFullscreenChange = () => {
+            setIsFullscreen(!!document.fullscreenElement);
+        };
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    }, []);
+
     useEffect(() => {
         fetchTaps();
         const interval = setInterval(fetchTaps, 30000); // refresh every 30s
@@ -64,7 +89,25 @@ export default function KioskPage() {
     }
 
     return (
-        <div className="min-h-screen bg-black text-white p-8 font-sans selection:bg-primary/30">
+        <div className="min-h-screen bg-black text-white p-8 font-sans selection:bg-primary/30 relative">
+            {/* Top Right Controls */}
+            <div className="absolute top-6 right-6 flex items-center gap-4 z-50">
+                <button 
+                    onClick={() => router.push('/')}
+                    className="p-3 bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-800 rounded-full text-zinc-400 hover:text-white transition-all backdrop-blur-sm"
+                    title="Return Home"
+                >
+                    <Home className="w-5 h-5" />
+                </button>
+                <button 
+                    onClick={toggleFullscreen}
+                    className="p-3 bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-800 rounded-full text-zinc-400 hover:text-white transition-all backdrop-blur-sm"
+                    title="Toggle Fullscreen"
+                >
+                    {isFullscreen ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
+                </button>
+            </div>
+
             <header className="mb-12 text-center">
                 <h1 className="text-5xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-amber-200 to-amber-500 uppercase drop-shadow-sm">
                     On Tap Now
