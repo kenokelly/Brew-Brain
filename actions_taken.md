@@ -2,9 +2,16 @@
 
 This file tracks the progress and implemented modules during development.
 
-## 2026-05-22
+## 2026-05-23
 
-**Phase 4: Sourcing Engine**
+**Phase 19: Kiosk & Tap Management Polish**
+- **Edge-to-Edge Kiosk UI**: Updated `web/app/kiosk/page.tsx` to conditionally hide the left sidebar menu to maximize the screen real estate for the Raspberry Pi. Added an explicit Fullscreen toggle button.
+- **Pour Math Fortification**: Fixed `TypeError: unsupported operand type(s) for -: 'str' and 'int'` in `app/services/taps.py` by strictly enforcing float casting (`float()`) for legacy string configurations when subtracting pour volumes.
+- **Tap State Synchronization**: Modified the Settings manual tap modal in `web/app/settings/page.tsx` to explicitly include a `Remaining Vol` field. This prevents the UI from secretly overwriting active taps with a stuck 0L state when edits are saved.
+- **Untappd Integration**: Implemented Untappd scraping logic directly into the UI, allowing users to drop an Untappd URL to pre-fill metadata (ABV, Style, IBU) on a given tap.
+- **Kiosk Volume Display**: Updated the Kiosk page to explicitly render real-time Litres remaining and precise Percentage bars under each tap.
+
+## 2026-05-22
 - Integrated LLM (Ollama) to extract ingredient queries (e.g. converting "Citra" to {"hop": "Citra"}).
 - Built scraping logic via Playwright (`web_scraper.py`) for multiple suppliers (e.g. "The Homebrew Company", "Get Er Brewed") with caching.
 - Developed backend endpoints `POST /api/automation/sourcing/extract` and `POST /api/automation/sourcing/search`.

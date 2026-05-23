@@ -7,6 +7,7 @@ Brew Brain is a Dockerized add-on for Raspberry Pi breweries. It sits on top of 
 
 * **🧠 Machine Learning Predictions:** Predicts Final Gravity (FG) and completion time based on your specific fermentation history using logistic regression.
 * **📊 Instant Dashboard:** Comes with a professional, pre-configured Grafana dashboard (ABV, Attenuation, Battery) out of the box. No manual setup required.
+* **🍻 Kiosk Tap Management:** Manage multiple kegs edge-to-edge on your Pi display, complete with Untappd syncing, percentage bars, and visual pouring controls.
 * **🎯 Smart Calibration:** Corrects noisy Tilt readings with a single manual offset entry.
 * **🛡️ Safety Watchdog:** Monitors Tilt signal health and Raspberry Pi connectivity (reboots WiFi if stuck).
 * **📉 Stall Detection:** Alerts you via Telegram if fermentation stalls (daily drop < 0.002) while still above target FG.

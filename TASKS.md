@@ -233,6 +233,13 @@ Transform Brew Brain from a monitoring dashboard into an **Intelligent Fermentat
 - [x] **17.7 Scheduled Maintenance Summary** — Weekly Telegram message with disk %, container memory usage, InfluxDB bucket size, and uptime.
 - [x] **17.8 Disable Tilt Notifications When Idle** — Add a "brew active" toggle (settings or auto-detect from Brewfather batch status). When no brew is active, suppress all Tilt-related Telegram alerts (temp deviation, stall warnings, signal loss) to avoid noise.
 
+### Phase 19 — Kiosk & Tap Management Polish (Priority: HIGH) ✅
+
+- [x] **19.1 Edge-to-Edge Kiosk UI** — Enhanced the `/kiosk` route to completely hide the left navigation bar and implemented an explicit Fullscreen button to maximize screen real estate on the Pi.
+- [x] **19.2 Pour Math Fortification** — Added generic float casting and backward compatibility to `taps.py` to prevent subtract-from-string (`TypeError: unsupported operand type(s) for -: 'str' and 'int'`) crashes during Kiosk pour events.
+- [x] **19.3 Tap State Synchronization** — Added explicit 'Remaining Volume' inputs to the Tap Management Modal in the Settings page to prevent the UI from secretly overwriting active kegs with stuck `0L` states.
+- [x] **19.4 Dynamic Visual Feedback** — Kiosk displays remaining volume linearly in percentages and explicitly states Liters left in real-time under each tap.
+
 ---
 
 ## Success Metrics
