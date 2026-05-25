@@ -170,7 +170,7 @@ function CarbonationCalc() {
                 method: 'POST',
                 body: {
                     temp_c: inputs.temp_c,
-                    target_volumes: inputs.volumes_co2
+                    volumes_co2: inputs.volumes_co2
                 }
             });
             if (data.error) {
@@ -195,17 +195,30 @@ function CarbonationCalc() {
             </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                <div>
-                    <label className="block text-sm text-muted-foreground mb-2">Beer Temperature (°C)</label>
-                    <input type="number" value={inputs.temp_c} onChange={(e) => setInputs({ ...inputs, temp_c: parseFloat(e.target.value) })} className="w-full p-3 rounded-xl bg-secondary/30 border border-border/50 text-lg" />
-                </div>
-                <div>
-                    <label className="block text-sm text-muted-foreground mb-2">Target CO2 Volumes</label>
-                    <input type="number" step="0.1" value={inputs.volumes_co2} onChange={(e) => setInputs({ ...inputs, volumes_co2: parseFloat(e.target.value) })} className="w-full p-3 rounded-xl bg-secondary/30 border border-border/50 text-lg" />
-                </div>
+                <Tooltip content="Current or target temperature of the beer in Celsius.">
+                    <div>
+                        <label className="block text-sm text-muted-foreground mb-2">Beer Temperature (°C)</label>
+                        <input type="number" value={inputs.temp_c} onChange={(e) => setInputs({ ...inputs, temp_c: parseFloat(e.target.value) })} className="w-full p-3 rounded-xl bg-secondary/30 border border-border/50 text-lg" />
+                    </div>
+                </Tooltip>
+                <Tooltip content="Target volumes of CO2 (e.g. 2.4 for Pale Ales).">
+                    <div>
+                        <label className="block text-sm text-muted-foreground mb-2">Target Volumes of CO2</label>
+                        <input type="number" step="0.1" value={inputs.volumes_co2} onChange={(e) => setInputs({ ...inputs, volumes_co2: parseFloat(e.target.value) })} className="w-full p-3 rounded-xl bg-secondary/30 border border-border/50 text-lg" />
+                    </div>
+                </Tooltip>
             </div>
 
-            <div className="mb-6 p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl text-sm text-muted-foreground">
+            <Tooltip content="Calculates the required PSI to achieve the target carbonation.">
+                <button 
+                    onClick={calc} 
+                    disabled={loading}
+                    className="w-full py-4 bg-blue-500 hover:bg-blue-600 text-white font-bold text-lg rounded-xl transition-colors disabled:opacity-50"
+                >
+                    {loading ? 'Calculating...' : 'Calculate PSI'}
+                </button>
+            </Tooltip>
+            <div className="mb-6 mt-6 p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl text-sm text-muted-foreground">
                 <div className="font-bold text-blue-400 mb-2">CO2 Volume Guidelines:</div>
                 <ul className="grid grid-cols-2 gap-1">
                     <li>British Cask: 1.5-2.0</li>

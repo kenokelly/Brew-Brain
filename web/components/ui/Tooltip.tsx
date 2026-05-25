@@ -7,9 +7,10 @@ interface TooltipProps {
     children: React.ReactNode;
     content: string;
     position?: 'top' | 'bottom' | 'left' | 'right';
+    className?: string;
 }
 
-export function Tooltip({ children, content, position = 'top' }: TooltipProps) {
+export function Tooltip({ children, content, position = 'top', className = '' }: TooltipProps) {
     const [isVisible, setIsVisible] = useState(false);
 
     const positions = {
@@ -28,11 +29,12 @@ export function Tooltip({ children, content, position = 'top' }: TooltipProps) {
 
     return (
         <div 
-            className="relative inline-flex items-center justify-center"
+            className={`relative block w-full ${className}`}
             onMouseEnter={() => setIsVisible(true)}
             onMouseLeave={() => setIsVisible(false)}
             onFocus={() => setIsVisible(true)}
             onBlur={() => setIsVisible(false)}
+            onClick={() => setIsVisible(!isVisible)}
         >
             {children}
             <AnimatePresence>
@@ -42,7 +44,7 @@ export function Tooltip({ children, content, position = 'top' }: TooltipProps) {
                         animate={{ opacity: 1, ...positions[position] }}
                         exit={{ opacity: 0, ...initialPositions[position] }}
                         transition={{ duration: 0.15, ease: 'easeOut' }}
-                        className="absolute z-50 px-3 py-1.5 text-xs font-medium text-white bg-slate-800/90 backdrop-blur-md rounded-lg shadow-xl border border-white/10 whitespace-nowrap pointer-events-none"
+                        className="absolute z-[100] px-3 py-2 text-sm font-medium text-white bg-slate-900 border border-slate-700 rounded-lg shadow-xl whitespace-nowrap pointer-events-none"
                         style={{
                             [position === 'top' ? 'bottom' : position === 'bottom' ? 'top' : position]: '100%',
                             [position === 'top' || position === 'bottom' ? 'left' : 'top']: '50%',
