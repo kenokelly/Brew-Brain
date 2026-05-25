@@ -1,9 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
+import { apiFetch } from '@/lib/api';
 import { Calculator, Gauge, Beaker, Droplets } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import toast from 'react-hot-toast';
+import { Tooltip } from '@/components/ui/Tooltip';
 
 type CalcTab = 'ibu' | 'carbonation' | 'refractometer' | 'priming';
 
@@ -61,12 +63,16 @@ function IBUCalc() {
     const calc = async () => {
         setLoading(true);
         try {
-            const res = await fetch('/api/automation/calc_ibu', {
+            const data = await apiFetch<any>('/api/calculator/ibu', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(inputs)
+                body: {
+                    alpha_acid: inputs.alpha,
+                    weight_grams: inputs.amount,
+                    boil_time_mins: inputs.time,
+                    boil_gravity: inputs.gravity,
+                    batch_volume_liters: inputs.volume
+                }
             });
-            const data = await res.json();
             if (data.error) {
                 toast.error(data.error);
             } else if (data.ibu) {
@@ -93,31 +99,47 @@ function IBUCalc() {
             </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                <div>
-                    <label className="block text-sm text-muted-foreground mb-2">Hop Amount (g)</label>
-                    <input type="number" name="amount" value={inputs.amount} onChange={handleChange} className="w-full p-3 rounded-xl bg-secondary/30 border border-border/50 text-lg" />
-                </div>
-                <div>
-                    <label className="block text-sm text-muted-foreground mb-2">Alpha Acid (%)</label>
-                    <input type="number" name="alpha" value={inputs.alpha} onChange={handleChange} className="w-full p-3 rounded-xl bg-secondary/30 border border-border/50 text-lg" />
-                </div>
-                <div>
-                    <label className="block text-sm text-muted-foreground mb-2">Boil Time (min)</label>
-                    <input type="number" name="time" value={inputs.time} onChange={handleChange} className="w-full p-3 rounded-xl bg-secondary/30 border border-border/50 text-lg" />
-                </div>
-                <div>
-                    <label className="block text-sm text-muted-foreground mb-2">Batch Volume (L)</label>
-                    <input type="number" name="volume" value={inputs.volume} onChange={handleChange} className="w-full p-3 rounded-xl bg-secondary/30 border border-border/50 text-lg" />
-                </div>
-                <div className="md:col-span-2">
-                    <label className="block text-sm text-muted-foreground mb-2">Original Gravity (SG)</label>
-                    <input type="number" name="gravity" value={inputs.gravity} step="0.001" onChange={handleChange} className="w-full p-3 rounded-xl bg-secondary/30 border border-border/50 text-lg" />
-                </div>
+                <Tooltip content="The weight of the hop addition in grams.">
+                    <div>
+                        <label className="block text-sm text-muted-foreground mb-2">Amount (g)</label>
+                        <input type="number" name="amount" value={inputs.amount} onChange={handleChange} className="w-full p-3 rounded-xl bg-secondary/30 border border-border/50 text-lg" />
+                    </div>
+                </Tooltip>
+                <Tooltip content="The alpha acid percentage of the hops (e.g. 13.0).">
+                    <div>
+                        <label className="block text-sm text-muted-foreground mb-2">Alpha Acid (%)</label>
+                        <input type="number" name="alpha" step="0.1" value={inputs.alpha} onChange={handleChange} className="w-full p-3 rounded-xl bg-secondary/30 border border-border/50 text-lg" />
+                    </div>
+                </Tooltip>
+                <Tooltip content="How long the hops boil for in minutes.">
+                    <div>
+                        <label className="block text-sm text-muted-foreground mb-2">Boil Time (mins)</label>
+                        <input type="number" name="time" value={inputs.time} onChange={handleChange} className="w-full p-3 rounded-xl bg-secondary/30 border border-border/50 text-lg" />
+                    </div>
+                </Tooltip>
+                <Tooltip content="The volume of the batch in liters.">
+                    <div>
+                        <label className="block text-sm text-muted-foreground mb-2">Batch Volume (L)</label>
+                        <input type="number" name="volume" value={inputs.volume} onChange={handleChange} className="w-full p-3 rounded-xl bg-secondary/30 border border-border/50 text-lg" />
+                    </div>
+                </Tooltip>
+                <Tooltip content="The expected specific gravity of the wort during the boil.">
+                    <div className="md:col-span-2">
+                        <label className="block text-sm text-muted-foreground mb-2">Boil Gravity (SG)</label>
+                        <input type="number" name="gravity" step="0.001" value={inputs.gravity} onChange={handleChange} className="w-full p-3 rounded-xl bg-secondary/30 border border-border/50 text-lg" />
+                    </div>
+                </Tooltip>
             </div>
 
-            <button onClick={calc} className="w-full py-4 bg-primary text-primary-foreground font-bold text-lg rounded-xl hover:opacity-90 transition-opacity">
-                Calculate IBU
-            </button>
+            <Tooltip content="Calculates the estimated International Bitterness Units (IBU) based on the G40 system parameters.">
+                <button 
+                    onClick={calc} 
+                    disabled={loading}
+                    className="w-full py-4 bg-primary text-primary-foreground font-bold text-lg rounded-xl hover:bg-primary/90 transition-colors disabled:opacity-50"
+                >
+                    {loading ? 'Calculating...' : 'Calculate IBU'}
+                </button>
+            </Tooltip>
 
             {result !== null && (
                 <div className="mt-8 text-center animate-in zoom-in duration-300">
@@ -144,12 +166,13 @@ function CarbonationCalc() {
     const calc = async () => {
         setLoading(true);
         try {
-            const res = await fetch('/api/automation/calc/carbonation', {
+            const data = await apiFetch<any>('/api/calculator/carbonation', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(inputs)
+                body: {
+                    temp_c: inputs.temp_c,
+                    target_volumes: inputs.volumes_co2
+                }
             });
-            const data = await res.json();
             if (data.error) {
                 toast.error(data.error);
             } else {
@@ -221,18 +244,24 @@ function CarbonationCalc() {
 
 // Refractometer Correction
 function RefractometerCalc() {
-    const [inputs, setInputs] = useState({ original_brix: 15.0, final_brix: 8.0, wort_correction_factor: 1.04 });
+    const [inputs, setInputs] = useState({ ob: 15.0, fb: 8.0, wcf: 1.04 });
     const [result, setResult] = useState<any>(null);
 
     const calc = async () => {
         try {
-            const res = await fetch('/api/automation/calc/refractometer', {
+            const data = await apiFetch<any>('/api/calculator/refractometer', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(inputs)
+                body: {
+                    original_brix: inputs.ob,
+                    final_brix: inputs.fb,
+                    wort_correction_factor: inputs.wcf
+                }
             });
-            const data = await res.json();
-            setResult(data);
+            if (data.error) {
+                toast.error(data.error);
+            } else {
+                setResult(data);
+            }
         } catch (e) {
             console.error(e);
         }
@@ -248,15 +277,15 @@ function RefractometerCalc() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                 <div>
                     <label className="block text-sm text-muted-foreground mb-2">Original Brix (OG)</label>
-                    <input type="number" step="0.1" value={inputs.original_brix} onChange={(e) => setInputs({ ...inputs, original_brix: parseFloat(e.target.value) })} className="w-full p-3 rounded-xl bg-secondary/30 border border-border/50 text-lg" />
+                    <input type="number" step="0.1" value={inputs.ob} onChange={(e) => setInputs({ ...inputs, ob: parseFloat(e.target.value) })} className="w-full p-3 rounded-xl bg-secondary/30 border border-border/50 text-lg" />
                 </div>
                 <div>
                     <label className="block text-sm text-muted-foreground mb-2">Final Brix Reading</label>
-                    <input type="number" step="0.1" value={inputs.final_brix} onChange={(e) => setInputs({ ...inputs, final_brix: parseFloat(e.target.value) })} className="w-full p-3 rounded-xl bg-secondary/30 border border-border/50 text-lg" />
+                    <input type="number" step="0.1" value={inputs.fb} onChange={(e) => setInputs({ ...inputs, fb: parseFloat(e.target.value) })} className="w-full p-3 rounded-xl bg-secondary/30 border border-border/50 text-lg" />
                 </div>
                 <div className="md:col-span-2">
                     <label className="block text-sm text-muted-foreground mb-2">Wort Correction Factor</label>
-                    <input type="number" step="0.01" value={inputs.wort_correction_factor} onChange={(e) => setInputs({ ...inputs, wort_correction_factor: parseFloat(e.target.value) })} className="w-full p-3 rounded-xl bg-secondary/30 border border-border/50 text-lg" />
+                    <input type="number" step="0.01" value={inputs.wcf} onChange={(e) => setInputs({ ...inputs, wcf: parseFloat(e.target.value) })} className="w-full p-3 rounded-xl bg-secondary/30 border border-border/50 text-lg" />
                 </div>
             </div>
 
@@ -302,13 +331,20 @@ function PrimingCalc() {
 
     const calc = async () => {
         try {
-            const res = await fetch('/api/automation/calc/priming', {
+            const data = await apiFetch<any>('/api/calculator/priming', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(inputs)
+                body: {
+                    volume_liters: inputs.volume_liters,
+                    temp_c: inputs.temp_c,
+                    target_co2: inputs.target_co2,
+                    sugar_type: inputs.sugar_type
+                }
             });
-            const data = await res.json();
-            setResult(data);
+            if (data.error) {
+                toast.error(data.error);
+            } else {
+                setResult(data);
+            }
         } catch (e) {
             console.error(e);
         }
