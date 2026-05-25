@@ -8,6 +8,9 @@ from bs4 import BeautifulSoup
 
 logger = logging.getLogger(__name__)
 
+# Global session for connection pooling
+_session = requests.Session()
+
 # Thread-safe rate limiting and circuit breaking
 _req_lock = threading.Lock()
 _last_request_time = {}
@@ -102,7 +105,7 @@ def get_page_content(url, retries=2):
     
     for attempt in range(retries + 1):
         try:
-            r = requests.get(url, headers=headers, timeout=15, allow_redirects=True)
+            r = _session.get(url, headers=headers, timeout=15, allow_redirects=True)
             r.raise_for_status()
             
             # Reset failure count on success

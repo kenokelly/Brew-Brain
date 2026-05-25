@@ -115,9 +115,9 @@ class TestCheckTempStability(unittest.TestCase):
 class TestGetPageContentNoPlaywright(unittest.TestCase):
     """Verifies Playwright fallback is removed."""
 
-    @patch("app.services.scraper_utils.requests.get")
+    @patch("app.services.scraper_utils._session.get")
     def test_returns_none_on_403(self, mock_get):
-        from app.services.sourcing import get_page_content
+        from app.services.scraper_utils import get_page_content
         import requests as req
 
         mock_resp = MagicMock()
@@ -129,9 +129,9 @@ class TestGetPageContentNoPlaywright(unittest.TestCase):
         result = get_page_content("https://www.themaltmiller.co.uk", retries=0)
         self.assertIsNone(result)
 
-    @patch("app.services.scraper_utils.requests.get")
+    @patch("app.services.scraper_utils._session.get")
     def test_success_returns_html(self, mock_get):
-        from app.services.sourcing import get_page_content
+        from app.services.scraper_utils import get_page_content
 
         mock_resp = MagicMock()
         mock_resp.status_code = 200
