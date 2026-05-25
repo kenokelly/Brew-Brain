@@ -138,7 +138,6 @@ The prediction model now combines Math (Curve Fitting) with Biology (Yeast Specs
 For external integrations (e.g., custom mobile apps or brew-deck handoffs), you must use your `BREW_BRAIN_API_TOKEN`.
 
 *   **Bearer Auth:** Send the header `Authorization: Bearer YOUR_TOKEN`.
-*   **Query Auth:** For simple triggers, use `?token=YOUR_TOKEN` in the URL.
 ng guide the math until enough real data exists to take over.
 
 ---
