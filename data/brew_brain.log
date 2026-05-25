@@ -418,3 +418,10 @@
 2026-05-22 14:57:51,225 - WARNING - Empty smoothed data, skipping prediction
 2026-05-22 14:58:00,123 - WARNING - Unauthorized API access attempt from 127.0.0.1 to /api/settings/test
 2026-05-22 14:58:00,123 - WARNING - Unauthorized API access attempt from 127.0.0.1 to /api/settings/test
+2026-05-25 15:23:22,945 - INFO - Config initialized from local file
+2026-05-25 15:23:23,045 - CRITICAL - ============================================================
+2026-05-25 15:23:23,046 - CRITICAL - SECURITY WARNING: BREW_BRAIN_API_TOKEN environment variable not set!
+2026-05-25 15:23:23,046 - CRITICAL - A temporary secure token has been generated for this session: 67181312529731eb2976c4baee25dee6
+2026-05-25 15:23:23,047 - CRITICAL - Please set BREW_BRAIN_API_TOKEN in your docker-compose.yml or environment.
+2026-05-25 15:23:23,048 - CRITICAL - ============================================================
+2026-05-25 15:23:51,151 - ERROR - Chat AI Error: <urllib3.connection.HTTPConnection object at 0x1297efb80>: Failed to establish a new connection: [Errno 8] No address found

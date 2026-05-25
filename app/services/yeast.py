@@ -115,7 +115,7 @@ def scrape_yeast_page(url, title):
             return {"error": f"Failed to fetch page: {r.status_code}"}
             
         soup = BeautifulSoup(r.text, 'html.parser')
-        text = soup.get_text().lower()
+        text = soup.get_text(separator=' ').lower()
         
         # 3. Heuristic Extraction (Naive approach)
         data = {

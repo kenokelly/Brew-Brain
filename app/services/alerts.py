@@ -489,3 +489,23 @@ def fetch_brewfather_inventory():
         target[name] = target.get(name, 0) + amt
         
     return inventory
+
+def add_brewfather_inventory(category: str, item_data: dict) -> dict:
+    """
+    Submits a new item to Brewfather inventory.
+    category must be one of: 'hops', 'fermentables', 'yeasts', 'miscs'.
+    """
+    headers = get_auth_headers()
+    if not headers: return {"error": "Missing Credentials"}
+    
+    url = f"https://api.brewfather.app/v2/inventory/{category}"
+    try:
+        r = requests.post(url, headers=headers, json=item_data, timeout=10)
+        if r.status_code in [200, 201]:
+            return {"status": "success", "data": r.json() if r.text else {}}
+        else:
+            logger.error(f"Failed to add inventory: {r.status_code} {r.text}")
+            return {"error": f"API Error: {r.text}"}
+    except Exception as e:
+        logger.error(f"Error adding {category}: {e}")
+        return {"error": str(e)}

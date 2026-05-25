@@ -261,6 +261,7 @@ export function PriceComparator() {
 
     const formatPrice = (price: number | string | null | undefined) => {
         if (price === null || price === undefined || price === 'N/A' || price === '?') return 'N/A';
+        if (price === 'Inc') return 'Incomplete';
         const num = typeof price === 'string' ? parseFloat(price) : price;
         if (isNaN(num)) return 'N/A';
         return `£${num.toFixed(2)}`;

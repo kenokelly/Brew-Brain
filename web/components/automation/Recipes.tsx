@@ -60,6 +60,9 @@ export function Recipes() {
                 setError(data.error);
             } else if (Array.isArray(data.data)) {
                 setResults(data.data);
+                if (data.data.length === 0) {
+                    setError("No recipes found matching your query.");
+                }
             }
         } catch (e: any) {
             setError(e.message || 'Search failed');

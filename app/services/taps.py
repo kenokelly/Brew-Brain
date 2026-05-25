@@ -41,17 +41,35 @@ def init_tap(tap_id: str, batch_id: str, keg_volume_l: float) -> dict:
     fg = float(batch.get('fg', 1.010))
     abv = (og - fg) * 131.25
     
-    # 3. Create Tap Profile
+    # 3. Auto-link Untappd via SerpApi
+    untappd_url = ""
+    try:
+        serp_key = get_config("serp_api_key")
+        if serp_key and serp_key != "********":
+            import requests
+            beer_name = batch.get('name', '')
+            query = f"site:untappd.com/b {beer_name}"
+            res = requests.get(f"https://serpapi.com/search.json?q={query}&api_key={serp_key}", timeout=5)
+            if res.status_code == 200:
+                results = res.json().get('organic_results', [])
+                if results and "untappd.com/b/" in results[0].get('link', ''):
+                    untappd_url = results[0]['link']
+    except Exception as e:
+        logger.warning(f"Failed to auto-link untappd: {e}")
+        
+    # 4. Create Tap Profile
     tap_data = {
         "name": batch.get('name', 'Unknown Batch'),
         "style": batch.get('style', 'Unknown Style'),
         "abv": round(abv, 1),
+        "ibu": float(batch.get('ibu', 0.0)),
         "color": "#FFC107", # Could derive from SRM if we had it
         "keg_date": batch.get('start_date', ''), # Or today
         "keg_volume_l": float(keg_volume_l),
         "volume_remaining_ml": float(keg_volume_l) * 1000.0,
         "remaining_pct": 100.0,
-        "batch_id": batch_id
+        "batch_id": batch_id,
+        "untappd_url": untappd_url
     }
     
     # 4. Save to config
@@ -110,6 +128,8 @@ def get_tap_list(base_url: str) -> list:
             # Default fallback for percentage if keg_rem_l is not calculated directly
             rem_pct = tap.get('remaining_pct', (keg_rem_l / keg_vol_l * 100.0) if keg_vol_l > 0 else 0.0)
             
+            untappd_url = tap.get('untappd_url', '')
+            
             formatted_tap = {
                 "tap_id": tap_id,
                 "beer_name": tap.get('name', 'Empty'),
@@ -118,8 +138,8 @@ def get_tap_list(base_url: str) -> list:
                 "keg_volume_l": keg_vol_l,
                 "keg_remaining_l": keg_rem_l,
                 "remaining_pct": float(rem_pct),
-                "qr_code_base64": generate_qr_code_base64(public_url),
-                "untappd_url": tap.get('untappd_url', '')
+                "qr_code_base64": generate_qr_code_base64(untappd_url if untappd_url else public_url),
+                "untappd_url": untappd_url
             }
             result.append(formatted_tap)
             

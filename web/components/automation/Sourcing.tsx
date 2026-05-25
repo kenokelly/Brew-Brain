@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { ShoppingCart, Search, ExternalLink, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
 
+import { apiFetch } from '@/lib/api';
+
 export function Sourcing() {
     const [query, setQuery] = useState('');
     const [results, setResults] = useState<any[]>([]);
@@ -17,12 +19,10 @@ export function Sourcing() {
         if (!query) return;
         setLoading(true);
         try {
-            const res = await fetch('/api/automation/scout', {
+            const data = await apiFetch<any>('/api/automation/scout', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ query })
+                body: { query }
             });
-            const data = await res.json();
             setResults(Array.isArray(data.data) ? data.data : []);
         } catch (e) {
             console.error(e);
@@ -37,12 +37,10 @@ export function Sourcing() {
         setBasket(null);
         try {
             const parsedDeficit = JSON.parse(deficitInput);
-            const res = await fetch('/api/automation/source', {
+            const data = await apiFetch<any>('/api/automation/source', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ deficit: parsedDeficit, preferred_vendors: ["The Malt Miller"] })
+                body: { deficit: parsedDeficit, preferred_vendors: ["The Malt Miller"] }
             });
-            const data = await res.json();
             if (data.status === 'error') {
                 setBasketError(data.error);
             } else {
@@ -92,6 +90,11 @@ export function Sourcing() {
                             <span className="text-lg font-bold">Total Estimated Cost</span>
                             <span className="text-2xl font-black text-emerald-400">£{basket.total_estimated_cost?.toFixed(2)}</span>
                         </div>
+                        {basket.incomplete && (
+                            <div className="p-3 bg-yellow-500/20 border border-yellow-500/50 rounded-xl text-yellow-200 text-sm flex items-center gap-2">
+                                <AlertCircle className="w-4 h-4" /> Not all items were found. Total is incomplete.
+                            </div>
+                        )}
                         
                         <div className="space-y-2">
                             <h4 className="font-bold text-muted-foreground uppercase text-xs tracking-wider">Cart Details</h4>

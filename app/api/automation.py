@@ -29,6 +29,27 @@ def sync_inventory():
     except Exception as e:
         return handle_error(e, "Inventory Sync Error")
 
+@automation_bp.route('/api/automation/inventory/add', methods=['POST'])
+@require_api_token
+def add_inventory():
+    try:
+        data = request.json or {}
+        category = data.get('category')
+        item_data = data.get('item')
+        
+        if not category or not item_data:
+            return api_response(status="error", error="Missing category or item data", code=400)
+            
+        res = alerts.add_brewfather_inventory(category, item_data)
+        if "error" in res:
+            return api_response(status="error", error=res["error"], code=500)
+            
+        inventory.fetch_inventory_with_backoff.delay()
+        
+        return api_response(data={"message": f"Successfully added {item_data.get('name')} to {category}"})
+    except Exception as e:
+        return handle_error(e, "Inventory Add Error")
+
 @automation_bp.route('/api/automation/inventory/sync/status/<task_id>', methods=['GET'])
 @require_api_token
 def get_sync_status(task_id):
@@ -144,6 +165,8 @@ def search_recipes():
             return api_response(status="error", error="Query required", code=400)
         
         results = scout.search_recipes(query)
+        if isinstance(results, dict) and 'error' in results:
+            return api_response(status="error", error=results['error'], code=400)
         return api_response(data=results)
     except Exception as e:
         return handle_error(e, "Recipe Search Error")
@@ -319,13 +342,15 @@ def pipeline_scan():
     """Scan Brewfather active batches and return their statuses."""
     try:
         from core.cache import cache
-        from services.brewfather_client import get_active_batches
+        from services.alerts import fetch_brewfather_batches
         # Use cache if available
         cached = cache.get("pipeline_scan_cache")
         if cached:
             return api_response(data={"batches": cached})
             
-        batches = get_active_batches()
+        batches = fetch_brewfather_batches()
+        if isinstance(batches, dict) and 'error' in batches:
+            raise Exception(batches['error'])
         
         # Transform for Pipeline UI
         formatted = []
@@ -353,8 +378,8 @@ def pipeline_scan():
 def bf_batches_list():
     """Return all Brewfather batches for selection in diagnostics."""
     try:
-        from services.brewfather_client import get_active_batches
-        batches = get_active_batches() # Or a broader endpoint if needed
+        from services.alerts import fetch_brewfather_batches
+        batches = fetch_brewfather_batches() # Or a broader endpoint if needed
         return jsonify(batches) # Pipeline expects raw array for this one
     except Exception as e:
         return handle_error(e, "Brewfather Batches Error")

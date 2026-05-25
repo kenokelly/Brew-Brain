@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { RefreshCw, Package, AlertTriangle, ShoppingCart } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import BarcodeInventoryScanner from "./BarcodeScanner";
 
 export function Inventory() {
     const [inventory, setInventory] = useState<any>(null);
@@ -100,14 +101,17 @@ export function Inventory() {
                     </h3>
                     <p className="text-sm text-muted-foreground">Manage stock via Brewfather Sync</p>
                 </div>
-                <button
-                    onClick={handleSync}
-                    disabled={syncing}
-                    className="flex items-center gap-2 px-4 py-2 bg-primary/10 text-primary border border-primary/20 rounded-xl hover:bg-primary/20 transition-colors disabled:opacity-50"
-                >
-                    <RefreshCw className={cn("w-4 h-4", syncing && "animate-spin")} />
-                    {syncing ? 'Syncing...' : 'Sync Brewfather'}
-                </button>
+                <div className="flex gap-2">
+                    <BarcodeInventoryScanner onComplete={fetchInventory} />
+                    <button
+                        onClick={handleSync}
+                        disabled={syncing}
+                        className="flex items-center gap-2 px-4 py-2 bg-primary/10 text-primary border border-primary/20 rounded-xl hover:bg-primary/20 transition-colors disabled:opacity-50"
+                    >
+                        <RefreshCw className={cn("w-4 h-4", syncing && "animate-spin")} />
+                        {syncing ? 'Syncing...' : 'Sync Brewfather'}
+                    </button>
+                </div>
             </div>
 
             {/* Category Tabs */}

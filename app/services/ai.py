@@ -130,7 +130,11 @@ def generate_chat_response(message: str, history: Optional[list] = None) -> dict
         prompt = message
         if history:
             # Simple history flattening
-            prompt = "Context of previous messages:\n" + "\n".join([f"{m['role']}: {m['content']}" for m in history]) + "\n\nUser: " + message
+            try:
+                history_str = "\n".join([f"{m.get('role', 'user')}: {m.get('content', '')}" if isinstance(m, dict) else str(m) for m in history])
+                prompt = f"Context of previous messages:\n{history_str}\n\nUser: {message}"
+            except Exception as hist_e:
+                logger.warning(f"Failed to parse history: {hist_e}")
 
         payload = {
             "model": get_config("ollama_model") or "llama3:latest",
@@ -142,7 +146,7 @@ def generate_chat_response(message: str, history: Optional[list] = None) -> dict
 
         try:
             logger.info(f"Sending request to Ollama ({ollama_url}) with model {payload.get('model')}")
-            res = requests.post(ollama_url, json=payload, timeout=600)
+            res = requests.post(ollama_url, json=payload, timeout=15)
             if res.status_code == 200:
                 text = res.json().get("response")
                 if text:
@@ -218,7 +222,7 @@ def get_proactive_advice() -> dict:
                 "keep_alive": 0 # Immediately unload model from RAM after generation
             }
             logger.info(f"Sending resource-optimized request to Ollama: {context_parts[-1]}")
-            res = requests.post(ollama_url, json=payload, timeout=600)
+            res = requests.post(ollama_url, json=payload, timeout=15)
             if res.status_code == 200:
                 text = res.json().get("response")
                 if text:
@@ -273,7 +277,7 @@ def analyze_anomaly(anomaly_data: dict) -> dict:
                 "stream": False,
                 "keep_alive": 0
             }
-            res = requests.post(ollama_url, json=payload, timeout=600)
+            res = requests.post(ollama_url, json=payload, timeout=15)
             if res.status_code == 200:
                 text = res.json().get("response")
                 if text:
@@ -383,7 +387,7 @@ def generate_narrative(batch_data: dict) -> dict:
                 "stream": False,
                 "keep_alive": 0
             }
-            res = requests.post(ollama_url, json=payload, timeout=600)
+            res = requests.post(ollama_url, json=payload, timeout=15)
             if res.status_code == 200:
                 text = res.json().get("response")
                 if text:

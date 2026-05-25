@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Network, AlertCircle, CheckCircle, Activity, RefreshCw, Thermometer, CalendarDays, Plus, FlaskConical, Beaker, Trash2, ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { apiFetch } from '@/lib/api';
 
 interface Batch {
     name: string;
@@ -83,10 +84,9 @@ export function Pipeline() {
     const scanPipeline = async () => {
         setLoading(true);
         try {
-            const res = await fetch('/api/automation/monitoring/scan', { method: 'POST' });
-            const data = await res.json();
+            const data = await apiFetch<any>('/api/automation/monitoring/scan', { method: 'POST' });
             setPipeline(data.data || data); // handle standard wrapper
-        } catch (e) {
+        } catch (e: any) {
             console.error(e);
         } finally {
             setLoading(false);
@@ -95,10 +95,9 @@ export function Pipeline() {
 
     const loadBfBatches = async () => {
         try {
-            const res = await fetch('/api/automation/brewfather/batches');
-            const data = await res.json();
+            const data = await apiFetch<any>('/api/automation/brewfather/batches');
             if (Array.isArray(data)) setBfBatches(data);
-        } catch (e) {
+        } catch (e: any) {
             console.error(e);
         }
     };
@@ -119,8 +118,7 @@ export function Pipeline() {
                 formData.append('file', file);
                 formData.append('target', targetTemp.toString());
 
-                const res = await fetch('/api/automation/alerts', { method: 'POST', body: formData });
-                const data = await res.json();
+                const data = await apiFetch<any>('/api/automation/alerts', { method: 'POST', body: formData as any });
                 setAlertResult(data.data || data);
             } else {
                 if (!selectedBatch) {
@@ -128,12 +126,10 @@ export function Pipeline() {
                     setDiagLoading(false);
                     return;
                 }
-                const res = await fetch('/api/automation/brewfather/analyze', {
+                const data = await apiFetch<any>('/api/automation/brewfather/analyze', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ batch_id: selectedBatch, target: targetTemp })
+                    body: { batch_id: selectedBatch, target: targetTemp }
                 });
-                const data = await res.json();
                 setAlertResult(data.data || data);
             }
         } catch (e: any) {
@@ -149,10 +145,9 @@ export function Pipeline() {
     const loadExperiments = async () => {
         setExpLoading(true);
         try {
-            const res = await fetch('/api/automation/experiments');
-            const data = await res.json();
+            const data = await apiFetch<any>('/api/automation/experiments');
             setExperiments(data.data?.experiments || []);
-        } catch (e) {
+        } catch (e: any) {
             console.error(e);
         } finally {
             setExpLoading(false);
@@ -162,24 +157,23 @@ export function Pipeline() {
     const saveExperiment = async () => {
         if (!newExp.name || !newExp.start_date || !newExp.end_date) return;
         try {
-            await fetch('/api/automation/experiments', {
+            await apiFetch<any>('/api/automation/experiments', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(newExp)
+                body: newExp
             });
             setShowNewExp(false);
             setNewExp({ name: '', start_date: '', end_date: '', hypothesis: '', status: 'planned' });
             loadExperiments();
-        } catch (e) {
+        } catch (e: any) {
             console.error(e);
         }
     };
 
     const deleteExperiment = async (id: string) => {
         try {
-            await fetch(`/api/automation/experiments/${id}`, { method: 'DELETE' });
+            await apiFetch<any>(`/api/automation/experiments/${id}`, { method: 'DELETE' });
             loadExperiments();
-        } catch (e) {
+        } catch (e: any) {
             console.error(e);
         }
     };

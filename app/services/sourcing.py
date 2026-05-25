@@ -459,7 +459,14 @@ def compare_recipe_prices(recipe_details, recipe_tag=None, debug_mode=False):
                 if not p_name: continue
                 
                 conf = difflib.SequenceMatcher(None, target_clean, p_name.lower()).ratio()
-                if target_clean in p_name.lower(): conf = max(conf, 0.8)
+                
+                # If all words in the target are present in the product name, it's a strong match
+                target_words = set(target_clean.split())
+                name_words = set(p_name.lower().split())
+                if target_words.issubset(name_words):
+                    conf = max(conf, 0.9)
+                elif target_clean in p_name.lower(): 
+                    conf = max(conf, 0.8)
                 
                 if conf > best_confidence:
                     best_confidence = conf
@@ -503,7 +510,12 @@ def compare_recipe_prices(recipe_details, recipe_tag=None, debug_mode=False):
             title = title_tag.get_text().strip() if title_tag else ingredient_name
             
             conf = difflib.SequenceMatcher(None, target_clean, title.lower()).ratio()
-            if target_clean in title.lower(): conf = max(conf, 0.8)
+            target_words = set(target_clean.split())
+            title_words = set(title.lower().split())
+            if target_words.issubset(title_words):
+                conf = max(conf, 0.9)
+            elif target_clean in title.lower(): 
+                conf = max(conf, 0.8)
             
             if conf < 0.4:
                 logger.debug(f"[DIRECT] Rejected '{title}' for '{ingredient_name}'. Low confidence: {conf:.2f}")
@@ -602,10 +614,10 @@ def compare_recipe_prices(recipe_details, recipe_tag=None, debug_mode=False):
             "stock_qty": 0
         }
         
-        names_to_try = [item['name']]
+        names_to_try = [f"{item['name']} {item['type']}"]
         normalized_name = normalize_ingredient_name(item['name'])
         if normalized_name:
-             names_to_try.append(normalized_name)
+             names_to_try.append(f"{normalized_name} {item['type']}")
         
         def get_cached_or_fetch(vendor, names):
             for try_name in names:
@@ -667,8 +679,8 @@ def compare_recipe_prices(recipe_details, recipe_tag=None, debug_mode=False):
         
         # Determine Winner
         try:
-            t = float(row['tmm_price']) if row['tmm_price'] != "N/A" else 9999
-            g = float(row['geb_price']) if row['geb_price'] != "N/A" else 9999
+            t = float(row['tmm_cost_raw']) if row.get('tmm_cost_raw', 0) > 0 else 9999
+            g = float(row['geb_cost_raw']) if row.get('geb_cost_raw', 0) > 0 else 9999
             if t < g and t != 9999: row['best_vendor'] = "TMM"
             elif g < t and g != 9999: row['best_vendor'] = "GEB"
             elif t == g and t != 9999: row['best_vendor'] = "Tie"
@@ -676,6 +688,9 @@ def compare_recipe_prices(recipe_details, recipe_tag=None, debug_mode=False):
         
         return row
 
+    incomplete_tmm = False
+    incomplete_geb = False
+    
     # Process all items concurrently using ThreadPoolExecutor (max 3 workers to prevent overwhelming)
     with ThreadPoolExecutor(max_workers=3) as executor:
         for row in executor.map(process_item, items_to_check):
@@ -683,14 +698,21 @@ def compare_recipe_prices(recipe_details, recipe_tag=None, debug_mode=False):
                 results.append(row)
                 if isinstance(row.get('tmm_cost_raw'), float) and row['tmm_cost_raw'] > 0:
                     total_tmm += row['tmm_cost_raw']
+                else:
+                    incomplete_tmm = True
+                    
                 if isinstance(row.get('geb_cost_raw'), float) and row['geb_cost_raw'] > 0:
                     total_geb += row['geb_cost_raw']
+                else:
+                    incomplete_geb = True
         
     return {
         "breakdown": results,
-        "total_tmm": round(total_tmm, 2) if total_tmm > 0 else "Inc",
-        "total_geb": round(total_geb, 2) if total_geb > 0 else "Inc",
-        "winner": "The Malt Miller" if (total_tmm < total_geb and total_tmm > 0) else "Get Er Brewed" if (total_geb < total_tmm and total_geb > 0) else "Inconclusive"
+        "total_tmm": "Inc" if incomplete_tmm else round(total_tmm, 2),
+        "total_geb": "Inc" if incomplete_geb else round(total_geb, 2),
+        "incomplete_tmm": incomplete_tmm,
+        "incomplete_geb": incomplete_geb,
+        "winner": "The Malt Miller" if (total_tmm < total_geb and total_tmm > 0 and not incomplete_tmm) else "Get Er Brewed" if (total_geb < total_tmm and total_geb > 0 and not incomplete_geb) else "Inconclusive"
     }
 
 def source_deficit(deficit_data, preferred_vendors=None):
@@ -764,7 +786,8 @@ def source_deficit(deficit_data, preferred_vendors=None):
     return {
         "total_estimated_cost": round(total_cost, 2),
         "currency": "GBP",
-        "cart": cart
+        "cart": cart,
+        "incomplete": cmp_results.get("incomplete_tmm", False) or cmp_results.get("incomplete_geb", False)
     }
 
 def get_restock_suggestions():

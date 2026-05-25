@@ -20,10 +20,13 @@ def search_ingredients(query):
         return {"error": "API Key Missing"}
 
     logger.info(f"Searching for: {query}")
+    
+    # Limit search to brewing items to prevent generic results
+    search_query = query if "brew" in query.lower() or "malt" in query.lower() or "hop" in query.lower() or "yeast" in query.lower() else f"{query} homebrew"
 
     params = {
         "engine": "google_shopping",
-        "q": query,
+        "q": search_query,
         "location": "United Kingdom",
         "hl": "en",
         "gl": "uk",
@@ -62,7 +65,7 @@ def search_recipes(query):
     try:
         recipes = fetch_brewfather_recipes()
         if isinstance(recipes, dict) and 'error' in recipes:
-            return [{"name": "Error", "style": recipes['error'], "abv": "0", "ibu": 0}]
+            return {"error": recipes['error']}
 
         query_lower = query.lower()
         filtered = []

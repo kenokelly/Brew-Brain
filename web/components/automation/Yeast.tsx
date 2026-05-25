@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Search, Beaker, Thermometer, Activity, ExternalLink } from 'lucide-react';
+import { apiFetch } from '@/lib/api';
 
 interface YeastData {
     name: string;
@@ -26,12 +27,10 @@ export function Yeast() {
         setResult(null);
 
         try {
-            const res = await fetch('/api/automation/yeast/search', {
+            const data = await apiFetch<any>('/api/automation/yeast/search', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ query: query.trim() })
+                body: { query: query.trim() }
             });
-            const data = await res.json();
 
             if (data.error) {
                 setError(data.error);

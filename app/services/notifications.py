@@ -169,6 +169,7 @@ def send_telegram_message(message: str, force: bool = False, category: str = "al
     if not force:
         # Check quiet hours
         if is_quiet_hours():
+            logger.info("Telegram skipped: quiet hours")
             return {"status": "skipped", "reason": "quiet_hours"}
 
         # --- VERBOSITY RATE LIMITING ---
@@ -196,14 +197,17 @@ def send_telegram_message(message: str, force: bool = False, category: str = "al
                             major_change = True
                             
                     if not major_change:
+                        logger.info(f"Telegram skipped: verbosity limit (elapsed {round(elapsed, 1)}m < {verbosity_min}m)")
                         return {"status": "skipped", "reason": "verbosity_limit", "elapsed_min": round(elapsed, 1)}
                     else:
                         logger.info(f"Bypassing verbosity limit due to major change: {current_values}")
                 else:
+                    logger.info(f"Telegram skipped: verbosity limit (elapsed {round(elapsed, 1)}m < {verbosity_min}m)")
                     return {"status": "skipped", "reason": "verbosity_limit", "elapsed_min": round(elapsed, 1)}
 
-    token = get_config("alert_telegram_token")
-    chat_id = get_config("alert_telegram_chat")
+    import os
+    token = get_config("alert_telegram_token") or os.environ.get("TELEGRAM_TOKEN")
+    chat_id = get_config("alert_telegram_chat") or os.environ.get("TELEGRAM_CHAT_ID")
     
     if not token or not chat_id:
         return {"error": "Telegram credentials not set"}

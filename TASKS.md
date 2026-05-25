@@ -248,6 +248,15 @@ Transform Brew Brain from a monitoring dashboard into an **Intelligent Fermentat
 |----------------------------|----------|
 | Anomaly detection accuracy | > 90%    |
 | FG prediction accuracy     | ± 0.003  |
+
+---
+
+### Phase 20 — Barcode Inventory & Untappd Linking ✅
+
+- [x] **20.1 Brewfather Inventory Integration** — Build API route to submit new scanned inventory stock directly to Brewfather.
+- [x] **20.2 Native Barcode Scanner Modal** — Implement a review modal that pops up after scanning, pre-fills product data (learning from past scans), and syncs.
+- [x] **20.3 Taplist QR Routing** — Update the Kiosk/Settings QR code to link directly to the Untappd URL if available.
+- [x] **20.4 Untappd Auto-Linking** — When syncing a Brewfather batch to a Tap, automatically scrape Untappd to find the beer and auto-populate the Tap's Untappd URL.
 | Time-to-FG accuracy        | ± 2 days |
 | False positive rate        | < 5%     |
 | API latency (with ML)      | < 500 ms |

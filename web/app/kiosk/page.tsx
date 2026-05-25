@@ -6,6 +6,7 @@ import { Loader2, Beer, GlassWater, Maximize, Minimize, Home } from "lucide-reac
 import Image from "next/image";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
+import { Haptics, ImpactStyle } from "@capacitor/haptics";
 
 interface Tap {
     tap_id: string;
@@ -39,6 +40,11 @@ export default function KioskPage() {
     };
 
     const handlePour = async (tapId: string, amountMl: number) => {
+        try {
+            await Haptics.impact({ style: ImpactStyle.Heavy });
+        } catch (e) {
+            // Ignore if running on web
+        }
         const toastId = toast.loading("Pouring...");
         try {
             await apiFetch(`/api/taps/${tapId}/pour`, {

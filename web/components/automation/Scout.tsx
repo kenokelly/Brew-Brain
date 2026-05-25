@@ -24,8 +24,9 @@ export function Scout() {
             });
             const data = await res.json();
             if (data.error) throw new Error(data.error);
-            setResults(data);
-            toast.success(`Found ${data.length} results`);
+            const resArray = Array.isArray(data) ? data : (Array.isArray(data.data) ? data.data : []);
+            setResults(resArray);
+            toast.success(`Found ${resArray.length} results`);
         } catch (e: unknown) {
             const msg = e instanceof Error ? e.message : 'Search failed';
             setError(msg);

@@ -5,6 +5,15 @@
 
 import { isApiError } from '@/types/api';
 
+export function getApiUrl(path: string): string {
+    if (process.env.NODE_ENV === 'development' && path.startsWith('/api')) {
+        if (typeof window !== "undefined") {
+            return `http://${window.location.hostname}:5000${path}`;
+        }
+    }
+    return path;
+}
+
 export class ApiClientError extends Error {
     public status: number;
     public data?: unknown;
@@ -28,6 +37,8 @@ export async function apiFetch<T>(
     url: string,
     options: FetchOptions = {}
 ): Promise<T> {
+    const fetchUrl = getApiUrl(url);
+
     const { body, headers: customHeaders, ...rest } = options;
 
     const headers: Record<string, string> = {};
@@ -66,7 +77,7 @@ export async function apiFetch<T>(
     };
 
     try {
-        const response = await fetch(url, config);
+        const response = await fetch(fetchUrl, config);
 
         // Handle non-OK responses
         if (!response.ok) {

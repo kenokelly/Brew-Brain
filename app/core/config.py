@@ -57,7 +57,7 @@ class BrewBrainConfig(BaseModel):
     tiltpi_url: str = ""
     
     # AI/Services
-    ollama_host: str = "ollama"
+    ollama_host: str = "127.0.0.1"
     ollama_model: str = "llama3:latest"
     serp_api_key: str = ""
     

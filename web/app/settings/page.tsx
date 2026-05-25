@@ -26,7 +26,10 @@ import {
 import { cn } from "@/lib/utils";
 import { useSettings, useTaps, useStatus } from "@/lib/hooks";
 import toast from "react-hot-toast";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, getApiUrl } from "@/lib/api";
+import { Capacitor } from "@capacitor/core";
+import { BiometricAuth } from "@aparajita/capacitor-biometric-auth";
+import { Haptics, ImpactStyle } from "@capacitor/haptics";
 
 export default function SettingsPage() {
     const router = useRouter();
@@ -39,6 +42,7 @@ export default function SettingsPage() {
     const [saving, setSaving] = useState(false);
     const [calibrating, setCalibrating] = useState(false);
     const [manualSg, setManualSg] = useState("");
+    const [isUnlocked, setIsUnlocked] = useState(false);
 
     // Modal State
     const [activeModal, setActiveModal] = useState<"manual" | "snapshot" | null>(null);
@@ -66,12 +70,42 @@ export default function SettingsPage() {
         }
     }, [initialSettings]);
 
+    useEffect(() => {
+        const checkBiometrics = async () => {
+            if (Capacitor.isNativePlatform()) {
+                try {
+                    const info = await BiometricAuth.checkBiometry();
+                    if (info.isAvailable) {
+                        try {
+                            await BiometricAuth.authenticate({
+                                reason: "Authenticate to view API keys and Settings"
+                            });
+                            setIsUnlocked(true);
+                        } catch (authErr) {
+                            toast.error("Authentication failed. Cannot load settings.");
+                        }
+                    } else {
+                        setIsUnlocked(true);
+                    }
+                } catch (e) {
+                    setIsUnlocked(true);
+                }
+            } else {
+                setIsUnlocked(true);
+            }
+        };
+        checkBiometrics();
+    }, []);
+
     const handleChange = (key: string, value: any) => {
         setSettings(prev => ({ ...prev, [key]: value }));
     };
 
     const handleSave = async (e?: React.FormEvent) => {
         if (e) e.preventDefault();
+        try {
+            await Haptics.impact({ style: ImpactStyle.Light });
+        } catch (err) {}
         setSaving(true);
         const toastId = toast.loading("Saving settings...");
         try {
@@ -283,6 +317,15 @@ export default function SettingsPage() {
         setTimeout(() => handleSave(), 100);
     };
 
+    if (!isUnlocked) {
+        return (
+            <div className="min-h-screen bg-black flex flex-col items-center justify-center p-8 text-white space-y-4">
+                <Settings2 className="w-12 h-12 text-primary animate-pulse" />
+                <div className="text-xl font-medium tracking-wide">Authentication required...</div>
+            </div>
+        );
+    }
+
     return (
         <div className="max-w-4xl mx-auto p-4 md:p-8 space-y-8 animate-in fade-in duration-500">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
@@ -445,7 +488,7 @@ export default function SettingsPage() {
                         </div>
                         <div className="md:col-span-2 pt-2">
                             <a
-                                href="/api/label"
+                                href={getApiUrl("/api/label")}
                                 target="_blank"
                                 className="flex items-center justify-center gap-2 w-full bg-primary/10 text-primary hover:bg-primary/20 py-3 rounded-xl font-semibold transition-colors"
                             >

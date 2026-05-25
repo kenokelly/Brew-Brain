@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Droplets, Pizza, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { apiFetch } from '@/lib/api';
 
 export function Water() {
     const [profile, setProfile] = useState('neipa');
@@ -17,9 +18,12 @@ export function Water() {
     const fetchWaterProfile = async () => {
         setLoading(true);
         try {
-            const res = await fetch(`/api/automation/water/${profile}`);
-            const data = await res.json();
-            setStats(data);
+            const data = await apiFetch<any>(`/api/water/${profile}`);
+            if (data.data) {
+                setStats(data.data);
+            } else {
+                setStats(data);
+            }
         } catch (e) {
             console.error(e);
         } finally {
