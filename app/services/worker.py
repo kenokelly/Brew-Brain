@@ -10,11 +10,24 @@ from core.influx import write_api, query_api, INFLUX_BUCKET, INFLUX_ORG
 from services.notifications import send_telegram_message, is_quiet_hours
 from services.ai import analyze_yeast_history
 from services.tilt_monitor import get_tilt_state
+from core.cache import cache as _alert_cache
 
 
 logger = logging.getLogger("BrewBrain")
 
-alert_state = { "last_tilt_alert": 0, "last_temp_alert": 0 }
+# ---------------------------------------------------------------------------
+# Alert state: persisted to Redis so worker restarts don't reset cooldowns.
+# Falls back to in-memory via the cache module if Redis is unavailable.
+# ---------------------------------------------------------------------------
+def _get_alert_ts(key: str) -> float:
+    """Get last alert timestamp from Redis (survives worker restarts)."""
+    val = _alert_cache.get(f"alert_state:{key}")
+    return float(val) if val is not None else 0.0
+
+def _set_alert_ts(key: str, ts: float) -> None:
+    """Persist alert timestamp to Redis with 48h TTL."""
+    _alert_cache.set(f"alert_state:{key}", ts, ttl=172800)
+
 processing_state = { "last_processed_time": datetime.now(timezone.utc) - timedelta(minutes=10) }
 
 def sigmoid(t, L, k, t0, C):
@@ -272,7 +285,7 @@ def perform_signal_loss_check(now, timeout_min, cooldown=14400):
         
         # 3. Alert Trigger
         if not has_data:
-            if (now - alert_state["last_tilt_alert"] > cooldown):
+            if (now - _get_alert_ts("last_tilt_alert") > cooldown):
                 signal_info = f"\n*Signal Strength:* {rssi} dBm" if rssi else ""
                 msg = (
                     f"⚠️ *SIGNAL LOSS ALERT*\n\n"
@@ -281,7 +294,7 @@ def perform_signal_loss_check(now, timeout_min, cooldown=14400):
                     f"Check TiltPi power and orientation."
                 )
                 send_telegram_message(msg, category="alert")
-                alert_state["last_tilt_alert"] = now
+                _set_alert_ts("last_tilt_alert", now)
                 logger.warning(f"Signal Loss Alert: {last_reading_str}")
             
     except Exception as e:
@@ -308,14 +321,15 @@ def check_alerts_once() -> None:
         return
 
     now = time.time()
-    COOLDOWN = 14400  # 4 hours default cooldown
+    SIGNAL_COOLDOWN = 14400   # 4 hours for signal loss
+    TEMP_COOLDOWN = 1800      # 30 minutes for temperature alerts
 
     # ---------------------------------------------------------------
     # 1. SIGNAL LOSS
     # ---------------------------------------------------------------
     try:
         timeout_min = int(get_config("tilt_timeout_min") or 60)
-        perform_signal_loss_check(now, timeout_min, COOLDOWN)
+        perform_signal_loss_check(now, timeout_min, SIGNAL_COOLDOWN)
     except Exception as e:
         logger.error(f"Signal loss check error: {e}")
 
@@ -326,9 +340,15 @@ def check_alerts_once() -> None:
         max_temp = float(get_config("temp_max") or 28.0)
         yeast_max_raw = get_config("yeast_max_temp")
         yeast_max = float(yeast_max_raw) if yeast_max_raw else None
-        # Auto-detect Fahrenheit for yeast_max
+        yeast_min_raw = get_config("yeast_min_temp")
+        yeast_min = float(yeast_min_raw) if yeast_min_raw else None
+        target_temp_raw = get_config("target_temp")
+        target_temp = float(target_temp_raw) if target_temp_raw else None
+        # Auto-detect Fahrenheit for yeast bounds
         if yeast_max and yeast_max > 40:
             yeast_max = (yeast_max - 32) * 5 / 9
+        if yeast_min and yeast_min > 40:
+            yeast_min = (yeast_min - 32) * 5 / 9
 
         q_temp = (
             f'from(bucket: "{INFLUX_BUCKET}")'
@@ -347,15 +367,42 @@ def check_alerts_once() -> None:
                 effective_max = yeast_max if yeast_max and yeast_max < max_temp else max_temp
                 label = f"{get_config('yeast_strain')} yeast" if yeast_max else "global"
 
-                if val > effective_max and (now - alert_state["last_temp_alert"] > COOLDOWN):
+                # 2a. HIGH TEMP — above yeast/global max
+                if val > effective_max and (now - _get_alert_ts("last_temp_high_alert") > TEMP_COOLDOWN):
                     send_telegram_message(
-                        f"🔥 *TEMP WARNING*\n"
+                        f"🔥 *TEMP HIGH*\n"
                         f"Current: *{val:.1f}°C* — Limit: {effective_max:.1f}°C ({label})\n"
                         f"Check glycol chiller or heating wrap.",
                         category="alert",
                         current_values={"temp": val},
                     )
-                    alert_state["last_temp_alert"] = now
+                    _set_alert_ts("last_temp_high_alert", now)
+
+                # 2b. LOW TEMP — below yeast min
+                if yeast_min and val < yeast_min and (now - _get_alert_ts("last_temp_low_alert") > TEMP_COOLDOWN):
+                    send_telegram_message(
+                        f"🥶 *TEMP LOW*\n"
+                        f"Current: *{val:.1f}°C* — Yeast min: {yeast_min:.1f}°C ({label})\n"
+                        f"Fermentation may stall. Check heating wrap.",
+                        category="alert",
+                        current_values={"temp": val},
+                    )
+                    _set_alert_ts("last_temp_low_alert", now)
+
+                # 2c. TARGET TEMP DEVIATION — only when target_temp is set
+                if target_temp and (now - _get_alert_ts("last_temp_drift_alert") > TEMP_COOLDOWN):
+                    drift = abs(val - target_temp)
+                    if drift > 1.0:  # Alert if > 1°C from target
+                        direction = "above" if val > target_temp else "below"
+                        send_telegram_message(
+                            f"🌡️ *TEMP DRIFT*\n"
+                            f"Current: *{val:.1f}°C* — Target: {target_temp:.1f}°C\n"
+                            f"Drifted {drift:.1f}°C {direction} target.",
+                            category="alert",
+                            current_values={"temp": val},
+                        )
+                        _set_alert_ts("last_temp_drift_alert", now)
+
     except Exception as e:
         logger.error(f"Temp alert check error: {e}")
 
@@ -364,7 +411,7 @@ def check_alerts_once() -> None:
     # ---------------------------------------------------------------
     try:
         STALL_COOLDOWN = 43200  # 12 hours
-        if (now - alert_state.get("last_stall_alert", 0)) > STALL_COOLDOWN:
+        if (now - _get_alert_ts("last_stall_alert")) > STALL_COOLDOWN:
             q_combined = (
                 f'from(bucket: "{INFLUX_BUCKET}") |> range(start: -1h)'
                 f' |> filter(fn: (r) => r["_measurement"] == "sensor_data")'
@@ -398,7 +445,7 @@ def check_alerts_once() -> None:
                         category="alert",
                         current_values={"sg": sg_current},
                     )
-                    alert_state["last_stall_alert"] = now
+                    _set_alert_ts("last_stall_alert", now)
                 else:
                     # Advanced AI-based predictive stall detection
                     try:
@@ -406,7 +453,7 @@ def check_alerts_once() -> None:
                         ai_warning = predict_issues()
                         if ai_warning:
                             send_telegram_message(ai_warning, category="alert")
-                            alert_state["last_stall_alert"] = now
+                            _set_alert_ts("last_stall_alert", now)
                     except Exception as ai_err:
                         logger.debug(f"AI stall prediction skipped: {ai_err}")
     except Exception as e:
@@ -417,7 +464,7 @@ def check_alerts_once() -> None:
     # ---------------------------------------------------------------
     try:
         ANOMALY_COOLDOWN = 43200  # 12 hours
-        if (now - alert_state.get("last_anomaly_alert", 0)) > ANOMALY_COOLDOWN:
+        if (now - _get_alert_ts("last_anomaly_alert")) > ANOMALY_COOLDOWN:
             yeast_name = get_config("yeast_strain")
             if yeast_name and yeast_name != "Unknown":
                 history = analyze_yeast_history(yeast_name)
@@ -459,7 +506,7 @@ def check_alerts_once() -> None:
                                 category="alert",
                                 current_values={"sg": curr_sg},
                             )
-                            alert_state["last_anomaly_alert"] = now
+                            _set_alert_ts("last_anomaly_alert", now)
     except Exception as e:
         logger.error(f"Yeast anomaly check error: {e}")
 

@@ -13,6 +13,10 @@ def is_quiet_hours() -> bool:
     Quiet hours are between alert_end_time and alert_start_time.
     
     Example: If start=08:00 and end=22:00, quiet hours are 22:00-08:00.
+    
+    IMPORTANT: This uses datetime.now() which depends on the container TZ
+    env var being set correctly (default: UTC). Ensure TZ=Europe/London
+    is set in docker-compose.yml for correct local-time behaviour.
     """
     try:
         start_str = get_config("alert_start_time") or "08:00"
@@ -30,10 +34,19 @@ def is_quiet_hours() -> bool:
         # Quiet hours are between end_time and start_time
         if end_minutes > start_minutes:
             # Normal case: e.g., 08:00-22:00 active, 22:00-08:00 quiet
-            return current_minutes >= end_minutes or current_minutes < start_minutes
+            is_quiet = current_minutes >= end_minutes or current_minutes < start_minutes
         else:
             # Overnight case: e.g., 22:00-08:00 active, 08:00-22:00 quiet
-            return end_minutes <= current_minutes < start_minutes
+            is_quiet = end_minutes <= current_minutes < start_minutes
+
+        if is_quiet:
+            import os
+            tz = os.environ.get("TZ", "UTC (default)")
+            logger.debug(
+                f"Quiet hours active: {now.strftime('%H:%M')} local ({tz}), "
+                f"window {start_str}-{end_str}"
+            )
+        return is_quiet
             
     except Exception as e:
         logger.error(f"Quiet hours check failed: {e}")
