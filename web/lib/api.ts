@@ -58,8 +58,8 @@ export async function apiFetch<T>(
     }
 
     // Try to get API token from localStorage
-    if (typeof window !== "undefined") {
-        const token = localStorage.getItem("brew_brain_token");
+    if (typeof window !== "undefined" && window.localStorage && typeof window.localStorage.getItem === "function") {
+        const token = window.localStorage.getItem("brew_brain_token");
         if (token) {
             headers["Authorization"] = `Bearer ${token}`;
         }

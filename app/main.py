@@ -19,6 +19,7 @@ from api.ai import ai_bp
 from api.calculators import calc_bp
 from api.water import water_bp
 from api.labels import labels_bp
+from api.brewday import brewday_bp
 
 app = Flask(__name__, static_folder='static')
 CORS(app)
@@ -43,6 +44,7 @@ app.register_blueprint(ai_bp, url_prefix='/api/ai')
 app.register_blueprint(calc_bp, url_prefix='/api/calculator')
 app.register_blueprint(water_bp, url_prefix='/api/water')
 app.register_blueprint(labels_bp, url_prefix='/api/label')
+app.register_blueprint(brewday_bp, url_prefix='/api/brewday')
 
 @app.after_request
 def add_header(response):

@@ -3,12 +3,13 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { LayoutDashboard, Beer, Bot, CircleHelp, Menu, Monitor } from 'lucide-react';
+import { LayoutDashboard, Beer, Bot, CircleHelp, Flame, Menu, Monitor } from 'lucide-react';
 
 export const NAV_ITEMS = [
     { href: '/', icon: LayoutDashboard, label: 'Dashboard' },
     { href: '/legacy', icon: LayoutDashboard, label: 'Legacy Dashboard' },
     { href: '/chat', icon: Bot, label: 'Brewmaster' },
+    { href: '/brewday', icon: Flame, label: 'Brew Day' },
     { href: '/settings', icon: Menu, label: 'Settings' },
     { href: 'http://192.168.155.226:1880/ui/', icon: LayoutDashboard, label: 'TiltPi' },
     { href: '/taplist', icon: Beer, label: 'Tap List' },

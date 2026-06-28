@@ -49,6 +49,7 @@ vi.mock('framer-motion', () => ({
   },
 }));
 
+import useSWR from 'swr';
 import TapList from '@/app/taplist/page';
 
 describe('Tap List Page', () => {
@@ -102,12 +103,12 @@ describe('Tap List Page', () => {
 describe('Tap List Empty State', () => {
   it('renders empty grid when no taps configured', () => {
     // Override mock for this specific test
-    const useSWR = vi.mocked(await import('swr')).default;
-    (useSWR as any).mockReturnValueOnce({
+    const useSWRMocked = vi.mocked(useSWR);
+    useSWRMocked.mockReturnValueOnce({
       data: { data: { taps: [] } },
       error: null,
       isLoading: false,
-    });
+    } as any);
 
     render(<TapList />);
     expect(screen.getByText('On Tap')).toBeInTheDocument();

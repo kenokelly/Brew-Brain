@@ -405,3 +405,274 @@ def generate_narrative(batch_data: dict) -> dict:
     except Exception as e:
         logger.error(f"Narrative AI Error: {e}")
         return {"status": "error", "message": str(e)}
+
+
+def generate_brewday_coaching_response(context: dict, message: str) -> dict:
+    """
+    Generate an AI coaching response during an active brew day session.
+
+    Uses a brew-day-specific system prompt and keeps the model warm in RAM
+    (keep_alive: "30m") because the brewer will send multiple messages during
+    a session.
+
+    Args:
+        context: Session context dict containing phase, recipe, telemetry, etc.
+        message: The brewer's question or chat message.
+
+    Returns:
+        Response dict with status, response text, and source.
+    """
+    try:
+        phase = context.get("phase", "unknown")
+        batch_name = context.get("batch_name", "current batch")
+        recipe = context.get("recipe", {})
+        gravity_readings = context.get("gravity_readings", [])
+        corrections = context.get("corrections_applied", [])
+
+        # Build a rich system prompt with session awareness
+        system_prompt = (
+            "You are the 'Brew Day Coach', an expert AI assistant guiding a homebrewer "
+            "through their brew day in real time. You have full access to the recipe and "
+            "live session data.\n\n"
+            f"Current batch: {batch_name}\n"
+            f"Current phase: {phase}\n"
+            f"Recipe OG: {recipe.get('og', 'N/A')}\n"
+            f"Recipe style: {recipe.get('style', 'N/A')}\n"
+            f"Gravity readings so far: {len(gravity_readings)}\n"
+            f"Corrections applied: {len(corrections)}\n\n"
+            "Be concise, technical, and actionable. Tailor advice to the current phase. "
+            "If the brewer asks about timing, temperatures, or corrections, use the "
+            "session data to give specific numbers."
+        )
+
+        # Inject recent gravity readings for context
+        if gravity_readings:
+            latest = gravity_readings[-1]
+            system_prompt += (
+                f"\nLatest gravity reading: {latest.get('sg', 'N/A')} "
+                f"at {latest.get('volume_l', 'N/A')}L ({latest.get('stage', 'N/A')})"
+            )
+
+        ollama_host = os.environ.get("OLLAMA_HOST", get_config("ollama_host") or "ollama")
+        ollama_url = f"http://{ollama_host}:11434/api/generate"
+
+        try:
+            payload = {
+                "model": get_config("ollama_model") or "llama3:latest",
+                "prompt": message,
+                "system": system_prompt,
+                "stream": False,
+                "keep_alive": "30m",
+            }
+            logger.info(f"Brew Day Coach request to Ollama ({phase} phase)")
+            res = requests.post(ollama_url, json=payload, timeout=60)
+            if res.status_code == 200:
+                text = res.json().get("response")
+                if text:
+                    return {"status": "success", "response": text.strip(), "source": "ollama"}
+        except Exception as e:
+            logger.error(f"Ollama brew day coaching failed: {e}")
+
+        # Fallback
+        return {
+            "status": "fallback",
+            "response": (
+                f"The Brew Day Coach is currently offline. "
+                f"You are in the '{phase}' phase of {batch_name}. "
+                f"Refer to your recipe for guidance on the next steps."
+            ),
+            "source": "template",
+        }
+
+    except Exception as e:
+        logger.error(f"Brew Day Coaching AI Error: {e}")
+        return {"status": "error", "message": str(e)}
+
+
+def generate_correction_explanation(correction_data: dict) -> dict:
+    """
+    Ask the LLM to explain pre-computed correction math in plain language.
+
+    The math has already been computed by brew_math.py — this function only
+    generates a human-friendly explanation of what the numbers mean and the
+    trade-offs of each option.
+
+    Args:
+        correction_data: Dict with keys like dme_addition_g, dilution_water_l,
+                         boil_extension_min, measured_sg, target_sg, stage.
+
+    Returns:
+        Response dict with status, explanation text, and source.
+    """
+    try:
+        measured = correction_data.get("measured_sg", "N/A")
+        target = correction_data.get("target_sg", "N/A")
+        stage = correction_data.get("stage", "unknown")
+
+        # Build a structured prompt from the correction values
+        correction_lines = [
+            f"Stage: {stage}",
+            f"Measured SG: {measured}",
+            f"Target SG: {target}",
+        ]
+        if "dme_addition_g" in correction_data:
+            correction_lines.append(f"DME addition needed: {correction_data['dme_addition_g']}g")
+        if "boil_extension_min" in correction_data:
+            correction_lines.append(f"Extended boil needed: {correction_data['boil_extension_min']} minutes")
+        if "dilution_water_l" in correction_data:
+            correction_lines.append(f"Dilution water needed: {correction_data['dilution_water_l']}L")
+
+        prompt = (
+            "The following gravity corrections have been calculated for a brew day:\n\n"
+            + "\n".join(correction_lines)
+            + "\n\nExplain these corrections to a homebrewer in 3-4 sentences. "
+            "Cover the impact on the final beer (ABV, body, flavour) and recommend "
+            "which correction option is best for this situation."
+        )
+
+        system_prompt = (
+            "You are the 'Brew Day Coach', an expert brewing advisor. "
+            "Explain gravity corrections clearly and concisely. "
+            "Do NOT recalculate the math — the numbers are already correct. "
+            "Focus on practical impact and recommendations."
+        )
+
+        ollama_host = os.environ.get("OLLAMA_HOST", get_config("ollama_host") or "ollama")
+        ollama_url = f"http://{ollama_host}:11434/api/generate"
+
+        try:
+            payload = {
+                "model": get_config("ollama_model") or "llama3:latest",
+                "prompt": prompt,
+                "system": system_prompt,
+                "stream": False,
+                "keep_alive": "30m",
+            }
+            res = requests.post(ollama_url, json=payload, timeout=60)
+            if res.status_code == 200:
+                text = res.json().get("response")
+                if text:
+                    return {"status": "success", "explanation": text.strip(), "source": "ollama"}
+        except Exception as e:
+            logger.error(f"Ollama correction explanation failed: {e}")
+
+        # Fallback: template-based explanation
+        parts = [f"Your gravity is {measured} but the target is {target}."]
+        if "dme_addition_g" in correction_data:
+            parts.append(
+                f"Adding {correction_data['dme_addition_g']}g of DME will raise the gravity to target."
+            )
+        if "dilution_water_l" in correction_data:
+            parts.append(
+                f"Adding {correction_data['dilution_water_l']}L of water will dilute to target."
+            )
+        if "boil_extension_min" in correction_data:
+            parts.append(
+                f"Extending the boil by {correction_data['boil_extension_min']} minutes will concentrate the wort."
+            )
+
+        return {
+            "status": "fallback",
+            "explanation": " ".join(parts),
+            "source": "template",
+        }
+
+    except Exception as e:
+        logger.error(f"Correction Explanation AI Error: {e}")
+        return {"status": "error", "message": str(e)}
+
+
+def generate_brew_evaluation(session_summary: dict) -> dict:
+    """
+    Generate an end-of-session AI evaluation of the brew day.
+
+    Analyses gravity readings, corrections, phase timings, and events to
+    produce a quality assessment. Uses keep_alive: 0 to unload the model
+    immediately after generation (session is over).
+
+    Args:
+        session_summary: Full session dict from BrewSessionManager.end_session().
+
+    Returns:
+        Response dict with status, evaluation text, and source.
+    """
+    try:
+        batch_name = session_summary.get("batch_name", "Unknown")
+        recipe = session_summary.get("recipe", {})
+        readings = session_summary.get("gravity_readings", [])
+        corrections = session_summary.get("corrections_applied", [])
+        events = session_summary.get("events", [])
+        started_at = session_summary.get("started_at", "N/A")
+        ended_at = session_summary.get("ended_at", "N/A")
+
+        prompt = (
+            f"Evaluate this brew day session:\n\n"
+            f"Batch: {batch_name}\n"
+            f"Recipe style: {recipe.get('style', 'N/A')}\n"
+            f"Target OG: {recipe.get('og', 'N/A')}\n"
+            f"Session start: {started_at}\n"
+            f"Session end: {ended_at}\n"
+            f"Total gravity readings: {len(readings)}\n"
+            f"Corrections applied: {len(corrections)}\n"
+            f"Total events: {len(events)}\n"
+        )
+
+        if readings:
+            prompt += "\nGravity readings:\n"
+            for r in readings:
+                prompt += f"  - {r.get('stage', '?')}: {r.get('sg', '?')} @ {r.get('volume_l', '?')}L\n"
+
+        if corrections:
+            prompt += "\nCorrections applied:\n"
+            for c in corrections:
+                prompt += f"  - Stage {c.get('stage', '?')}: measured {c.get('measured_sg', '?')}, target {c.get('target_sg', '?')}\n"
+
+        prompt += (
+            "\nProvide a brief brew day evaluation (4-5 sentences). "
+            "Score the session out of 10. Note what went well and what to "
+            "improve next time. Be encouraging but honest."
+        )
+
+        system_prompt = (
+            "You are the 'Brew Day Coach', providing an end-of-session evaluation. "
+            "Be constructive, specific, and reference the actual data provided."
+        )
+
+        ollama_host = os.environ.get("OLLAMA_HOST", get_config("ollama_host") or "ollama")
+        ollama_url = f"http://{ollama_host}:11434/api/generate"
+
+        try:
+            payload = {
+                "model": get_config("ollama_model") or "llama3:latest",
+                "prompt": prompt,
+                "system": system_prompt,
+                "stream": False,
+                "keep_alive": 0,
+            }
+            logger.info(f"Generating brew day evaluation for {batch_name}")
+            res = requests.post(ollama_url, json=payload, timeout=60)
+            if res.status_code == 200:
+                text = res.json().get("response")
+                if text:
+                    return {"status": "success", "evaluation": text.strip(), "source": "ollama"}
+        except Exception as e:
+            logger.error(f"Ollama brew evaluation failed: {e}")
+
+        # Fallback evaluation
+        reading_count = len(readings)
+        correction_count = len(corrections)
+        return {
+            "status": "fallback",
+            "evaluation": (
+                f"Brew day for '{batch_name}' is complete. "
+                f"You recorded {reading_count} gravity reading(s) and applied "
+                f"{correction_count} correction(s). "
+                f"Review your readings against the recipe targets to assess efficiency. "
+                f"The Brew Day Coach AI is currently offline for a detailed evaluation."
+            ),
+            "source": "template",
+        }
+
+    except Exception as e:
+        logger.error(f"Brew Evaluation AI Error: {e}")
+        return {"status": "error", "message": str(e)}
