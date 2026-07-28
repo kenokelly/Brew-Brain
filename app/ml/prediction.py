@@ -253,31 +253,52 @@ def train_models() -> Dict[str, Any]:
     }
 
 
-def predict_fg(og: float, velocity: float = 0.0, variance: float = 0.0, avg_temp: float = 20.0, style: str = "Unknown", yeast: str = "Unknown") -> Dict[str, Any]:
+def predict_fg(
+    og: float,
+    velocity: float = 0.0,
+    variance: float = 0.0,
+    avg_temp: float = 20.0,
+    style: str = "Unknown",
+    yeast: str = "Unknown",
+    dry_hop_additions: List[Any] = None,
+    pitch_details: Dict[str, Any] = None,
+) -> Dict[str, Any]:
     """
-    Predict Final Gravity for a batch.
+    Predict Final Gravity for a batch, incorporating hop creep offsets and pitch kinetics.
     """
+    from ml.creep_analyzer import calculate_hop_creep_offset
+    from ml.kinetic_engine import calculate_viability_decay, calculate_pitch_density
+
+    # Calculate hop creep offset if dry hops exist
+    creep_info = calculate_hop_creep_offset(dry_hop_additions or [])
+    gravity_offset = creep_info.get("gravity_offset", 0.0)
+
     # Check if model exists
     if not os.path.exists(FG_MODEL_PATH):
         # Fallback to simple calculation (assuming 75% attenuation)
         attenuation = 75.0
-        predicted_fg = og - ((attenuation / 100.0) * (og - 1.0))
+        base_fg = og - ((attenuation / 100.0) * (og - 1.0))
+        predicted_fg = max(0.990, base_fg + gravity_offset)
         return {
             "predicted_fg": round(float(predicted_fg), 3),
+            "predicted_fg_lower_bound": round(float(predicted_fg - 0.002), 3),
+            "predicted_fg_upper_bound": round(float(predicted_fg + 0.002), 3),
             "predicted_abv": round(float((og - predicted_fg) * 131.25), 1),
+            "hop_creep_detected": creep_info.get("creep_detected", False),
+            "hop_creep_gravity_offset": gravity_offset,
             "method": "formula",
-            "confidence": "low"
+            "confidence": "low",
         }
-    
+
     try:
         model = joblib.load(FG_MODEL_PATH)
-        
+
         # Consistent feature engineering
         feat_dict = {"og": og, "avg_temp": avg_temp, "sg_velocity": velocity}
         norm_feat = normalize_features(feat_dict)
         style_code = encode_category(style, STYLE_MAPPING)
         yeast_code = encode_category(yeast, YEAST_MAPPING)
-        
+
         features = np.array([[
             float(norm_feat.get("og_normalized", 0)),
             float(norm_feat.get("velocity_normalized", 0)),
@@ -286,15 +307,19 @@ def predict_fg(og: float, velocity: float = 0.0, variance: float = 0.0, avg_temp
             float(style_code),
             float(yeast_code)
         ]])
-        
-        predicted_fg = model.predict(features)[0]
-        predicted_fg = max(0.990, min(predicted_fg, og - 0.005))
-        
+
+        model_fg = model.predict(features)[0]
+        predicted_fg = max(0.990, min(model_fg + gravity_offset, og - 0.005))
+
         return {
             "predicted_fg": round(float(predicted_fg), 3),
+            "predicted_fg_lower_bound": round(float(predicted_fg - 0.002), 3),
+            "predicted_fg_upper_bound": round(float(predicted_fg + 0.002), 3),
             "predicted_abv": round(float((og - predicted_fg) * 131.25), 1),
+            "hop_creep_detected": creep_info.get("creep_detected", False),
+            "hop_creep_gravity_offset": gravity_offset,
             "method": "ml_model",
-            "confidence": "high"
+            "confidence": "high",
         }
     except Exception as e:
         logger.error(f"FG prediction failed: {e}")
