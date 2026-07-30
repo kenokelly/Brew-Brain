@@ -89,13 +89,49 @@ export function Water() {
             {loading ? (
                 <div className="h-40 flex items-center justify-center text-muted-foreground">Loading Profile...</div>
             ) : stats && (
-                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
-                    {Object.entries(MAPPING).map(([key, label]) => (
-                        <div key={key} className="bg-card/50 p-4 rounded-2xl border border-white/5 text-center">
-                            <div className="text-2xl font-bold text-primary">{stats[key]}</div>
-                            <div className="text-xs text-muted-foreground uppercase mt-1">{label}</div>
+                <div className="space-y-6">
+                    {/* Ion Concentration Grid */}
+                    <div>
+                        <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Target Ion Profile (ppm)</h4>
+                        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+                            {Object.entries(MAPPING).map(([key, label]) => {
+                                const val = stats[key] !== undefined ? stats[key] : (stats[`final_${key}`] !== undefined ? stats[`final_${key}`] : '0');
+                                return (
+                                    <div key={key} className="bg-card/50 p-4 rounded-2xl border border-white/5 text-center">
+                                        <div className="text-2xl font-bold text-primary">{val}</div>
+                                        <div className="text-xs text-muted-foreground uppercase mt-1">{label}</div>
+                                    </div>
+                                );
+                            })}
                         </div>
-                    ))}
+                    </div>
+
+                    {/* Salt Additions Summary */}
+                    {(stats.gypsum_g !== undefined || stats.calcium_chloride_g !== undefined) && (
+                        <div className="bg-card/40 p-6 rounded-2xl border border-primary/20">
+                            <h4 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                                🧂 Recommended Salt Additions ({stats.volume_liters || 23}L Batch)
+                            </h4>
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                                <div className="bg-black/30 p-3 rounded-xl border border-white/5 text-center">
+                                    <div className="text-xl font-bold text-amber-400">{stats.gypsum_g ?? 0}g</div>
+                                    <div className="text-xs text-muted-foreground mt-1">Gypsum (CaSO4)</div>
+                                </div>
+                                <div className="bg-black/30 p-3 rounded-xl border border-white/5 text-center">
+                                    <div className="text-xl font-bold text-amber-400">{stats.calcium_chloride_g ?? 0}g</div>
+                                    <div className="text-xs text-muted-foreground mt-1">CaCl2 (Calcium Chloride)</div>
+                                </div>
+                                <div className="bg-black/30 p-3 rounded-xl border border-white/5 text-center">
+                                    <div className="text-xl font-bold text-amber-400">{stats.epsom_g ?? 0}g</div>
+                                    <div className="text-xs text-muted-foreground mt-1">Epsom Salt (MgSO4)</div>
+                                </div>
+                                <div className="bg-black/30 p-3 rounded-xl border border-white/5 text-center">
+                                    <div className="text-xl font-bold text-amber-400">{stats.baking_soda_g ?? 0}g</div>
+                                    <div className="text-xs text-muted-foreground mt-1">Baking Soda (NaHCO3)</div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
 

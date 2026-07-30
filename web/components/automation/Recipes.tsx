@@ -160,7 +160,7 @@ export function Recipes() {
                     <button
                         onClick={handleSearch}
                         disabled={loading || !query.trim()}
-                        className="px-8 py-3 bg-primary text-black font-bold rounded-xl hover:bg-primary/90 transition-colors disabled:opacity-50"
+                        className="px-8 py-3 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/90 transition-colors disabled:opacity-50"
                     >
                         {loading ? 'Searching...' : 'Find Recipes'}
                     </button>
@@ -257,12 +257,12 @@ export function Recipes() {
                             key={i} 
                             onClick={() => r.link && window.open(r.link, '_blank')}
                             className={cn(
-                                "p-4 bg-black/20 rounded-xl border border-white/5 hover:border-primary/50 transition-colors relative group",
+                                "p-4 bg-card rounded-xl border border-border hover:border-primary/50 transition-colors relative group",
                                 r.link ? "cursor-pointer" : ""
                             )}
                         >
                             <div className="flex justify-between items-start">
-                                <div className="font-bold text-lg text-white group-hover:text-primary transition-colors">{r.name}</div>
+                                <div className="font-bold text-lg text-foreground group-hover:text-primary transition-colors">{r.name}</div>
                                 {r.link && <ExternalLink className="w-4 h-4 text-muted-foreground group-hover:text-primary opacity-0 group-hover:opacity-100 transition-all" />}
                             </div>
                             <div className="text-sm text-muted-foreground mt-1">
@@ -279,7 +279,7 @@ export function Recipes() {
             )}
 
             {!analysis && results.length === 0 && !loading && !error && (
-                <div className="py-16 text-center text-muted-foreground border-2 border-dashed border-white/5 rounded-3xl">
+                <div className="py-16 text-center text-muted-foreground border-2 border-dashed border-border rounded-3xl">
                     <Search className="w-12 h-12 mx-auto mb-4 opacity-50" />
                     <p>Search for recipes or analyze BeerXML files.</p>
                 </div>
@@ -302,11 +302,11 @@ function RecipeCard({
     const key = recipe.name.replace(/\s/g, '');
 
     return (
-        <div className="p-4 bg-black/20 rounded-xl border border-white/5">
+        <div className="p-4 bg-card rounded-xl border border-border">
             <div className="flex justify-between items-start mb-3">
                 <div>
                     <div className="flex items-center gap-2 mb-1">
-                        <span className="font-bold text-white">{recipe.name}</span>
+                        <span className="font-bold text-foreground">{recipe.name}</span>
                         {recipe.is_scaled && (
                             <span className="text-xs bg-primary text-black px-2 py-0.5 rounded">SCALED</span>
                         )}

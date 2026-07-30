@@ -118,6 +118,14 @@ def calculate_salt_additions(source_water: Dict[str, float], target_profile_name
     res = asdict(add)
     res["target_profile"] = target_profile_name
     res["volume_liters"] = volume_liters
+    res["calcium"] = target["calcium"]
+    res["magnesium"] = target["magnesium"]
+    res["sodium"] = target["sodium"]
+    res["chloride"] = target["chloride"]
+    res["sulfate"] = target["sulfate"]
+    res["bicarbonate"] = target["bicarbonate"]
+    res["ph"] = target.get("ph", 5.3)
+    res["description"] = target.get("description", "")
     return res
 
 def get_ro_water_source() -> Dict[str, float]:
