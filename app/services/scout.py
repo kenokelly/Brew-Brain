@@ -81,7 +81,10 @@ def search_recipes(query):
                 style = r.get('style', {}).get('name', '').lower()
                 
                 if query_lower in name or query_lower in style:
-                    recipe_id = r.get('_id', '')
+                    recipe_id = r.get('_id') or r.get('id', '')
+                    share_id = r.get('shareId') or recipe_id
+                    bf_url = f"https://recipe.brewfather.app/{share_id}" if share_id else f"https://www.google.com/search?q={urllib.parse.quote(query + ' homebrew recipe')}"
+                    
                     filtered.append({
                         "name": r.get('name', 'Untitled Recipe'),
                         "style": r.get('style', {}).get('name', 'Unknown Style'),
@@ -90,8 +93,8 @@ def search_recipes(query):
                         "abv": str(round(float(r.get('abv', 0)), 1)),
                         "ibu": float(r.get('ibu', 0)),
                         "batch_size_l": float(r.get('batchSize', 23)),
-                        "source_url": f"https://app.brewfather.app/recipes/{recipe_id}" if recipe_id else "",
-                        "link": f"https://app.brewfather.app/recipes/{recipe_id}" if recipe_id else f"https://www.google.com/search?q={urllib.parse.quote(query + ' homebrew recipe')}"
+                        "source_url": bf_url,
+                        "link": bf_url
                     })
         
         # If no local library matches, perform web recipe discovery via SerpApi or fallback Google link
@@ -101,7 +104,7 @@ def search_recipes(query):
                 try:
                     search = GoogleSearch({
                         "engine": "google",
-                        "q": f"{query} homebrew beer recipe site:homebrewtalk.com OR site:brewersfriend.com OR site:beersmithrecipes.com",
+                        "q": f"{query} homebrew beer recipe site:recipe.brewfather.app OR site:homebrewtalk.com OR site:brewersfriend.com OR site:beersmithrecipes.com",
                         "api_key": api_key,
                         "num": 5
                     })
@@ -159,7 +162,7 @@ def analyze_xml_recipes(query):
         try:
             search = GoogleSearch({
                 "engine": "google",
-                "q": f"{query} homebrew recipe site:homebrewtalk.com OR site:brewersfriend.com OR site:beersmithrecipes.com",
+                "q": f"{query} homebrew recipe site:recipe.brewfather.app OR site:homebrewtalk.com OR site:brewersfriend.com OR site:beersmithrecipes.com",
                 "api_key": api_key,
                 "num": 3
             })
