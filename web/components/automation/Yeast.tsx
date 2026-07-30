@@ -27,15 +27,17 @@ export function Yeast() {
         setResult(null);
 
         try {
-            const data = await apiFetch<any>('/api/automation/yeast/search', {
+            const res = await apiFetch<any>('/api/automation/yeast/search', {
                 method: 'POST',
                 body: { query: query.trim() }
             });
 
-            if (data.error) {
-                setError(data.error);
+            const yeastInfo = res?.data || res;
+
+            if (res?.error || yeastInfo?.error) {
+                setError(res?.error || yeastInfo?.error);
             } else {
-                setResult(data);
+                setResult(yeastInfo);
             }
         } catch (e: any) {
             setError(e.message || 'Failed to search');

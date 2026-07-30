@@ -352,7 +352,7 @@ export default function SettingsPage() {
                 </div>
             </div>
 
-            <form className="space-y-6">
+            <form onSubmit={handleSave} className="space-y-6">
                 
                 {/* --- TAP MANAGEMENT (RESTORED) --- */}
                 <div className="glass-card p-6 space-y-4">
@@ -759,6 +759,17 @@ export default function SettingsPage() {
                             </div>
                         </div>
                     </div>
+
+                    <div className="pt-4 flex justify-end border-t border-border/50">
+                        <button
+                            type="submit"
+                            disabled={saving}
+                            className="flex items-center gap-2 bg-rose-600 hover:bg-rose-500 text-white px-6 py-2.5 rounded-xl font-bold transition-all shadow-sm disabled:opacity-50"
+                        >
+                            {saving ? <RefreshCcw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                            Save Automation & Limits
+                        </button>
+                    </div>
                 </div>
 
                 {/* --- SYSTEM CONTROL (RESTORED) --- */}
@@ -838,10 +849,21 @@ export default function SettingsPage() {
                         </button>
                     </div>
                     <p className="text-sm text-red-400/80">
-                        Wiping settings will reset all API integrations, Telegram tokens, hardware limits, and system configurations back to their defaults.
+                        Wipe all telemetry database entries and reset settings back to default. Exercise extreme caution.
                     </p>
                 </div>
 
+                {/* Bottom Global Save Button */}
+                <div className="flex justify-end pt-4">
+                    <button
+                        type="submit"
+                        disabled={saving}
+                        className="flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 px-8 py-3.5 rounded-full font-bold transition-all shadow-lg text-base disabled:opacity-50"
+                    >
+                        {saving ? <RefreshCcw className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+                        {saving ? "Saving All Settings..." : "Save All Settings"}
+                    </button>
+                </div>
             </form>
 
             {/* --- MODALS (RESTORED) --- */}
