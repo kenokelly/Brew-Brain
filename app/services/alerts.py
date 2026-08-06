@@ -2,6 +2,8 @@ import csv
 import logging
 import io
 import requests
+
+brewfather_session = requests.Session()
 import base64
 from core.config import get_config
 from services import yeast
@@ -25,7 +27,7 @@ def fetch_brewfather_batches(limit=10):
     # Get Planning, Brewing, Fermenting, Completed
     url = f"https://api.brewfather.app/v2/batches?limit={limit}&order_by=brewDate&order_by_direction=desc"
     try:
-        r = requests.get(url, headers=headers, timeout=10)
+        r = brewfather_session.get(url, headers=headers, timeout=10)
         if r.status_code != 200:
             return {"error": f"API Error {r.status_code}"}
         return r.json()
@@ -41,7 +43,7 @@ def fetch_batch_readings(batch_id):
     
     url = f"https://api.brewfather.app/v2/batches/{batch_id}/readings"
     try:
-        r = requests.get(url, headers=headers, timeout=10)
+        r = brewfather_session.get(url, headers=headers, timeout=10)
         if r.status_code != 200: return None
         return r.json()
     except Exception as e:
@@ -64,7 +66,7 @@ def fetch_brewfather_recipes(limit=50):
             url += f"&start_after={start_after}"
             
         try:
-            r = requests.get(url, headers=headers, timeout=10)
+            r = brewfather_session.get(url, headers=headers, timeout=10)
             if r.status_code != 200:
                 if all_recipes:
                     break # Return what we have
@@ -115,7 +117,7 @@ def fetch_recipe_details(recipe_id):
     
     url = f"https://api.brewfather.app/v2/recipes/{recipe_id}"
     try:
-        r = requests.get(url, headers=headers, timeout=10)
+        r = brewfather_session.get(url, headers=headers, timeout=10)
         if r.status_code != 200: return {"error": f"API Error {r.status_code}"}
         data = r.json()
         # DEBUG: Log the response structure
@@ -146,7 +148,7 @@ def fetch_recipe_by_tag(tag: str):
             url += f"&start_after={start_after}"
             
         try:
-            r = requests.get(url, headers=headers, timeout=10)
+            r = brewfather_session.get(url, headers=headers, timeout=10)
             if r.status_code != 200: return {"error": f"API Error {r.status_code}"}
             recipes = r.json()
             if not recipes: break
@@ -261,7 +263,7 @@ def calculate_expected_fg(batch_id, current_gravity):
     # 1. Get Batch Details for Yeast and OG
     try:
         url = f"https://api.brewfather.app/v2/batches/{batch_id}"
-        r = requests.get(url, headers=headers, timeout=10)
+        r = brewfather_session.get(url, headers=headers, timeout=10)
         if r.status_code != 200: return {"error": "Failed to fetch batch details"}
         
         batch = r.json()
@@ -450,7 +452,7 @@ def fetch_brewfather_inventory():
         items = []
         url = f"https://api.brewfather.app/v2/inventory/{endpoint}?limit=1000"
         try:
-            r = requests.get(url, headers=headers, timeout=10)
+            r = brewfather_session.get(url, headers=headers, timeout=10)
             if r.status_code == 200:
                 return r.json()
         except Exception as e:
