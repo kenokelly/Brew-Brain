@@ -58,38 +58,42 @@ def fetch_brewfather_recipes(limit=50):
     all_recipes = []
     start_after = None
     
-    while True:
-        url = f"https://api.brewfather.app/v2/recipes?limit={limit}&order_by=name"
-        if start_after:
-            url += f"&start_after={start_after}"
-            
-        try:
-            r = requests.get(url, headers=headers, timeout=10)
-            if r.status_code != 200:
+    # ⚡ Bolt Optimization: Use requests.Session() for connection pooling to drastically reduce
+    # TCP connection and TLS handshake overhead when fetching sequential pages from the API.
+    with requests.Session() as session:
+        session.headers.update(headers)
+        while True:
+            url = f"https://api.brewfather.app/v2/recipes?limit={limit}&order_by=name"
+            if start_after:
+                url += f"&start_after={start_after}"
+                
+            try:
+                r = session.get(url, timeout=10)
+                if r.status_code != 200:
+                    if all_recipes:
+                        break # Return what we have
+                    return {"error": f"API Error {r.status_code}"}
+                
+                recipes = r.json()
+                if not recipes:
+                    break
+
+                all_recipes.extend(recipes)
+                
+                # If we got fewer than the limit, we're at the end
+                if len(recipes) < limit:
+                    break
+
+                # Get the ID of the last recipe for the next page
+                start_after = recipes[-1].get('_id')
+                if not start_after:
+                    break
+
+            except Exception as e:
+                logger.error(f"Error fetching recipes page: {e}")
                 if all_recipes:
-                    break # Return what we have
-                return {"error": f"API Error {r.status_code}"}
-            
-            recipes = r.json()
-            if not recipes:
-                break
-                
-            all_recipes.extend(recipes)
-            
-            # If we got fewer than the limit, we're at the end
-            if len(recipes) < limit:
-                break
-                
-            # Get the ID of the last recipe for the next page
-            start_after = recipes[-1].get('_id')
-            if not start_after:
-                break
-                
-        except Exception as e:
-            logger.error(f"Error fetching recipes page: {e}")
-            if all_recipes:
-                break
-            return {"error": str(e)}
+                    break
+                return {"error": str(e)}
             
     # Post-process: Add fallback name for recipes with empty names
     for recipe in all_recipes:
@@ -139,38 +143,42 @@ def fetch_recipe_by_tag(tag: str):
     limit = 50
     start_after = None
     
-    # Iterate through pages (max 10 pages for safety)
-    for page in range(10):
-        url = f"https://api.brewfather.app/v2/recipes?limit={limit}&order_by=name"
-        if start_after:
-            url += f"&start_after={start_after}"
-            
-        try:
-            r = requests.get(url, headers=headers, timeout=10)
-            if r.status_code != 200: return {"error": f"API Error {r.status_code}"}
-            recipes = r.json()
-            if not recipes: break
-            
-            for recipe in recipes:
-                # Check tags
-                r_tags = recipe.get("tags", [])
-                tag_list = []
-                for t in r_tags:
-                    if isinstance(t, str): tag_list.append(t.lower())
-                    elif isinstance(t, dict): tag_list.append(t.get('name', '').lower())
+    # ⚡ Bolt Optimization: Use requests.Session() for connection pooling to reduce
+    # TCP and TLS overhead across repeated sequential page fetches.
+    with requests.Session() as session:
+        session.headers.update(headers)
+        # Iterate through pages (max 10 pages for safety)
+        for page in range(10):
+            url = f"https://api.brewfather.app/v2/recipes?limit={limit}&order_by=name"
+            if start_after:
+                url += f"&start_after={start_after}"
                 
-                if tag.lower() in tag_list:
-                    return fetch_recipe_details(recipe.get('_id'))
-                    
-            if len(recipes) < limit:
-                break
+            try:
+                r = session.get(url, timeout=10)
+                if r.status_code != 200: return {"error": f"API Error {r.status_code}"}
+                recipes = r.json()
+                if not recipes: break
                 
-            start_after = recipes[-1].get('_id')
-            if not start_after:
-                break
-                
-        except Exception as e:
-            return {"error": str(e)}
+                for recipe in recipes:
+                    # Check tags
+                    r_tags = recipe.get("tags", [])
+                    tag_list = []
+                    for t in r_tags:
+                        if isinstance(t, str): tag_list.append(t.lower())
+                        elif isinstance(t, dict): tag_list.append(t.get('name', '').lower())
+
+                    if tag.lower() in tag_list:
+                        return fetch_recipe_details(recipe.get('_id'))
+
+                if len(recipes) < limit:
+                    break
+
+                start_after = recipes[-1].get('_id')
+                if not start_after:
+                    break
+
+            except Exception as e:
+                return {"error": str(e)}
             
     return {"error": f"No recipe found with tag '{tag}'"}
 
@@ -445,49 +453,54 @@ def fetch_brewfather_inventory():
         "misc": {}
     }
     
-    # helper
-    def fetch_cat(endpoint):
-        items = []
-        url = f"https://api.brewfather.app/v2/inventory/{endpoint}?limit=1000"
-        try:
-            r = requests.get(url, headers=headers, timeout=10)
-            if r.status_code == 200:
-                return r.json()
-        except Exception as e:
-            logger.error(f"Error fetching {endpoint}: {e}")
-        return []
+    # ⚡ Bolt Optimization: Utilizing connection pooling with requests.Session() to eliminate
+    # redundant TCP setup and TLS handshakes when calling the inventory API endpoints sequentially.
+    with requests.Session() as session:
+        session.headers.update(headers)
 
-    # 1. Hops
-    for i in fetch_cat("hops"):
-        name = i.get("name", "Unknown").lower()
-        amt = i.get("amount", 0) # usually grams
-        inventory["hops"][name] = inventory["hops"].get(name, 0) + amt
+        # helper
+        def fetch_cat(endpoint):
+            items = []
+            url = f"https://api.brewfather.app/v2/inventory/{endpoint}?limit=1000"
+            try:
+                r = session.get(url, timeout=10)
+                if r.status_code == 200:
+                    return r.json()
+            except Exception as e:
+                logger.error(f"Error fetching {endpoint}: {e}")
+            return []
 
-    # 2. Fermentables
-    for i in fetch_cat("fermentables"):
-        name = i.get("name", "Unknown").lower()
-        amt = i.get("amount", 0) # usually kg
-        inventory["fermentables"][name] = inventory["fermentables"].get(name, 0) + amt
+        # 1. Hops
+        for i in fetch_cat("hops"):
+            name = i.get("name", "Unknown").lower()
+            amt = i.get("amount", 0) # usually grams
+            inventory["hops"][name] = inventory["hops"].get(name, 0) + amt
+
+        # 2. Fermentables
+        for i in fetch_cat("fermentables"):
+            name = i.get("name", "Unknown").lower()
+            amt = i.get("amount", 0) # usually kg
+            inventory["fermentables"][name] = inventory["fermentables"].get(name, 0) + amt
+
+        # 3. Yeast
+        for i in fetch_cat("yeasts"):
+            name = i.get("name", "Unknown").lower()
+            amt = i.get("amount", 0) # units or grams
+            inventory["yeast"][name] = inventory["yeast"].get(name, 0) + amt
+
+        # 4. Misc (Map to Salts or Misc)
+        # Common salts: Gypsum, Calcium Chloride, Epsom, Lactic Acid
+        salt_keywords = ["gypsum", "chloride", "epsom", "sulfate", "salt", "acid", "baking", "carbonate"]
         
-    # 3. Yeast
-    for i in fetch_cat("yeasts"):
-        name = i.get("name", "Unknown").lower()
-        amt = i.get("amount", 0) # units or grams
-        inventory["yeast"][name] = inventory["yeast"].get(name, 0) + amt
-        
-    # 4. Misc (Map to Salts or Misc)
-    # Common salts: Gypsum, Calcium Chloride, Epsom, Lactic Acid
-    salt_keywords = ["gypsum", "chloride", "epsom", "sulfate", "salt", "acid", "baking", "carbonate"]
-    
-    for i in fetch_cat("miscs"):
-        name = i.get("name", "Unknown").lower()
-        amt = i.get("amount", 0)
-        
-        is_salt = any(k in name for k in salt_keywords)
-        target = inventory["salts"] if is_salt else inventory["misc"]
-        
-        target[name] = target.get(name, 0) + amt
-        
+        for i in fetch_cat("miscs"):
+            name = i.get("name", "Unknown").lower()
+            amt = i.get("amount", 0)
+
+            is_salt = any(k in name for k in salt_keywords)
+            target = inventory["salts"] if is_salt else inventory["misc"]
+
+            target[name] = target.get(name, 0) + amt
+
     return inventory
 
 def add_brewfather_inventory(category: str, item_data: dict) -> dict:
