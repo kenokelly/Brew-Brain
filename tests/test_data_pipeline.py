@@ -135,9 +135,10 @@ class TestDataPipeline(unittest.TestCase):
         self.assertEqual(batches[0]["name"], "Test IPA")
 
     @patch('app.services.batch_exporter.os.makedirs')
-    @patch('app.services.batch_exporter.pq.write_table')
+    @patch('app.services.batch_exporter.pq')
+    @patch('app.services.batch_exporter.pa')
     @patch('app.services.batch_exporter.os.path.getsize')
-    def test_export_batch_to_parquet(self, mock_getsize, mock_write_table, mock_makedirs):
+    def test_export_batch_to_parquet(self, mock_getsize, mock_pa, mock_pq, mock_makedirs):
         from app.services.batch_exporter import export_batch_to_parquet
         
         # Mock InfluxDB query
@@ -159,6 +160,8 @@ class TestDataPipeline(unittest.TestCase):
             for i in range(24)
         ]
         
+        mock_pa.table.return_value = MagicMock(column_names=["timestamp", "temp", "sg"])
+        
         # Patch the query at the module level
         with patch('app.services.batch_exporter.query_api') as mock_query_api:
             mock_query_api.query.return_value = [MockTable(records)]
@@ -178,13 +181,13 @@ class TestDataPipeline(unittest.TestCase):
             self.assertEqual(result["status"], "success")
             self.assertGreater(result["records"], 0)
             self.assertIn("filepath", result)
-            mock_write_table.assert_called_once()
+            mock_pq.write_table.assert_called_once()
 
-
-
+    @patch('app.services.batch_exporter.pq')
+    @patch('app.services.batch_exporter.pa')
     @patch('app.services.batch_exporter.os.listdir')
     @patch('app.services.batch_exporter.os.makedirs')
-    def test_aggregate_training_data_empty(self, mock_makedirs, mock_listdir):
+    def test_aggregate_training_data_empty(self, mock_makedirs, mock_listdir, mock_pa, mock_pq):
         from app.services.batch_exporter import aggregate_training_data
 
         # Mock listdir to return empty list
@@ -195,6 +198,7 @@ class TestDataPipeline(unittest.TestCase):
         self.assertEqual(result["status"], "error")
         self.assertEqual(result["error"], "No batch exports found. Export batches first.")
         mock_makedirs.assert_called_once()
+
 
 if __name__ == '__main__':
     unittest.main()

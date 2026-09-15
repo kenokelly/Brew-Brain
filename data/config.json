@@ -29,7 +29,7 @@
   "yeast_min_temp": null,
   "yeast_max_temp": null,
   "yeast_attenuation": null,
-  "yeast_flocculation": null,
+  "yeast_flocculation": "",
   "target_temp": null,
   "prediction_end_date": "",
   "taps": {}

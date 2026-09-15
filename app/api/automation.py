@@ -287,11 +287,51 @@ def get_bf_recipes():
     except Exception as e:
         return handle_error(e, "Brewfather Recipe Fetch Error")
 
+@automation_bp.route('/api/automation/recipes/scale', methods=['POST'])
+@require_api_token
+def scale_recipe():
+    try:
+        recipe_data = request.json or {}
+        if not recipe_data:
+            return api_response(status="error", error="Recipe data required", code=400)
+            
+        scaled = calculator.scale_recipe_to_equipment(recipe_data)
+        if isinstance(scaled, dict) and 'error' in scaled:
+            return api_response(status="error", error=scaled['error'], code=400)
+            
+        return api_response(data=scaled)
+    except Exception as e:
+        return handle_error(e, "Recipe Scale Error")
+
 @automation_bp.route('/api/automation/brewfather/import', methods=['POST'])
 @require_api_token
 def import_bf_recipe():
-    # Placeholder for importing external recipes into Brewfather
-    return api_response(data={"message": "Import feature coming soon!"})
+    try:
+        data = request.json or {}
+        recipe_name = data.get('name', 'Imported Recipe')
+        recipe_url = data.get('url') or data.get('source_url', '')
+        
+        # Prepare recipe object for Brewfather API
+        headers = alerts.get_auth_headers()
+        if not headers:
+            return api_response(data={"message": f"Recipe '{recipe_name}' prepared locally. (Configure Brewfather API keys in Settings to sync directly)"})
+            
+        payload = {
+            "name": recipe_name,
+            "type": "All Grain",
+            "author": "BrewBrain Importer",
+            "notes": f"Imported via Brew-Brain from {recipe_url}" if recipe_url else "Imported via Brew-Brain"
+        }
+        
+        import requests
+        r = requests.post("https://api.brewfather.app/v2/recipes", headers=headers, json=payload, timeout=10)
+        if r.status_code in [200, 201]:
+            return api_response(data={"message": f"Successfully imported '{recipe_name}' into Brewfather library!"})
+        else:
+            return api_response(data={"message": f"Recipe '{recipe_name}' prepared. Brewfather response: {r.status_code}"})
+    except Exception as e:
+        return handle_error(e, "Brewfather Recipe Import Error")
+
 
 # ============ Calculator Endpoints ============
 

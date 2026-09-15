@@ -59,11 +59,11 @@ class TestPhase18AI(unittest.TestCase):
         res = search_yeast_meta("London Ale")
         self.assertEqual(res["name"], "Wyeast 1318 London Ale III")
 
-    @patch('services.ai.requests.post')
-    @patch('services.ai.get_config')
-    @patch('ml.features.query_batch_data')
     @patch('ml.features.calculate_sg_velocity')
-    def test_get_proactive_advice_resource_control(self, mock_vel, mock_query, mock_config, mock_post):
+    @patch('ml.features.query_batch_data')
+    @patch('services.ai.get_config')
+    @patch('services.ai.requests.post')
+    def test_get_proactive_advice_resource_control(self, mock_post, mock_config, mock_query, mock_vel):
         """Verify keep_alive: 0 is present in Ollama calls."""
         mock_config.return_value = "llama3"
         mock_query.return_value = {"sg_readings": [1.050, 1.040], "sg_times": [datetime.now(), datetime.now()]}
@@ -85,31 +85,35 @@ class TestPhase18AI(unittest.TestCase):
         self.assertEqual(payload['keep_alive'], 0)
         self.assertIn("Fermentation Velocity: 5.0", payload['prompt'])
 
-    @patch('services.ai.requests.post')
+    @patch('ml.features.calculate_sg_velocity')
     @patch('ml.features.query_batch_data')
-    def test_predict_issues_stall(self, mock_query, mock_post):
+    @patch('services.ai.get_config')
+    @patch('services.ai.requests.post')
+    def test_predict_issues_stall(self, mock_post, mock_config, mock_query, mock_vel):
         """Verify predict_issues detects slowing trends."""
+        mock_config.side_effect = lambda k: "1.010" if k == "target_fg" else "llama3"
+        mock_vel.side_effect = [1.0, 10.0] # 12h vs 48h
         # Simulate significant slowing: 48h avg = 10 pts/day, 12h avg = 1 pt/day
         mock_query.side_effect = [
             {"sg_readings": [1.050, 1.0495], "sg_times": [datetime.now(), datetime.now()]}, # 12h
             {"sg_readings": [1.050, 1.040], "sg_times": [datetime.now(), datetime.now()]}   # 48h
         ]
         
-        # We need to mock calculate_sg_velocity since we are mocking query_batch_data
-        with patch('ml.features.calculate_sg_velocity') as mock_vel:
-            mock_vel.side_effect = [1.0, 10.0] # 12h vs 48h
-            
-            mock_response = MagicMock()
-            mock_response.status_code = 200
-            mock_response.json.return_value = {"response": "High risk of stall"}
-            mock_post.return_value = mock_response
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"response": "High risk of stall"}
+        mock_post.return_value = mock_response
 
-            with patch('services.status.get_status_dict') as mock_status:
-                mock_status.return_value = {"sg": 1.040}
-                res = predict_issues()
-                
-                self.assertIsNotNone(res)
-                self.assertIn("AI PREDICTION", res)
+        with patch('services.status.get_status_dict') as mock_status:
+            mock_status.return_value = {"sg": 1.040}
+            res = predict_issues()
+            
+            self.assertIsNotNone(res)
+            self.assertIn("AI PREDICTION", res)
+
+
+
+
 
 if __name__ == '__main__':
     unittest.main()

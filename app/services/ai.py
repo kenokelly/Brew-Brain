@@ -6,6 +6,8 @@ from datetime import datetime, timezone, timedelta
 from core.influx import query_api, INFLUX_BUCKET
 from core.cache import cache
 from core.config import get_config, logger
+from ml.features import query_batch_data, calculate_sg_velocity
+
 
 def analyze_yeast_history(yeast_name: str) -> Optional[dict]:
     """
@@ -304,13 +306,23 @@ def predict_issues() -> Optional[str]:
         from services.status import get_status_dict
         from ml.features import query_batch_data, calculate_sg_velocity
         
-        status = get_status_dict()
-        sg = status.get("sg", 1.050)
-        target_fg = float(get_config("target_fg") or 1.010)
+        status = get_status_dict() or {}
+        raw_sg = status.get("sg")
+        try:
+            sg = float(raw_sg) if raw_sg is not None else 1.050
+        except (ValueError, TypeError):
+            sg = 1.050
+
+        raw_target_fg = get_config("target_fg")
+        try:
+            target_fg = float(raw_target_fg) if raw_target_fg is not None else 1.010
+        except (ValueError, TypeError):
+            target_fg = 1.010
         
         # 1. Check if we are in a 'stall-risk' zone
         if sg <= target_fg + 0.002:
             return None # Fermentation essentially complete
+
             
         # 2. Get Velocity Trend (Last 48h vs Last 12h)
         now = datetime.now(timezone.utc)

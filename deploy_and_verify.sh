@@ -31,6 +31,10 @@ wait
 echo "🚀 Rebuilding and Finalizing Deployment..."
 ssh $HOST "cd $REMOTE_DIR && docker compose up -d --build"
 
+# 2b. Prune leftover build layers so the Pi's disk doesn't fill up over repeated deploys
+echo "🧹 Pruning stale build cache & dangling images..."
+ssh $HOST "docker builder prune -af && docker image prune -f" > /dev/null 2>&1
+
 # 3. Verification (Fast check)
 echo "🔍 Verifying Deployment..."
 ssh $HOST "sleep 30" # Wait for containers to initialize on Raspberry Pi

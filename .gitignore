@@ -9,3 +9,8 @@ __pycache__/
 influxdb_data/
 grafana_data/
 brew_brain_backup_*
+scratch/
+backups/
+web/public/sw.js
+web/public/workbox-*.js
+data/brew_brain.log

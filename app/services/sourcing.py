@@ -3,7 +3,9 @@ import json
 import difflib
 import math
 import re
+import urllib.parse
 import time as std_time
+
 import threading
 from concurrent.futures import ThreadPoolExecutor
 from bs4 import BeautifulSoup
@@ -602,13 +604,17 @@ def compare_recipe_prices(recipe_details, recipe_tag=None, debug_mode=False):
         return None
 
     def process_item(item):
+
+        tmm_fallback_link = f"https://www.themaltmiller.co.uk/?s={urllib.parse.quote(item['name'])}&post_type=product"
+        geb_fallback_link = f"https://www.geterbrewed.com/?s={urllib.parse.quote(item['name'])}&post_type=product"
+
         row = {
             "name": item['name'],
             "type": item['type'],
             "amount": f"{item['amount']} {item['unit']}",
             "amount_g": item['amount'] * 1000 if item['unit'] == 'kg' else item['amount'],
-            "tmm_price": "N/A", "tmm_cost": 0.0, "tmm_cost_raw": 0.0, "tmm_link": "#",
-            "geb_price": "N/A", "geb_cost": 0.0, "geb_cost_raw": 0.0, "geb_link": "#",
+            "tmm_price": "N/A", "tmm_cost": 0.0, "tmm_cost_raw": 0.0, "tmm_link": tmm_fallback_link,
+            "geb_price": "N/A", "geb_cost": 0.0, "geb_cost_raw": 0.0, "geb_link": geb_fallback_link,
             "best_vendor": "None",
             "in_stock": False,
             "stock_qty": 0
@@ -657,7 +663,7 @@ def compare_recipe_prices(recipe_details, recipe_tag=None, debug_mode=False):
 
         if res_tmm:
             row['tmm_price'] = res_tmm['price']
-            row['tmm_link'] = res_tmm.get('link', '#')
+            row['tmm_link'] = res_tmm.get('link') or tmm_fallback_link
             if res_tmm.get('weight_g') and res_tmm['weight_g'] > 0:
                 cost_per_g = res_tmm['price'] / res_tmm['weight_g']
                 item_cost = cost_per_g * row['amount_g']
@@ -668,7 +674,7 @@ def compare_recipe_prices(recipe_details, recipe_tag=None, debug_mode=False):
 
         if res_geb:
             row['geb_price'] = res_geb['price']
-            row['geb_link'] = res_geb.get('link', '#')
+            row['geb_link'] = res_geb.get('link') or geb_fallback_link
             if res_geb.get('weight_g') and res_geb['weight_g'] > 0:
                 cost_per_g = res_geb['price'] / res_geb['weight_g']
                 item_cost = cost_per_g * row['amount_g']
@@ -676,6 +682,7 @@ def compare_recipe_prices(recipe_details, recipe_tag=None, debug_mode=False):
                 row['geb_cost'] = round(item_cost, 2)
             else:
                 row['geb_cost'] = "?"
+
         
         # Determine Winner
         try:
@@ -808,7 +815,8 @@ def get_restock_suggestions():
     api_key = get_serpapi_key()
     
     def search_tmm_link(query):
-        if not api_key: return "#"
+        fallback_link = f"https://www.themaltmiller.co.uk/?s={urllib.parse.quote(query)}&post_type=product"
+        if not api_key: return fallback_link
         try:
             params = {
                 "engine": "google_shopping",
@@ -820,9 +828,10 @@ def get_restock_suggestions():
                 "currency": "GBP"
             }
             res = GoogleSearch(params).get_dict().get("shopping_results", [])
-            if res: return res[0].get("link", "#")
+            if res and res[0].get("link"): return res[0].get("link")
         except Exception: pass
-        return "#"
+        return fallback_link
+
 
     # Scan Categories
     for cat, items in inventory.items():

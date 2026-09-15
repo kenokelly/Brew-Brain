@@ -11,9 +11,17 @@ Uses historical batch data from Brewfather + InfluxDB.
 import os
 import glob
 import logging
-import joblib
+try:
+    import joblib
+except ImportError:
+    joblib = None
 import numpy as np
-import pyarrow.parquet as pq
+try:
+    import pyarrow.parquet as pq
+except ImportError:
+    pq = None
+
+
 from datetime import datetime, timezone
 from collections import defaultdict
 from typing import Dict, List, Any
@@ -46,7 +54,10 @@ def ensure_model_dir():
 
 def load_training_data() -> List[Dict[str, Any]]:
     """Load latest aggregated historical batch data as list of dicts."""
+    if pq is None:
+        return []
     pattern = os.path.join(EXPORT_DIR, "training_data_*.parquet")
+
     files = glob.glob(pattern)
     if not files:
         # Fallback to individual batch files
@@ -174,8 +185,12 @@ def train_models() -> Dict[str, Any]:
     
     Returns dict with training metrics and best parameters.
     """
-    from sklearn.ensemble import GradientBoostingRegressor
-    from sklearn.model_selection import GridSearchCV
+    try:
+        from sklearn.ensemble import GradientBoostingRegressor
+        from sklearn.model_selection import GridSearchCV
+    except ImportError:
+        return {"error": "scikit-learn is not installed"}
+
     
     ensure_model_dir()
     
@@ -273,8 +288,9 @@ def predict_fg(
     creep_info = calculate_hop_creep_offset(dry_hop_additions or [])
     gravity_offset = creep_info.get("gravity_offset", 0.0)
 
-    # Check if model exists
-    if not os.path.exists(FG_MODEL_PATH):
+    # Check if model exists or joblib is missing
+    if joblib is None or not os.path.exists(FG_MODEL_PATH):
+
         # Fallback to simple calculation (assuming 75% attenuation)
         attenuation = 75.0
         base_fg = og - ((attenuation / 100.0) * (og - 1.0))
@@ -330,7 +346,8 @@ def predict_time_to_fg(og: float, velocity: float = 0.0, variance: float = 0.0, 
     """
     Predict days remaining until Final Gravity is reached.
     """
-    if not os.path.exists(TIME_MODEL_PATH):
+    if joblib is None or not os.path.exists(TIME_MODEL_PATH):
+
         # Fallback
         days_remaining = max(1, 7 - days_elapsed)
         return {
