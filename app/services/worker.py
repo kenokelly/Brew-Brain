@@ -128,7 +128,7 @@ def process_data_once():
     """Single execution of data processing for APScheduler."""
     try:
         offset = float(get_config("offset") or 0.0)
-        test_mode = get_config("test_mode") == "true"
+        test_mode = bool(get_config("test_mode"))
         float(get_config("target_temp") or 20.0)
         points_to_write = []
         

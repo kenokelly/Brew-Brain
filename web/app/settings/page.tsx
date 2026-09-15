@@ -101,6 +101,11 @@ export default function SettingsPage() {
         setSettings(prev => ({ ...prev, [key]: value }));
     };
 
+    // The API serializes booleans as real JSON true/false, but toggles used
+    // to compare against the string "true" - which only matched after the
+    // user clicked the toggle locally, not on the value loaded from the API.
+    const isEnabled = (v: any) => v === true || v === "true";
+
     const handleSave = async (e?: React.FormEvent) => {
         if (e) e.preventDefault();
         try {
@@ -312,8 +317,12 @@ export default function SettingsPage() {
     };
 
     const toggleTestMode = () => {
-        const newVal = settings["test_mode"] === "true" ? "false" : "true";
-        handleChange("test_mode", newVal);
+        handleChange("test_mode", !isEnabled(settings["test_mode"]));
+        setTimeout(() => handleSave(), 100);
+    };
+
+    const toggleBrewActive = () => {
+        handleChange("brew_active", !isEnabled(settings["brew_active"]));
         setTimeout(() => handleSave(), 100);
     };
 
@@ -464,7 +473,7 @@ export default function SettingsPage() {
                             <label className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Original Gravity (OG)</label>
                             <input
                                 type="number" step="0.001"
-                                value={settings["og"] || ""}
+                                value={settings["og"] ?? ""}
                                 onChange={(e) => handleChange("og", e.target.value)}
                                 className="w-full bg-secondary/50 border border-border/50 rounded-xl px-4 py-3 text-foreground focus:ring-2 focus:ring-primary outline-none transition-all"
                             />
@@ -473,7 +482,7 @@ export default function SettingsPage() {
                             <label className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Target FG</label>
                             <input
                                 type="number" step="0.001"
-                                value={settings["target_fg"] || ""}
+                                value={settings["target_fg"] ?? ""}
                                 onChange={(e) => handleChange("target_fg", e.target.value)}
                                 className="w-full bg-secondary/50 border border-border/50 rounded-xl px-4 py-3 text-foreground focus:ring-2 focus:ring-primary outline-none transition-all"
                             />
@@ -510,7 +519,7 @@ export default function SettingsPage() {
                         <div className="flex items-center justify-between p-4 bg-secondary/50 rounded-xl border border-border/50">
                             <span className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Current Offset</span>
                             <code className="bg-background px-3 py-1 rounded-lg border border-border font-mono font-bold text-emerald-500">
-                                {settings["offset"] || "0.000"}
+                                {settings["offset"] ?? "0.000"}
                             </code>
                         </div>
                         <div className="flex flex-col md:flex-row gap-4">
@@ -691,7 +700,7 @@ export default function SettingsPage() {
                             <label className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Tilt Timeout (min)</label>
                             <input
                                 type="number"
-                                value={settings["tilt_timeout_min"] || "60"}
+                                value={settings["tilt_timeout_min"] ?? "60"}
                                 onChange={(e) => handleChange("tilt_timeout_min", e.target.value)}
                                 className="w-full bg-secondary/50 border border-border/50 rounded-xl px-4 py-3 text-foreground focus:ring-2 focus:ring-primary outline-none transition-all"
                             />
@@ -700,8 +709,18 @@ export default function SettingsPage() {
                             <label className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Max Temp (°C)</label>
                             <input
                                 type="number" step="0.1"
-                                value={settings["temp_max"] || "28.0"}
+                                value={settings["temp_max"] ?? "28.0"}
                                 onChange={(e) => handleChange("temp_max", e.target.value)}
+                                className="w-full bg-secondary/50 border border-border/50 rounded-xl px-4 py-3 text-foreground focus:ring-2 focus:ring-primary outline-none transition-all"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Fermentation Target Temp (°C)</label>
+                            <input
+                                type="number" step="0.1"
+                                placeholder="Uses yeast profile range if empty"
+                                value={settings["target_temp"] ?? ""}
+                                onChange={(e) => handleChange("target_temp", e.target.value === "" ? null : e.target.value)}
                                 className="w-full bg-secondary/50 border border-border/50 rounded-xl px-4 py-3 text-foreground focus:ring-2 focus:ring-primary outline-none transition-all"
                             />
                         </div>
@@ -725,7 +744,7 @@ export default function SettingsPage() {
                                 <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Alert Verbosity (min)</label>
                                 <input
                                     type="number"
-                                    value={settings["alert_verbosity_min"] || "0"}
+                                    value={settings["alert_verbosity_min"] ?? "0"}
                                     onChange={(e) => handleChange("alert_verbosity_min", e.target.value)}
                                     className="w-full bg-background border border-border/50 rounded-xl px-4 py-2 text-foreground focus:ring-2 focus:ring-primary outline-none transition-all"
                                 />
@@ -734,7 +753,7 @@ export default function SettingsPage() {
                                 <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Report Verbosity (min)</label>
                                 <input
                                     type="number"
-                                    value={settings["report_verbosity_min"] || "0"}
+                                    value={settings["report_verbosity_min"] ?? "0"}
                                     onChange={(e) => handleChange("report_verbosity_min", e.target.value)}
                                     className="w-full bg-background border border-border/50 rounded-xl px-4 py-2 text-foreground focus:ring-2 focus:ring-primary outline-none transition-all"
                                 />
@@ -743,7 +762,7 @@ export default function SettingsPage() {
                                 <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Bypass Temp Spike (°C)</label>
                                 <input
                                     type="number" step="0.1"
-                                    value={settings["bypass_temp_threshold"] || "0.5"}
+                                    value={settings["bypass_temp_threshold"] ?? "0.5"}
                                     onChange={(e) => handleChange("bypass_temp_threshold", e.target.value)}
                                     className="w-full bg-background border border-border/50 rounded-xl px-4 py-2 text-foreground focus:ring-2 focus:ring-primary outline-none transition-all"
                                 />
@@ -752,7 +771,7 @@ export default function SettingsPage() {
                                 <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Bypass SG Drop</label>
                                 <input
                                     type="number" step="0.001"
-                                    value={settings["bypass_sg_threshold"] || "0.005"}
+                                    value={settings["bypass_sg_threshold"] ?? "0.005"}
                                     onChange={(e) => handleChange("bypass_sg_threshold", e.target.value)}
                                     className="w-full bg-background border border-border/50 rounded-xl px-4 py-2 text-foreground focus:ring-2 focus:ring-primary outline-none transition-all"
                                 />
@@ -783,6 +802,25 @@ export default function SettingsPage() {
                     
                     <div className="flex items-center justify-between p-4 bg-secondary/30 rounded-xl border border-border/50">
                         <div>
+                            <h3 className="font-bold">Brew Active</h3>
+                            <p className="text-sm text-muted-foreground">Enable Tilt alerts (signal loss, stall, runaway, temp deviation). Leave off between batches so an idle/offline Tilt doesn&apos;t spam Telegram.</p>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={toggleBrewActive}
+                            className={cn(
+                                "px-6 py-2 rounded-full font-bold text-sm transition-all shadow-sm",
+                                isEnabled(settings["brew_active"])
+                                    ? "bg-emerald-500 text-emerald-950 hover:bg-emerald-400"
+                                    : "bg-secondary text-muted-foreground hover:bg-secondary/80"
+                            )}
+                        >
+                            {isEnabled(settings["brew_active"]) ? "Active" : "Idle"}
+                        </button>
+                    </div>
+
+                    <div className="flex items-center justify-between p-4 bg-secondary/30 rounded-xl border border-border/50">
+                        <div>
                             <h3 className="font-bold">Test Mode</h3>
                             <p className="text-sm text-muted-foreground">Simulate sensor data for verification</p>
                         </div>
@@ -791,22 +829,22 @@ export default function SettingsPage() {
                             onClick={toggleTestMode}
                             className={cn(
                                 "px-6 py-2 rounded-full font-bold text-sm transition-all shadow-sm",
-                                settings["test_mode"] === "true"
+                                isEnabled(settings["test_mode"])
                                     ? "bg-amber-500 text-amber-950 hover:bg-amber-400"
                                     : "bg-secondary text-muted-foreground hover:bg-secondary/80"
                             )}
                         >
-                            {settings["test_mode"] === "true" ? "Enabled" : "Disabled"}
+                            {isEnabled(settings["test_mode"]) ? "Enabled" : "Disabled"}
                         </button>
                     </div>
 
-                    {settings["test_mode"] === "true" && (
+                    {isEnabled(settings["test_mode"]) && (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in slide-in-from-top-4 bg-amber-500/5 p-6 rounded-2xl border border-amber-500/20 mt-4">
                             <div className="space-y-2">
                                 <label className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Sim Start SG</label>
                                 <input
                                     type="number" step="0.001"
-                                    value={settings["test_sg_start"] || ""}
+                                    value={settings["test_sg_start"] ?? ""}
                                     onChange={(e) => handleChange("test_sg_start", e.target.value)}
                                     className="w-full bg-background border border-border/50 rounded-xl px-4 py-3 text-foreground focus:ring-2 focus:ring-primary outline-none transition-all"
                                 />
@@ -815,7 +853,7 @@ export default function SettingsPage() {
                                 <label className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Sim Base Temp</label>
                                 <input
                                     type="number" step="0.1"
-                                    value={settings["test_temp_base"] || ""}
+                                    value={settings["test_temp_base"] ?? ""}
                                     onChange={(e) => handleChange("test_temp_base", e.target.value)}
                                     className="w-full bg-background border border-border/50 rounded-xl px-4 py-3 text-foreground focus:ring-2 focus:ring-primary outline-none transition-all"
                                 />

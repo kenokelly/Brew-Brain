@@ -392,6 +392,27 @@ def check_runaway_fermentation(batch_name: str = "Current Batch") -> Dict[str, A
         return {"status": "error", "error": str(e)}
 
 
+SIGNAL_LOSS_REMINDER_MIN = 240  # Once alerted, don't re-alert for 4h while still offline
+
+
+def _should_send_signal_loss_alert() -> bool:
+    """
+    Signal loss is a persistent condition, not a one-off event - it can
+    stay true for hours/days/months (dead battery, no active batch, etc).
+    Alert immediately the first time, then only send reminders at most
+    every SIGNAL_LOSS_REMINDER_MIN, instead of every anomaly-check cycle.
+    """
+    last_alert_ts = cache.get("last_signal_loss_alert")
+    if last_alert_ts is None:
+        return True
+    elapsed_min = (datetime.now(timezone.utc).timestamp() - last_alert_ts) / 60
+    return elapsed_min >= SIGNAL_LOSS_REMINDER_MIN
+
+
+def _mark_signal_loss_alert_sent() -> None:
+    cache.set("last_signal_loss_alert", datetime.now(timezone.utc).timestamp(), ttl=86400 * 2)
+
+
 def check_signal_loss(batch_name: str = "Current Batch") -> Dict[str, Any]:
     """
     Detects Tilt hydrometer signal loss (no reading for > 60 minutes).
@@ -406,61 +427,83 @@ def check_signal_loss(batch_name: str = "Current Batch") -> Dict[str, Any]:
             |> last()
         '''
         tables = query_api.query(query)
-        
+
         last_reading_time = None
         for table in tables:
             for record in table.records:
                 last_reading_time = record.get_time()
-        
+
         if last_reading_time is None:
             # No readings at all in 24h
-            alert_msg = (
-                f"📡 *TILT OFFLINE: {batch_name}*\n\n"
-                f"No readings in last 24 hours!\n\n"
-                f"*Check:*\n"
-                f"• Tilt battery\n"
-                f"• TiltPi/Bluetooth connection\n"
-                f"• Tilt orientation in wort"
-            )
-            send_telegram_message(alert_msg)
-            return {"status": "offline", "alert_sent": True, "minutes_since": "24h+"}
-        
+            should_alert = _should_send_signal_loss_alert()
+            alert_sent = False
+            if should_alert:
+                alert_msg = (
+                    f"📡 *TILT OFFLINE: {batch_name}*\n\n"
+                    f"No readings in last 24 hours!\n\n"
+                    f"*Check:*\n"
+                    f"• Tilt battery\n"
+                    f"• TiltPi/Bluetooth connection\n"
+                    f"• Tilt orientation in wort"
+                )
+                result = send_telegram_message(alert_msg, force=True)
+                alert_sent = result.get("status") == "success"
+                if alert_sent:
+                    _mark_signal_loss_alert_sent()
+            return {"status": "offline", "alert_sent": alert_sent, "minutes_since": "24h+"}
+
         # Calculate time since last reading
         now = datetime.now(timezone.utc)
         minutes_since = (now - last_reading_time).total_seconds() / 60
-        
+
         timeout_min = int(get_config("tilt_timeout_min") or SIGNAL_LOSS_MINUTES)
-        
+
         if minutes_since > timeout_min:
-            # TRIGGER AUTO-TROUBLESHOOTING FIRST
+            should_alert = _should_send_signal_loss_alert()
+            if not should_alert:
+                return {
+                    "status": "signal_loss",
+                    "alert_sent": False,
+                    "reason": "reminder_throttled",
+                    "minutes_since": round(minutes_since, 1),
+                    "last_reading": last_reading_time.isoformat()
+                }
+
+            # TRIGGER AUTO-TROUBLESHOOTING FIRST (only when we're actually alerting)
             logger.info(f"Signal loss detected ({int(minutes_since)} min). Running automated diagnostics...")
             troubleshoot_result = troubleshoot_tiltpi()
-            
+
             alert_msg = (
                 f"📡 *TILT SIGNAL LOSS: {batch_name}*\n\n"
                 f"Last reading: {int(minutes_since)} minutes ago\n"
                 f"Threshold: {timeout_min} minutes\n\n"
                 f"*Automated Diagnostics:* {troubleshoot_result.get('status', 'unknown')}\n"
-                f"*Action:* Check Tilt battery and Bluetooth bridge."
+                f"*Action:* Check Tilt battery and Bluetooth bridge.\n\n"
+                f"_Next reminder in {SIGNAL_LOSS_REMINDER_MIN // 60}h if still offline._"
             )
-            # Signal loss is ALWAYS immediate (force=True)
-            send_telegram_message(alert_msg, force=True)
+            # First alert (and each subsequent reminder) is immediate - the
+            # reminder cooldown above is what actually prevents spam now,
+            # not the shared/generic verbosity gate.
+            result = send_telegram_message(alert_msg, force=True)
+            alert_sent = result.get("status") == "success"
+            if alert_sent:
+                _mark_signal_loss_alert_sent()
             broadcast_alert("signal_loss", f"Tilt offline: {int(minutes_since)} min", "error")
-            
+
             return {
                 "status": "signal_loss",
-                "alert_sent": True,
+                "alert_sent": alert_sent,
                 "minutes_since": round(minutes_since, 1),
                 "last_reading": last_reading_time.isoformat(),
                 "troubleshoot": troubleshoot_result
             }
-        
+
         return {
             "status": "normal",
             "minutes_since": round(minutes_since, 1),
             "last_reading": last_reading_time.isoformat()
         }
-        
+
     except Exception as e:
         logger.error(f"Signal loss check error: {e}")
         return {"status": "error", "error": str(e)}
@@ -568,7 +611,16 @@ def run_all_anomaly_checks(batch_name: str = "Current Batch") -> Dict[str, Any]:
         "anomaly_score": 0.0,
         "anomaly_status": "ok"
     }
-    
+
+    # Phase 17.8: suppress all Tilt-related checks/alerts when no brew is
+    # active (e.g. between batches) - there's nothing wrong with the Tilt
+    # being "offline" if nobody is fermenting anything on it right now.
+    if not get_config("brew_active"):
+        results["anomaly_status"] = "ok"
+        results["status"] = "ok"
+        results["skipped"] = "brew_inactive"
+        return results
+
     # Run rule-based checks
     results["checks"]["stalled"] = check_stalled_fermentation(batch_name)
     results["checks"]["temp_deviation"] = check_temperature_deviation(batch_name=batch_name)

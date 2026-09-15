@@ -3,6 +3,7 @@
   "test_mode": false,
   "temp_max": 28.0,
   "tilt_timeout_min": 60,
+  "brew_active": false,
   "og": 1.05,
   "target_fg": 1.01,
   "batch_name": "New Batch",

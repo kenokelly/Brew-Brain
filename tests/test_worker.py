@@ -103,7 +103,7 @@ class TestWorker(unittest.TestCase):
     @patch("app.services.worker.Point")
     def test_process_data_once_test_mode(self, mock_point_cls, mock_write, mock_get_config):
         mock_get_config.side_effect = lambda k: {
-            "test_mode": "true",
+            "test_mode": True,
             "test_sg_start": "1.060",
             "test_temp_base": "20.0",
             "offset": "0.0"

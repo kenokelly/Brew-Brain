@@ -220,17 +220,61 @@ class TestAnomalyDetection(unittest.TestCase):
 
     def test_check_signal_loss(self):
         from app.services.anomaly import check_signal_loss
-        
+
+        self.mock_telegram.return_value = {"status": "success"}
+
         # Last reading was 2 hours ago
         last_time = datetime.now(timezone.utc) - timedelta(minutes=120)
         self.mock_query.query.return_value = [MockTable([MockRecord(1.030, last_time)])]
-        
+
+        mock_cache = MagicMock()
+        mock_cache.get.return_value = None  # No prior alert sent yet
+
         # Mock troubleshoot_tiltpi to avoid network calls
-        with patch('app.services.anomaly.troubleshoot_tiltpi') as mock_trouble:
+        with patch('app.services.anomaly.troubleshoot_tiltpi') as mock_trouble, \
+             patch('app.services.anomaly.cache', mock_cache):
             mock_trouble.return_value = {"status": "checked"}
             result = check_signal_loss("Signal Test")
             self.assertEqual(result["status"], "signal_loss")
+            self.assertTrue(result["alert_sent"])
             self.mock_telegram.assert_called_once()
+            mock_cache.set.assert_called_once()  # Reminder cooldown recorded
+
+    def test_check_signal_loss_reminder_throttled(self):
+        """A second signal-loss check within the reminder window must not re-alert."""
+        from app.services.anomaly import check_signal_loss
+
+        last_time = datetime.now(timezone.utc) - timedelta(minutes=120)
+        self.mock_query.query.return_value = [MockTable([MockRecord(1.030, last_time)])]
+
+        mock_cache = MagicMock()
+        # Simulate an alert already sent 10 minutes ago (well within the 4h cooldown)
+        mock_cache.get.return_value = datetime.now(timezone.utc).timestamp() - 600
+
+        with patch('app.services.anomaly.troubleshoot_tiltpi') as mock_trouble, \
+             patch('app.services.anomaly.cache', mock_cache):
+            result = check_signal_loss("Signal Test")
+            self.assertEqual(result["status"], "signal_loss")
+            self.assertFalse(result["alert_sent"])
+            self.assertEqual(result["reason"], "reminder_throttled")
+            self.mock_telegram.assert_not_called()
+            mock_trouble.assert_not_called()  # Shouldn't run diagnostics if we're not alerting
+
+    def test_run_all_anomaly_checks_skipped_when_brew_inactive(self):
+        """Tilt-related checks/alerts must stay silent when no brew is active (Phase 17.8)."""
+        from app.services.anomaly import run_all_anomaly_checks
+
+        self.mock_config.side_effect = lambda k: {
+            "batch_name": "Idle Batch",
+            "brew_active": False,
+        }.get(k)
+
+        result = run_all_anomaly_checks("Idle Batch")
+
+        self.assertEqual(result.get("skipped"), "brew_inactive")
+        self.assertEqual(result["checks"], {})
+        self.mock_telegram.assert_not_called()
+        self.mock_query.query.assert_not_called()
 
 if __name__ == '__main__':
     unittest.main()

@@ -66,7 +66,7 @@ def test_get_pi_temp_failure():
 def test_get_status_dict_test_mode(mock_get_tilt_state, mock_query, mock_get_config):
     def get_config_side_effect(key):
         configs = {
-            "test_mode": "true",
+            "test_mode": True,
             "offset": "0.0",
             "og": "1.050",
             "target_fg": "1.010",
@@ -114,7 +114,7 @@ def test_get_status_dict_test_mode(mock_get_tilt_state, mock_query, mock_get_con
 def test_get_status_dict_live_mode_with_tilt_state(mock_query, mock_get_config):
     def get_config_side_effect(key):
         configs = {
-            "test_mode": "false",
+            "test_mode": False,
             "offset": "0.002",
             "og": "1.050",
             "target_fg": "1.010",
@@ -152,7 +152,7 @@ def test_get_status_dict_live_mode_with_tilt_state(mock_query, mock_get_config):
 def test_get_status_dict_live_mode_fallback_influx(mock_query, mock_get_config):
     def get_config_side_effect(key):
         configs = {
-            "test_mode": "false",
+            "test_mode": False,
             "offset": "0.0",
             "og": "1.050",
             "target_fg": "1.010",
@@ -197,7 +197,7 @@ def test_get_status_dict_live_mode_fallback_influx(mock_query, mock_get_config):
 def test_get_status_dict_exception_handling(mock_query, mock_get_config):
     def get_config_side_effect(key):
         configs = {
-            "test_mode": "false",
+            "test_mode": False,
             "offset": "0.0",
             "og": "1.050",
             "target_fg": "1.010",

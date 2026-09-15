@@ -7,7 +7,7 @@ def get_pi_temp():
     except (FileNotFoundError, OSError): return 0.0
 
 def get_status_dict():
-    test_mode = get_config("test_mode") == "true"
+    test_mode = bool(get_config("test_mode"))
     recent_sg, recent_temp = 0.0, 0.0
     recent_rssi = None
     last_sync = None

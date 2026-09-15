@@ -39,6 +39,10 @@ class BrewBrainConfig(BaseModel):
     test_mode: bool = False
     temp_max: float = 28.0
     tilt_timeout_min: int = 60
+    # Gates Tilt-related anomaly checks/alerts (signal loss, stall, runaway,
+    # temp deviation) so they stay silent between batches when the Tilt is
+    # expected to be offline. Phase 17.8.
+    brew_active: bool = False
     
     # Active Batch Details
     og: float = 1.050
@@ -109,7 +113,7 @@ class BrewBrainConfig(BaseModel):
             return ""
         return str(v)
 
-    @field_validator('yeast_min_temp', 'yeast_max_temp', 'yeast_attenuation', mode='before')
+    @field_validator('yeast_min_temp', 'yeast_max_temp', 'yeast_attenuation', 'target_temp', mode='before')
     @classmethod
     def coerce_optional_floats(cls, v: Any) -> Optional[float]:
         if v is None or v == "":
@@ -186,7 +190,7 @@ class BrewBrainConfig(BaseModel):
         except (ValueError, TypeError):
             return fallback
 
-    @field_validator('test_mode', mode='before')
+    @field_validator('test_mode', 'brew_active', mode='before')
     @classmethod
     def coerce_bool(cls, v: Any) -> bool:
         if v is None:
