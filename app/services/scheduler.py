@@ -43,6 +43,11 @@ def init_scheduler(app):
         """Fetch and broadcast system status via WebSocket."""
         try:
             status = get_status_dict()
+        except Exception as e:
+            logger.error(f"Status Fetch Error: {e}")
+            return
+
+        try:
             # Use global socketio instance directly
             socketio.emit('status_update', status)
         except Exception as e:

@@ -14,6 +14,35 @@ from serpapi import GoogleSearch
 
 logger = logging.getLogger(__name__)
 
+import os
+DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'data')
+INGREDIENT_LIBRARY_FILE = os.path.join(DATA_DIR, 'ingredient_library.json')
+
+# Fallback watchlist used if ingredient_library.json is missing/corrupt
+DEFAULT_INGREDIENT_LIBRARY = {
+    "Citra Hops 100g": {"baseline": 7.50, "search_term": "Citra Hops 100g"},
+    "Crisp Extra Pale Malt 25kg": {"baseline": 55.00, "search_term": "Crisp Extra Pale Malt 25kg"},
+    "Simcoe Hops 100g": {"baseline": 7.50, "search_term": "Simcoe Hops 100g"},
+    "Golden Promise Malt 25kg": {"baseline": 52.00, "search_term": "Golden Promise Malt 25kg"}
+}
+
+
+def _load_ingredient_library():
+    """Loads the price-watch ingredient library, seeding the file with
+    defaults on first run so it can be edited without a code change."""
+    try:
+        if not os.path.exists(INGREDIENT_LIBRARY_FILE):
+            if not os.path.exists(DATA_DIR):
+                os.makedirs(DATA_DIR)
+            with open(INGREDIENT_LIBRARY_FILE, 'w') as f:
+                json.dump(DEFAULT_INGREDIENT_LIBRARY, f, indent=2)
+            return dict(DEFAULT_INGREDIENT_LIBRARY)
+        with open(INGREDIENT_LIBRARY_FILE, 'r') as f:
+            return json.load(f)
+    except (OSError, json.JSONDecodeError) as e:
+        logger.warning(f"Failed to load ingredient_library.json, using defaults: {e}")
+        return dict(DEFAULT_INGREDIENT_LIBRARY)
+
 # Lazy import to avoid circular dependency
 def _get_inventory():
     """Fetches inventory from Brewfather (cached for duration of request)."""
@@ -275,16 +304,10 @@ def check_price_watch():
     Triggered by a cron/scheduler (or manual API call for now).
     """
     from services.notifications import send_telegram_message
-    
-    # Library of "Normal Prices" (Baseline)
-    # In a full app, this would be in a DB or ingredient_library.json
-    INGREDIENT_LIBRARY = {
-        "Citra Hops 100g": {"baseline": 7.50, "search_term": "Citra Hops 100g"},
-        "Crisp Extra Pale Malt 25kg": {"baseline": 55.00, "search_term": "Crisp Extra Pale Malt 25kg"},
-        "Simcoe Hops 100g": {"baseline": 7.50, "search_term": "Simcoe Hops 100g"},
-        "Golden Promise Malt 25kg": {"baseline": 52.00, "search_term": "Golden Promise Malt 25kg"}
-    }
-    
+
+    # Library of "Normal Prices" (Baseline), editable at data/ingredient_library.json
+    INGREDIENT_LIBRARY = _load_ingredient_library()
+
     alerts = []
     
     for name, data in INGREDIENT_LIBRARY.items():
@@ -347,6 +370,10 @@ def check_price_watch():
 def compare_recipe_prices(recipe_details, recipe_tag=None, debug_mode=False):
     """
     Compares prices for a recipe's ingredients.
+
+    Takes a full recipe object (from BF) OR a tag to fetch it, and compares
+    basket cost. Uses Google Organic Search + Snippet Parsing for broader
+    coverage than Google Shopping.
     """
     if debug_mode:
         logger.info("DEBUG MODE: Returning mock comparison results.")
@@ -359,10 +386,7 @@ def compare_recipe_prices(recipe_details, recipe_tag=None, debug_mode=False):
             "winner": "The Malt Miller",
             "debug": True
         }
-    """
-    Takes full recipe object (from BF) OR a tag to fetch it, and compares basket cost.
-    Uses Google Organic Search + Snippet Parsing for broader coverage than Google Shopping.
-    """
+
     # 1. Resolve Recipe if Tag provided
     if recipe_tag:
         from services import alerts

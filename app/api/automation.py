@@ -463,17 +463,37 @@ def analyze_bf_batch():
     try:
         data = request.json or {}
         batch_id = data.get("batch_id")
-        target = data.get("target", 20.0)
-        
+        target = float(data.get("target", 20.0))
+
         if not batch_id:
             return api_response(status="error", error="batch_id required", code=400)
-            
-        # In a real scenario, this would fetch readings for the batch.
-        # For now, simulate a result.
+
+        from services.alerts import fetch_batch_readings, check_temp_stability
+
+        readings = fetch_batch_readings(batch_id)
+        if not readings:
+            return api_response(
+                status="error",
+                error=f"No readings available for batch {batch_id}. Check Brewfather credentials and that the batch has logged temperature data.",
+                code=404
+            )
+
+        result = check_temp_stability(readings, target, threshold=1.0, is_list=True)
+        if result.get("status") == "error":
+            return api_response(status="error", error=result.get("message", "Analysis failed"), code=400)
+
+        msg = (
+            f"Batch {batch_id}: max deviation ±{result['max_deviation']}°C from target {target}°C "
+            f"(latest reading: {result['current_temp']}°C)."
+        )
+        if result["status"] != "stable":
+            msg += " Exceeds the 1.0°C stability threshold."
+
         return api_response(data={
-            "status": "stable",
-            "message": f"Batch {batch_id} tracking securely around {target}°C.",
-            "stability_score": 0.2
+            "status": result["status"],
+            "message": msg,
+            "avg_temp": result["current_temp"],
+            "stability_score": result["max_deviation"],
         })
     except Exception as e:
         return handle_error(e, "BF Analysis Error")

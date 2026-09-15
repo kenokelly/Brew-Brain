@@ -59,9 +59,12 @@ def get_status_dict():
             if recent_sg == 0.0 or recent_temp == 0.0:
                  # Original Influx Fallback Logic...
                  pass # We keep the query logic above, this just overrides it if TILT_STATE is good.
-    except (ConnectionError, OSError, KeyError):
-        # Fail gracefully — status page should never crash
-        pass
+    except Exception as e:
+        # Fail gracefully — status page should never crash (e.g. InfluxDB
+        # unreachable/unauthorized raises influxdb_client's ApiException,
+        # which isn't a builtin ConnectionError/OSError/KeyError)
+        import logging
+        logging.getLogger(__name__).warning(f"Status telemetry fetch failed: {e}")
 
 
     return {

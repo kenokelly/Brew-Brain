@@ -1,5 +1,6 @@
 # Brew-Brain Phase 2: DIY Keg Scales & Flow Meters (Taproom Automation)
 ## Project Stream Document (Module 09)
+**Status:** Implemented (see TASKS.md Phase 21.2 — `app/services/flow_manager.py`, `app/services/scale_processor.py`, `app/api/telemetry_receiver.py`)
 
 This document details the architectural design and functional specifications for integrating DIY physical telemetry hardware into the taproom. This moves Brew-Brain from estimated volume-decay logic to real-time, sensor-verified tracking of draft assets.
 

@@ -1,4 +1,5 @@
 # PRD & Implementation Plan: Phase 9.9 & MCP Integration
+**Status:** Mash pH (§4.2) implemented — see TASKS.md Phase 22.1. MCP server (§4.1) deferred, not started.
 
 ## 1. Executive Summary
 This phase focuses on upgrading Brew-Brain's scientific engine by integrating the **Model Context Protocol (MCP)** for brewing intelligence and implementing a professional-grade **Mash pH Prediction** module inspired by the user's customized Bru'n Water model and the external `brewing-mcp` resource.

@@ -1,4 +1,5 @@
 # Brew-Brain Phase 2: AI-Assisted Brew Day Coaching & Live Adjustments
+**Status:** Implemented (see TASKS.md Phase 21.1 — `app/services/brewday_coach.py`, `/api/brewday/*`)
 
 This document outlines the Product Requirements and Technical Architecture for Phase 2 of the Brew-Brain project. This stream introduces real-time, context-aware AI coaching during the brew day, deterministic gravity/volume corrections, and automated markdown log generation.
 

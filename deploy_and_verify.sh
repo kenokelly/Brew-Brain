@@ -56,6 +56,28 @@ else
     exit 1
 fi
 
+# 4. Functional Smoke Tests (liveness above only proves the process is up,
+#    not that the brewing math is correct — verify a couple of known values)
+echo "🧪 Running functional smoke tests..."
+
+echo "   [1/2] IBU calculator (50g @ 10% AA, 60min, 1.050 OG, 23L -> expect 55.2)..."
+IBU_RESULT=$(ssh $HOST "curl -s -X POST http://localhost:5000/api/calculator/ibu -H 'Content-Type: application/json' -d '{\"alpha_acid\":10.0,\"weight_grams\":50,\"boil_time_mins\":60,\"boil_gravity\":1.050,\"batch_volume_liters\":23}'")
+if echo "$IBU_RESULT" | grep -q '"ibu":55.2'; then
+    echo "✅ IBU calculation correct"
+else
+    echo "❌ IBU calculation returned unexpected result: $IBU_RESULT"
+    exit 1
+fi
+
+echo "   [2/2] Water profiles..."
+WATER_RESULT=$(ssh $HOST "curl -s http://localhost:5000/api/water/profiles")
+if echo "$WATER_RESULT" | grep -q '"status":"success"'; then
+    echo "✅ Water chemistry module responding"
+else
+    echo "❌ Water profiles check failed: $WATER_RESULT"
+    exit 1
+fi
+
 echo "🎉 OPTIMIZED DEPLOYMENT COMPLETE!"
 echo "   Build strategy: Standalone Host-Build + Rsync Delta"
 exit 0

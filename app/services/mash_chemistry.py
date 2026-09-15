@@ -116,13 +116,16 @@ def predict_mash_ph(
         calcium = water_profile.get("calcium", 0)
         magnesium = water_profile.get("magnesium", 0)
         
-        # Residual Alkalinity formula (simplified)
-        # RA = Alkalinity - (Ca/1.4) - (Mg/1.7)
-        alkalinity = bicarbonate / 50 * 50  # Convert to CaCO3 equivalent
+        # Kolbach Residual Alkalinity formula:
+        # RA (ppm as CaCO3) = Alkalinity (ppm as CaCO3) - (Ca/1.4) - (Mg/1.7)
+        # Bicarbonate is reported as ppm HCO3-, which must first be converted
+        # to ppm-as-CaCO3 (equivalent weight 50) from its own equivalent
+        # weight of 61 before the RA formula applies.
+        alkalinity = bicarbonate * (50 / 61)
         residual_alkalinity = alkalinity - (calcium / 1.4) - (magnesium / 1.7)
-        
-        # RA to pH shift (approx 0.03 pH per 10 ppm RA)
-        water_ph_shift = residual_alkalinity * 0.003
+
+        # RA to pH shift: ~0.1 pH change per 50ppm RA (Palmer, "How to Brew")
+        water_ph_shift = residual_alkalinity * 0.002
         
         # 3. Combined predicted pH
         predicted_ph = DISTILLED_WATER_MASH_PH + grain_ph_shift + water_ph_shift

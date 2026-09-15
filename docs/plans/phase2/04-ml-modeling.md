@@ -1,4 +1,5 @@
 # Project Stream Plan: Advanced Fermentation Prediction Modeling (Phase 2)
+**Status:** Implemented (see TASKS.md Phase 21.3 — `app/ml/kinetic_engine.py`, `app/ml/creep_analyzer.py`, `app/ml/correlation.py`)
 
 ## 1. Driving Goals
 The core objective of Phase 2 modeling is to shift Brew-Brain from reactive monitoring to proactive, high-precision fermentation forecasting. The driving goals include:

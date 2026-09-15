@@ -263,6 +263,37 @@ Transform Brew Brain from a monitoring dashboard into an **Intelligent Fermentat
 
 ---
 
+### Phase 21 — Taproom Telemetry, AI Brew Day Coach & Advanced ML Modeling ✅ / ⏸️
+
+> This master plan had fallen out of sync with `docs/plans/phase2/*.md`, which were still
+> labeled "Proposal/Draft" for streams that were actually already implemented. Reconciled here.
+
+- [x] **21.1 AI Brew Day Coach** (`docs/plans/phase2/02-ai-brewday.md`) — Live brew-day coaching,
+  gravity/volume corrections, auto-logging. Implemented in `app/services/brewday_coach.py` and
+  the `/api/brewday/*` routes.
+- [x] **21.2 Taproom Telemetry** (`docs/plans/phase2/03-taproom-automation.md`) — Keg scale and
+  flow-meter ingestion, Untappd check-ins. Implemented in `app/services/flow_manager.py`,
+  `app/services/scale_processor.py`, `app/api/telemetry_receiver.py`.
+- [x] **21.3 Advanced ML Modeling** (`docs/plans/phase2/04-ml-modeling.md`) — Yeast pitch
+  kinetics, hop-creep prediction, cross-batch DTW correlation. Implemented in
+  `app/ml/kinetic_engine.py`, `app/ml/creep_analyzer.py`, `app/ml/correlation.py`.
+- [ ] **21.4 DIY Temp/Pressure Control** (`docs/plans/phase2/01-diy-control.md`) — MQTT/Tasmota
+  relay control + spunding valve automation. **Not started** — deferred, no hardware available yet.
+
+### Phase 22 — Mash pH Prediction ✅ (MCP server deferred)
+
+- [x] **22.1 Kolbach Residual Alkalinity Formula** (`docs/plans/phase-9.9-mcp-integration.md`) —
+  `app/services/mash_chemistry.py` previously had a no-op bicarbonate→CaCO3 conversion
+  (`bicarbonate / 50 * 50`) which silently produced incorrect Residual Alkalinity values. Fixed
+  to use the correct 50/61 equivalent-weight conversion, and the RA→pH shift coefficient
+  corrected to the published ~0.002 pH/ppm (Palmer, *How to Brew*).
+- [x] **22.1b Mash pH API Route** — `predict_mash_ph()` had no HTTP route at all (dead code, no
+  caller). Added `POST /api/water/mash-ph`.
+- [ ] **22.1c Mash Prediction Dashboard Card** — Frontend UI for the above route. **Not started.**
+- [ ] **22.2 MCP Server** — Expose Brew-Brain as an MCP tool provider. **Not started** — deferred.
+
+---
+
 ## Reference Docs
 
 | Document | Purpose |
