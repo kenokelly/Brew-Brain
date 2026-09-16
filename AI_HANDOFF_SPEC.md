@@ -13,35 +13,35 @@
 ## 2. AI-Assisted Development Task List
 
 ### Sprint 0: Pre-build & Environment Setup
-- [ ] **Infrastructure Initialization:** Ensure `docker-compose.yml` is robust and handles all volume mounts.
-- [ ] **Connectivity & Security:** Harden the Raspberry Pi network exposure.
-- [ ] **CI/CD Pipeline Setup:** GitHub Actions for building multi-arch images (amd64/arm64).
+- [x] **Infrastructure Initialization:** `docker-compose.yml` bind-mounts `./brain_data:/data`, `./influxdb_data`, `./grafana_data` — state survives container recreates. Verified live on the Pi.
+- [~] **Connectivity & Security:** Partial — `cloudflared` tunnel avoids direct port exposure, `require_api_token` gates sensitive routes. Not a full audit (see Sprint 3.2 below, still open).
+- [x] **CI/CD Pipeline Setup:** `.github/workflows/docker-publish.yml` already builds multi-arch (amd64/arm64) images via Buildx/QEMU on push to `main`. It existed but was never checked off.
 
 ### Sprint A: Hardening & Data Modeling (Backend)
 - [x] **SSRF Fix in Sourcing:** Sanitise tag input and restrict outbound requests.
 - [x] **Lightweight Alternatives:** Removed Pandas from core requirements to improve Pi stability.
-- [ ] **Persistence:** Migrate ML model states to a persistent store.
+- [x] **Persistence:** ML model state (`data/models/*.joblib`) already lives under the `./brain_data:/data` bind mount — persists across container recreates without further migration.
 
 ### Sprint B: The "Offline-First" Mobile Client
 - [x] **PWA Support:** Currently implemented as a Next.js PWA.
-- [ ] **Native Mobile App:** Evaluate Flutter transition for deeper hardware integration.
+- [x] **Native Mobile App:** Superseded by a different choice, not "evaluated and rejected" — shipped via Capacitor (iOS/Android wrapping, `web/ios`, `web/android`) rather than a Flutter rewrite. Biometric auth, haptics, and camera/barcode scanning are already wired up (see Sprint M below). If a native *rewrite* is still wanted, that's a fresh scoping conversation, not a leftover task.
 
 ### Sprint C: Pro-Grade Features
 - [x] **FG Prediction:** Gradient Boosting and Physics-informed ML models.
 - [x] **Anomaly Detection:** Rule-based and Z-score statistical detection.
-- [ ] **Hardware Integration:** Deepen Tilt signal health monitoring.
-- [ ] **Web Dashboard:** Refine "Mission Control" UI via WebSocket telemetry.
+- [~] **Hardware Integration:** Tilt signal health monitoring exists (`check_signal_loss`, auto-troubleshooting, and — as of 2026-09 — a proper alert cooldown plus a `brew_active` gate so it stays quiet between batches). "Deepen" is open-ended; treat this as ongoing, not a discrete task.
+- [~] **Web Dashboard:** The main dashboard already has real-time WebSocket telemetry, system status, anomaly/advice/prediction widgets. "Refine Mission Control UI" is a design goal, not a checklist item — needs a concrete spec (what should change?) before it can be picked up as actual work.
 
 ### Sprint D: The Board Operations Scheduler
-- [ ] **Automated Telemetry:** Implement an application-level task scheduler to trigger daily diff reports at 08:30 AM (Weekdays) and 11:00 AM (Weekends).
+- [x] **Automated Telemetry:** Implemented via APScheduler, daily diff reports at 08:30 (Weekdays) / 11:00 (Weekends) — see TASKS.md Phase D.1/D.2.
 
 ### Sprint E: Documentation & Release Management
-- [ ] **Enforced Documentation Gate:** Integrate documentation checks into the CI/CD pipeline. 
+- [ ] **Enforced Documentation Gate:** Still not implemented. Note: `.github/workflows/lint-and-test.yml` existed but was silently broken (referenced a nonexistent `brew-brain/` subdirectory and a typo'd `python-python` input) since a repo restructure — fixed 2026-09-16, ruff/mypy now run advisory-only (682/22 pre-existing findings respectively, not addressed here) with pytest as the real hard gate.
 
 ### Sprint M: Mobile-First Evolution (PWA to Native)
-- [ ] **Phase 1 (PWA):** Refactor web UI with a responsive framework (e.g., Tailwind CSS).
-- [ ] **Phase 2 (Adaptive Mobile):** Use Capacitor/Hybrid bridge to wrap the PWA into installable .apk or .ipa files.
-- [ ] **Phase 3 (Native Optimization):** Implement Native Modules (Biometrics, Camera, Haptics) for platform-specific optimization.
+- [x] **Phase 1 (PWA):** Tailwind CSS is the styling system throughout.
+- [x] **Phase 2 (Adaptive Mobile):** Capacitor wraps the PWA for iOS/Android (`web/ios`, `web/android`, `@capacitor/core` etc.).
+- [x] **Phase 3 (Native Optimization):** Biometric auth (`@aparajita/capacitor-biometric-auth`, gates Settings), Haptics (`@capacitor/haptics`, brew day guide), and camera/barcode scanning (`capacitor-mlkit/barcode-scanning`, inventory) are all already wired up.
 
 ---
 

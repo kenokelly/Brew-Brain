@@ -862,35 +862,6 @@ export default function SettingsPage() {
                     )}
                 </div>
 
-                {/* --- DANGER ZONE --- */}
-                <div className="glass-card p-6 space-y-4 border-red-500/20 bg-red-500/5">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <div className="p-2 bg-red-500/10 rounded-xl text-red-500">
-                                <Trash2 className="w-5 h-5" />
-                            </div>
-                            <h2 className="text-xl font-bold tracking-tight text-red-500">Danger Zone</h2>
-                        </div>
-                        <button
-                            type="button"
-                            onClick={() => {
-                                if(confirm("Are you sure you want to Factory Reset? This action cannot be undone.")) {
-                                    if(prompt("Type YES to confirm wipe") === "YES") {
-                                        toast.error("Factory Reset triggered. (Note: Backend flush required for full wipe)");
-                                        // A future backend endpoint would be hit here
-                                    }
-                                }
-                            }}
-                            className="bg-red-600 hover:bg-red-500 text-white px-6 py-2 rounded-xl font-bold transition-colors shadow-sm text-sm"
-                        >
-                            Factory Reset
-                        </button>
-                    </div>
-                    <p className="text-sm text-red-400/80">
-                        Wipe all telemetry database entries and reset settings back to default. Exercise extreme caution.
-                    </p>
-                </div>
-
                 {/* Bottom Global Save Button */}
                 <div className="flex justify-end pt-4">
                     <button
