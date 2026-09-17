@@ -118,8 +118,9 @@ export default function ChatPage() {
                         <div className="bg-purple-600/10 p-2 rounded-xl">
                             <Bot className="w-5 h-5 text-purple-500" />
                         </div>
-                        <div className="bg-card border border-border/50 p-4 rounded-2xl rounded-tl-none">
+                        <div className="bg-card border border-border/50 p-4 rounded-2xl rounded-tl-none flex items-center gap-2">
                             <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                            <span className="text-xs text-muted-foreground">Thinking... (runs on-device with no GPU, can take up to 2 minutes)</span>
                         </div>
                     </div>
                 )}

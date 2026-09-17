@@ -8,6 +8,21 @@ from core.cache import cache
 from core.config import get_config, logger
 from ml.features import query_batch_data, calculate_sg_velocity
 
+# `keep_alive: 0` (used throughout this module for RAM management on the Pi)
+# unloads the model after every response, so the *next* call has to load it
+# back from disk before it can generate anything. But even with the model
+# already resident, unaccelerated CPU inference on this Pi is just slow:
+# measured requests (phi3:mini, already warm per `ollama ps`) took up to 95s
+# for a one-sentence prompt. This isn't primarily a cold-load problem, it's
+# that there's no GPU/NPU here - every response is going to take a while.
+# Every requests.post() timeout below must have real margin over that, or
+# the call will always time out and fall back to the canned offline message
+# - never a real answer. Interactive/conversational endpoints use a short
+# keep_alive window instead of 0, so at least repeat messages in the same
+# conversation skip the reload portion of the cost.
+OLLAMA_COLD_START_TIMEOUT = 150
+OLLAMA_INTERACTIVE_KEEP_ALIVE = "10m"
+
 
 def analyze_yeast_history(yeast_name: str) -> Optional[dict]:
     """
@@ -98,7 +113,7 @@ def simulate_brew_insight(yeast_name, brew_count, mean_fg, p95_fg):
             "stream": False,
             "keep_alive": 0
         }
-        res = requests.post(ollama_url, json=payload, timeout=60)
+        res = requests.post(ollama_url, json=payload, timeout=OLLAMA_COLD_START_TIMEOUT)
         if res.status_code == 200:
             text = res.json().get("response")
             if text:
@@ -143,12 +158,12 @@ def generate_chat_response(message: str, history: Optional[list] = None) -> dict
             "prompt": prompt,
             "system": system_prompt,
             "stream": False,
-            "keep_alive": 0
+            "keep_alive": OLLAMA_INTERACTIVE_KEEP_ALIVE
         }
 
         try:
             logger.info(f"Sending request to Ollama ({ollama_url}) with model {payload.get('model')}")
-            res = requests.post(ollama_url, json=payload, timeout=15)
+            res = requests.post(ollama_url, json=payload, timeout=OLLAMA_COLD_START_TIMEOUT)
             if res.status_code == 200:
                 text = res.json().get("response")
                 if text:
@@ -224,7 +239,7 @@ def get_proactive_advice() -> dict:
                 "keep_alive": 0 # Immediately unload model from RAM after generation
             }
             logger.info(f"Sending resource-optimized request to Ollama: {context_parts[-1]}")
-            res = requests.post(ollama_url, json=payload, timeout=15)
+            res = requests.post(ollama_url, json=payload, timeout=OLLAMA_COLD_START_TIMEOUT)
             if res.status_code == 200:
                 text = res.json().get("response")
                 if text:
@@ -279,7 +294,7 @@ def analyze_anomaly(anomaly_data: dict) -> dict:
                 "stream": False,
                 "keep_alive": 0
             }
-            res = requests.post(ollama_url, json=payload, timeout=15)
+            res = requests.post(ollama_url, json=payload, timeout=OLLAMA_COLD_START_TIMEOUT)
             if res.status_code == 200:
                 text = res.json().get("response")
                 if text:
@@ -354,7 +369,7 @@ def predict_issues() -> Optional[str]:
                 "keep_alive": 0
             }
             
-            res = requests.post(ollama_url, json=payload, timeout=60)
+            res = requests.post(ollama_url, json=payload, timeout=OLLAMA_COLD_START_TIMEOUT)
             if res.status_code == 200:
                 answer = res.json().get("response", "").strip()
                 if "Normal" not in answer:
@@ -399,7 +414,7 @@ def generate_narrative(batch_data: dict) -> dict:
                 "stream": False,
                 "keep_alive": 0
             }
-            res = requests.post(ollama_url, json=payload, timeout=15)
+            res = requests.post(ollama_url, json=payload, timeout=OLLAMA_COLD_START_TIMEOUT)
             if res.status_code == 200:
                 text = res.json().get("response")
                 if text:
@@ -477,7 +492,7 @@ def generate_brewday_coaching_response(context: dict, message: str) -> dict:
                 "keep_alive": "30m",
             }
             logger.info(f"Brew Day Coach request to Ollama ({phase} phase)")
-            res = requests.post(ollama_url, json=payload, timeout=60)
+            res = requests.post(ollama_url, json=payload, timeout=OLLAMA_COLD_START_TIMEOUT)
             if res.status_code == 200:
                 text = res.json().get("response")
                 if text:
@@ -560,7 +575,7 @@ def generate_correction_explanation(correction_data: dict) -> dict:
                 "stream": False,
                 "keep_alive": "30m",
             }
-            res = requests.post(ollama_url, json=payload, timeout=60)
+            res = requests.post(ollama_url, json=payload, timeout=OLLAMA_COLD_START_TIMEOUT)
             if res.status_code == 200:
                 text = res.json().get("response")
                 if text:
@@ -662,7 +677,7 @@ def generate_brew_evaluation(session_summary: dict) -> dict:
                 "keep_alive": 0,
             }
             logger.info(f"Generating brew day evaluation for {batch_name}")
-            res = requests.post(ollama_url, json=payload, timeout=60)
+            res = requests.post(ollama_url, json=payload, timeout=OLLAMA_COLD_START_TIMEOUT)
             if res.status_code == 200:
                 text = res.json().get("response")
                 if text:

@@ -7,7 +7,6 @@ import { LayoutDashboard, Beer, Bot, CircleHelp, Flame, Menu, Monitor } from 'lu
 
 export const NAV_ITEMS = [
     { href: '/', icon: LayoutDashboard, label: 'Dashboard' },
-    { href: '/legacy', icon: LayoutDashboard, label: 'Legacy Dashboard' },
     { href: '/chat', icon: Bot, label: 'Brewmaster' },
     { href: '/brewday', icon: Flame, label: 'Brew Day' },
     { href: '/settings', icon: Menu, label: 'Settings' },
