@@ -59,7 +59,14 @@ export function SystemHealth() {
         );
     }
 
-    if (!data) return null;
+    if (!data) {
+        return (
+            <div className="rounded-2xl bg-card border border-border p-6 h-full flex flex-col items-center justify-center gap-2 text-center">
+                <AlertCircle className="w-6 h-6 text-muted-foreground opacity-50" />
+                <p className="text-sm text-muted-foreground">System health data unavailable</p>
+            </div>
+        );
+    }
 
     const isSystemCritical = data.disk.warning || data.pi_temp > 75;
 

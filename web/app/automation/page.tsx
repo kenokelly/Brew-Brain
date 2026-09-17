@@ -16,20 +16,20 @@ import { Search, Droplets, Calculator, FlaskConical, FileText, Package, Network,
 import { motion } from "framer-motion";
 
 const TABS = [
-    { id: "scout", label: "Ingredient Scout", icon: Search, component: Scout },
-    { id: "water", label: "Water Profile", icon: Droplets, component: Water },
-    { id: "calc", label: "Calculators", icon: Calculator, component: IBUCalculator },
-    { id: "recipes", label: "Recipe Finder", icon: FileText, component: Recipes },
-    { id: "inventory", label: "Inventory", icon: Package, component: Inventory },
-    { id: "pipeline", label: "R&D Pipeline", icon: Network, component: Pipeline },
-    { id: "sim", label: "Brew Simulator", icon: TestTube, component: Simulation },
-    { id: "sourcing", label: "Sourcing", icon: ShoppingCart, component: Sourcing },
-    { id: "yeast", label: "Yeast", icon: FlaskConical, component: Yeast },
-    { id: "price", label: "Price Comparator", icon: Scale, component: PriceComparator },
+    { id: "water", label: "Water Profile", icon: Droplets, component: Water, group: "Recipe Tools" },
+    { id: "calc", label: "Calculators", icon: Calculator, component: IBUCalculator, group: "Recipe Tools" },
+    { id: "yeast", label: "Yeast", icon: FlaskConical, component: Yeast, group: "Recipe Tools" },
+    { id: "recipes", label: "Recipe Finder", icon: FileText, component: Recipes, group: "Recipe Tools" },
+    { id: "scout", label: "Ingredient Scout", icon: Search, component: Scout, group: "Sourcing & Inventory" },
+    { id: "sourcing", label: "Sourcing", icon: ShoppingCart, component: Sourcing, group: "Sourcing & Inventory" },
+    { id: "price", label: "Price Comparator", icon: Scale, component: PriceComparator, group: "Sourcing & Inventory" },
+    { id: "inventory", label: "Inventory", icon: Package, component: Inventory, group: "Sourcing & Inventory" },
+    { id: "pipeline", label: "R&D Pipeline", icon: Network, component: Pipeline, group: "R&D" },
+    { id: "sim", label: "Brew Simulator", icon: TestTube, component: Simulation, group: "R&D" },
 ];
 
 export default function AutomationPage() {
-    const [activeTab, setActiveTab] = useState("scout");
+    const [activeTab, setActiveTab] = useState("water");
 
     const ActiveComponent = TABS.find((t) => t.id === activeTab)?.component || Scout;
 
@@ -47,20 +47,26 @@ export default function AutomationPage() {
             <div className="flex-1 flex flex-col lg:flex-row gap-8 min-h-0">
                 {/* Sidebar Navigation for Tabs */}
                 <nav className="w-full lg:w-64 flex flex-row lg:flex-col gap-2 overflow-x-auto lg:overflow-visible pb-2 lg:pb-0 shrink-0">
-                    {TABS.map((tab) => (
-                        <button
-                            key={tab.id}
-                            onClick={() => setActiveTab(tab.id)}
-                            className={cn(
-                                "flex items-center gap-3 px-4 py-3 rounded-xl transition-all whitespace-nowrap lg:whitespace-normal text-left font-medium",
-                                activeTab === tab.id
-                                    ? "bg-primary text-primary-foreground shadow-sm"
-                                    : "hover:bg-secondary/50 text-muted-foreground hover:text-foreground"
+                    {TABS.map((tab, i) => (
+                        <div key={tab.id} className="contents lg:block">
+                            {tab.group !== TABS[i - 1]?.group && (
+                                <div className="hidden lg:block px-4 pt-4 pb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 first:pt-0">
+                                    {tab.group}
+                                </div>
                             )}
-                        >
-                            <tab.icon className="w-5 h-5 shrink-0" />
-                            {tab.label}
-                        </button>
+                            <button
+                                onClick={() => setActiveTab(tab.id)}
+                                className={cn(
+                                    "flex items-center gap-3 px-4 py-3 rounded-xl transition-all whitespace-nowrap lg:whitespace-normal text-left font-medium w-full",
+                                    activeTab === tab.id
+                                        ? "bg-primary text-primary-foreground shadow-sm"
+                                        : "hover:bg-secondary/50 text-muted-foreground hover:text-foreground"
+                                )}
+                            >
+                                <tab.icon className="w-5 h-5 shrink-0" />
+                                {tab.label}
+                            </button>
+                        </div>
                     ))}
                 </nav>
 

@@ -178,7 +178,7 @@ export function Water() {
                     {/* Salt Additions Summary */}
                     {(stats.gypsum_g !== undefined || stats.calcium_chloride_g !== undefined) && (
                         <div className="bg-card/40 p-6 rounded-2xl border border-primary/20">
-                            <h4 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                            <h4 className="text-lg font-bold text-foreground mb-4 flex items-center gap-2">
                                 🧂 Recommended Salt Additions ({stats.volume_liters || 23}L Batch)
                             </h4>
                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -204,7 +204,7 @@ export function Water() {
 
                     {/* Mash pH Prediction */}
                     <div className="bg-card/40 p-6 rounded-2xl border border-primary/20">
-                        <h4 className="text-lg font-bold text-white mb-1 flex items-center gap-2">
+                        <h4 className="text-lg font-bold text-foreground mb-1 flex items-center gap-2">
                             <FlaskConical className="w-5 h-5 text-primary" /> Mash pH Prediction
                         </h4>
                         <p className="text-xs text-muted-foreground mb-4">

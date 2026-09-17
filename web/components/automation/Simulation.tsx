@@ -251,9 +251,9 @@ export function Simulation() {
                     )}
 
                     {!result && !loading && (
-                        <div className="h-full min-h-[400px] flex flex-col items-center justify-center text-muted-foreground border-2 border-dashed border-white/10 rounded-2xl bg-white/5">
-                            <TrendingUp className="w-12 h-12 mb-4 opacity-50" />
-                            <p>Configure your brew and run the simulation to project Final Gravity probabilities.</p>
+                        <div className="h-full min-h-[240px] flex flex-col items-center justify-center text-center text-muted-foreground border-2 border-dashed border-white/10 rounded-2xl bg-white/5 max-w-sm mx-auto px-6">
+                            <TrendingUp className="w-10 h-10 mb-3 opacity-40" />
+                            <p className="text-sm">Configure your brew on the left, then run the simulation to project Final Gravity probabilities.</p>
                         </div>
                     )}
                     

@@ -126,12 +126,12 @@ export default function Dashboard() {
 
       <BrewDayGuide isOpen={isGuideOpen} onClose={() => setIsGuideOpen(false)} />
 
-      {/* Main Grid */}
-      <motion.div 
+      {/* Primary live readings — the two numbers that actually matter at a glance */}
+      <motion.div
         variants={containerVariants}
         initial="hidden"
         animate="show"
-        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
+        className="grid grid-cols-1 md:grid-cols-2 gap-6"
       >
         <StatCard
           icon={Droplets}
@@ -139,7 +139,9 @@ export default function Dashboard() {
           value={status?.sg ? status.sg.toFixed(3) : "--.---"}
           unit="SG"
           color="text-amber-500"
-          bgGradient="from-amber-500/10"
+          bgGradient="from-amber-500/20"
+          chipBg="bg-amber-500/15"
+          large
         />
         <StatCard
           icon={Thermometer}
@@ -147,18 +149,29 @@ export default function Dashboard() {
           value={status?.temp ? status.temp.toFixed(1) : "--.-"}
           unit={`°${status?.temp_unit || 'C'}`}
           color="text-blue-500"
-          bgGradient="from-blue-500/10"
+          bgGradient="from-blue-500/20"
+          chipBg="bg-blue-500/15"
           subtext={status?.pi_temp ? `System: ${status.pi_temp}°C` : undefined}
+          large
         />
-        <motion.div variants={itemVariants} className="glass-card glass-card-hover rounded-3xl p-6 flex flex-col items-center justify-center relative overflow-hidden group">
-          <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-transparent pointer-events-none" />
-          <span className="text-xs font-bold uppercase tracking-widest text-emerald-500/80 mb-4 z-10">Alcohol (ABV)</span>
-          <RingChart value={abv} max={15} color="#10b981" unit="%" />
+      </motion.div>
+
+      {/* Derived metrics — secondary, smaller row */}
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="show"
+        className="grid grid-cols-2 gap-6 max-w-2xl"
+      >
+        <motion.div variants={itemVariants} className="glass-card glass-card-hover rounded-2xl p-4 flex flex-col items-center justify-center relative overflow-hidden group">
+          <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/15 to-transparent pointer-events-none" />
+          <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-500/80 mb-2 z-10">Alcohol (ABV)</span>
+          <RingChart value={abv} max={15} color="#10b981" unit="%" small />
         </motion.div>
-        <motion.div variants={itemVariants} className="glass-card glass-card-hover rounded-3xl p-6 flex flex-col items-center justify-center relative overflow-hidden group">
-          <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-transparent pointer-events-none" />
-          <span className="text-xs font-bold uppercase tracking-widest text-purple-500/80 mb-4 z-10">Attenuation</span>
-          <RingChart value={att} max={100} color="#a855f7" unit="%" />
+        <motion.div variants={itemVariants} className="glass-card glass-card-hover rounded-2xl p-4 flex flex-col items-center justify-center relative overflow-hidden group">
+          <div className="absolute inset-0 bg-gradient-to-br from-purple-500/15 to-transparent pointer-events-none" />
+          <span className="text-[10px] font-bold uppercase tracking-widest text-purple-500/80 mb-2 z-10">Attenuation</span>
+          <RingChart value={att} max={100} color="#a855f7" unit="%" small />
         </motion.div>
       </motion.div>
 
@@ -238,59 +251,61 @@ export default function Dashboard() {
   );
 }
 
-function StatCard({ icon: Icon, label, value, unit, color, bgGradient, subtext }: { icon: any, label: string, value: string, unit: string, color: string, bgGradient: string, subtext?: string }) {
+function StatCard({ icon: Icon, label, value, unit, color, bgGradient, chipBg, subtext, large }: { icon: any, label: string, value: string, unit: string, color: string, bgGradient: string, chipBg?: string, subtext?: string, large?: boolean }) {
   return (
     <motion.div
       variants={itemVariants}
-      className="glass-card glass-card-hover rounded-3xl p-6 relative overflow-hidden group"
+      className={cn("glass-card glass-card-hover rounded-3xl relative overflow-hidden group", large ? "p-8" : "p-6")}
     >
-      <div className={cn("absolute inset-0 bg-gradient-to-br to-transparent pointer-events-none opacity-40", bgGradient)} />
+      <div className={cn("absolute inset-0 bg-gradient-to-br to-transparent pointer-events-none", large ? "opacity-70" : "opacity-40", bgGradient)} />
       <div className="flex items-center justify-between mb-4 relative z-10">
-        <div className={cn("p-2.5 rounded-2xl bg-secondary/80", color)}>
-          <Icon className="w-5 h-5" />
+        <div className={cn("rounded-2xl", large && chipBg ? `p-3 ${chipBg}` : "p-2.5 bg-secondary/80", color)}>
+          <Icon className={cn(large ? "w-6 h-6" : "w-5 h-5")} />
         </div>
       </div>
-      
+
       <div className="space-y-1 relative z-10">
         <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{label}</p>
         <div className="flex items-baseline gap-1">
-          <h3 className="text-3xl font-black tabular-nums tracking-tighter">{value}</h3>
+          <h3 className={cn("font-black tabular-nums tracking-tighter", large ? "text-5xl" : "text-3xl")}>{value}</h3>
           <span className="text-sm font-bold text-muted-foreground">{unit}</span>
         </div>
         {subtext && <div className="text-[10px] font-bold text-muted-foreground mt-1 opacity-60">{subtext}</div>}
       </div>
 
-      <Icon className={cn("absolute -bottom-4 -right-4 w-24 h-24 opacity-[0.03] group-hover:opacity-[0.08] transition-opacity", color)} />
+      <Icon className={cn("absolute -bottom-4 -right-4 opacity-[0.03] group-hover:opacity-[0.08] transition-opacity", large ? "w-32 h-32" : "w-24 h-24", color)} />
     </motion.div>
   );
 }
 
-function RingChart({ value, max, color, unit }: { value: number, max: number, color: string, unit: string }) {
-  const radius = 32;
+function RingChart({ value, max, color, unit, small }: { value: number, max: number, color: string, unit: string, small?: boolean }) {
+  const radius = small ? 24 : 32;
+  const size = small ? 64 : 96;
+  const center = size / 2;
   const circumference = 2 * Math.PI * radius;
   const offset = circumference - (Math.min(value / max, 1) * circumference);
 
   return (
-    <div className="relative w-24 h-24 z-10">
-      <svg className="w-full h-full transform -rotate-90">
-        <circle className="text-secondary/30" strokeWidth="8" stroke="currentColor" fill="transparent" r={radius} cx="48" cy="48" />
+    <div className={cn("relative z-10", small ? "w-16 h-16" : "w-24 h-24")}>
+      <svg className="w-full h-full transform -rotate-90" viewBox={`0 0 ${size} ${size}`}>
+        <circle className="text-secondary/30" strokeWidth="6" stroke="currentColor" fill="transparent" r={radius} cx={center} cy={center} />
         <motion.circle
           initial={{ strokeDashoffset: circumference }}
           animate={{ strokeDashoffset: offset }}
           transition={{ duration: 1.5, ease: "easeOut" }}
-          strokeWidth="8"
+          strokeWidth="6"
           strokeDasharray={circumference}
           strokeLinecap="round"
           stroke={color}
           fill="transparent"
           r={radius}
-          cx="48"
-          cy="48"
+          cx={center}
+          cy={center}
         />
       </svg>
       <div className="absolute inset-0 flex items-center justify-center flex-col">
-        <span className="text-xl font-black tabular-nums leading-none">{value.toFixed(1)}</span>
-        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-tighter mt-1">{unit}</span>
+        <span className={cn("font-black tabular-nums leading-none", small ? "text-sm" : "text-xl")}>{value.toFixed(1)}</span>
+        {!small && <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-tighter mt-1">{unit}</span>}
       </div>
     </div>
   );

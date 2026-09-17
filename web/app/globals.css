@@ -125,7 +125,7 @@ body {
   }
 
   .text-gradient {
-    @apply text-foreground font-black tracking-tight;
+    @apply font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-amber-500 via-orange-500 to-amber-700;
   }
 }
 

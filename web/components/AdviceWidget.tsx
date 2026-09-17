@@ -39,7 +39,24 @@ export function AdviceWidget({ className }: { className?: string }) {
         return <AdviceSkeleton />;
     }
 
-    if (!advice) return null;
+    if (!advice) {
+        return (
+            <div className={cn(
+                "rounded-2xl p-6 shadow-md border bg-card border-border flex flex-col items-center justify-center gap-2 text-center min-h-[140px]",
+                className
+            )}>
+                <Sparkles className="w-6 h-6 text-muted-foreground opacity-50" />
+                <p className="text-sm text-muted-foreground">No advice available right now (the local AI can take up to a couple of minutes to respond).</p>
+                <button
+                    onClick={fetchAdvice}
+                    disabled={isLoading}
+                    className="text-xs text-primary hover:text-primary/80 transition-colors mt-1 flex items-center gap-1 disabled:opacity-50"
+                >
+                    {isLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCcw className="w-3 h-3" />} Retry
+                </button>
+            </div>
+        );
+    }
 
     return (
         <div className={cn(
