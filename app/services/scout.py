@@ -81,9 +81,13 @@ def search_recipes(query):
                 style = r.get('style', {}).get('name', '').lower()
                 
                 if query_lower in name or query_lower in style:
-                    recipe_id = r.get('_id') or r.get('id', '')
-                    share_id = r.get('shareId') or recipe_id
-                    bf_url = f"https://recipe.brewfather.app/{share_id}" if share_id else f"https://www.google.com/search?q={urllib.parse.quote(query + ' homebrew recipe')}"
+                    # shareId is only set if the recipe was explicitly shared
+                    # publicly in Brewfather - falling back to the internal
+                    # _id/id here produces a URL that always 404s ("could not
+                    # find shared recipe") for the (common) case of a private,
+                    # never-shared recipe. Fall back to a Google search instead.
+                    share_id = r.get('shareId')
+                    bf_url = f"https://recipe.brewfather.app/{share_id}" if share_id else f"https://www.google.com/search?q={urllib.parse.quote(r.get('name', query) + ' homebrew recipe')}"
                     
                     filtered.append({
                         "name": r.get('name', 'Untitled Recipe'),

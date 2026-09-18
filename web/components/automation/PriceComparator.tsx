@@ -218,6 +218,36 @@ export function PriceComparator() {
         }
     };
 
+    // Comparing prices scrapes every ingredient across multiple vendors and
+    // can take over a minute - it runs as a background job (like the Brew
+    // Simulator) and we poll for the result, rather than holding one long
+    // fetch open. A single multi-minute fetch gets silently aborted by
+    // mobile browsers when the tab backgrounds or the screen locks, which
+    // is what previously showed as a bare "Failed to fetch" even though the
+    // comparison itself had completed successfully server-side.
+    const pollComparisonStatus = (taskId: string) => {
+        const interval = setInterval(async () => {
+            try {
+                const res = await fetch(`/api/automation/sourcing/compare/status/${taskId}`);
+                const { data, status, error } = await res.json();
+
+                if (status === 'error') {
+                    clearInterval(interval);
+                    setResult({ breakdown: [], total_tmm: 0, total_geb: 0, winner: '', error });
+                    setLoading(false);
+                } else if (data && data.status !== 'queued' && data.status !== 'PENDING') {
+                    clearInterval(interval);
+                    setResult(validateComparisonResult(data));
+                    setLoading(false);
+                }
+            } catch (e) {
+                clearInterval(interval);
+                setResult({ breakdown: [], total_tmm: 0, total_geb: 0, winner: '', error: 'Failed to poll comparison status' });
+                setLoading(false);
+            }
+        }, 3000);
+    };
+
     const runComparison = async () => {
         if (!selectedRecipe) return;
 
@@ -233,17 +263,17 @@ export function PriceComparator() {
                 }
             );
 
-            if (data.data) {
-                const validated = validateComparisonResult(data.data);
-                setResult(validated);
+            if (data.data?.task_id) {
+                pollComparisonStatus(data.data.task_id);
             } else {
                 setResult({
                     breakdown: [],
                     total_tmm: 0,
                     total_geb: 0,
                     winner: '',
-                    error: 'No data received from server'
+                    error: 'No task queued by server'
                 });
+                setLoading(false);
             }
         } catch (error: any) {
             setResult({
@@ -254,7 +284,6 @@ export function PriceComparator() {
                 error: error.message,
                 debug_info: JSON.stringify(error.data)
             });
-        } finally {
             setLoading(false);
         }
     };
@@ -309,6 +338,11 @@ export function PriceComparator() {
                         )}
                     </button>
                 </div>
+                {loading && (
+                    <p className="text-xs text-muted-foreground mt-3">
+                        Checking prices across vendors for every ingredient - this can take a minute or two. Safe to keep browsing, this tab will update when it's done.
+                    </p>
+                )}
             </div>
 
             {/* Error Display with Stack Trace */}

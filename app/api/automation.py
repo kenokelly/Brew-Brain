@@ -227,10 +227,10 @@ def compare_prices():
         data = request.json or {}
         recipe_id = data.get('recipe_id')
         recipe_details = data.get('recipe_details')
-        
+
         if not recipe_id and not recipe_details:
             return api_response(status="error", error="Recipe ID or details required", code=400)
-        
+
         if recipe_id:
             # Fetch details from Brewfather
             details = alerts.fetch_recipe_details(recipe_id)
@@ -238,12 +238,38 @@ def compare_prices():
                 return api_response(status="error", error=f"Failed to fetch recipe: {details.get('error')}", code=404)
             recipe_details = details
 
-        # Run comparison (Sync for now to simplify, or Async if needed)
-        # The frontend seems to expect a direct response or we can implement the async job status route
-        result = sourcing.compare_recipe_prices(recipe_details)
-        return api_response(data=result)
+        # Scraping every ingredient across multiple vendors can take over a
+        # minute - run it as a background job (like /simulate) rather than
+        # holding the request open, since mobile browsers abort long-lived
+        # fetches when the tab backgrounds or the screen locks.
+        from services.tasks import run_price_comparison_task
+        task = run_price_comparison_task.delay(recipe_details)
+        return api_response(data={"status": "queued", "task_id": task.id})
     except Exception as e:
         return handle_error(e, "Price Comparison Error")
+
+@automation_bp.route('/api/automation/sourcing/compare/status/<task_id>', methods=['GET'])
+@require_api_token
+def check_price_comparison_status(task_id):
+    try:
+        from extensions import celery
+        from celery.result import AsyncResult
+
+        task_result = AsyncResult(task_id, app=celery)
+
+        if task_result.state == 'PENDING':
+            return api_response(data={"status": "queued"})
+        elif task_result.state == 'FAILURE':
+            return api_response(status="error", error=str(task_result.info), code=500)
+        elif task_result.state == 'SUCCESS':
+            result_data = task_result.get()
+            if result_data.get("status") == "error":
+                return api_response(status="error", error=result_data.get("message"), code=500)
+            return api_response(data=result_data.get("data"))
+        else:
+            return api_response(data={"status": task_result.state})
+    except Exception as e:
+        return handle_error(e, "Price Comparison Status Check Error")
 
 # ============ Yeast Endpoints ============
 

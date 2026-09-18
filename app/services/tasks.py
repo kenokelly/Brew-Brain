@@ -190,3 +190,21 @@ def run_simulation_task(target_og, yeast_name, mash_temp_c):
     except Exception as e:
         logger.error(f"Monte Carlo simulation failed: {e}")
         return {"status": "error", "message": str(e)}
+
+@celery.task(name="services.tasks.run_price_comparison_task")
+def run_price_comparison_task(recipe_details):
+    """
+    Background task for recipe price comparison. This scrapes multiple
+    vendor sites per ingredient and can take over a minute - running it
+    synchronously in the request thread meant mobile browsers (which
+    suspend in-flight fetches when the tab backgrounds/screen locks)
+    would see a hard "Failed to fetch" on any recipe with more than a
+    few ingredients, even though the backend was working correctly.
+    """
+    try:
+        from services import sourcing
+        result = sourcing.compare_recipe_prices(recipe_details)
+        return {"status": "success", "data": result}
+    except Exception as e:
+        logger.error(f"Price comparison failed: {e}")
+        return {"status": "error", "message": str(e)}
