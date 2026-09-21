@@ -320,6 +320,14 @@ def check_alerts_once() -> None:
     if is_quiet_hours():
         return
 
+    # This pipeline is entirely separate from anomaly.py's
+    # run_all_anomaly_checks() (different Celery Beat task, different
+    # implementation of the same checks) and was missed when that one was
+    # gated on brew_active - it kept alerting (signal loss, temp, stall,
+    # yeast anomaly) between batches regardless of the setting.
+    if not get_config("brew_active"):
+        return
+
     now = time.time()
     SIGNAL_COOLDOWN = 14400   # 4 hours for signal loss
     TEMP_COOLDOWN = 1800      # 30 minutes for temperature alerts

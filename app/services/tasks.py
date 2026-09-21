@@ -208,3 +208,19 @@ def run_price_comparison_task(recipe_details):
     except Exception as e:
         logger.error(f"Price comparison failed: {e}")
         return {"status": "error", "message": str(e)}
+
+@celery.task(name="services.tasks.poll_telegram_commands")
+def poll_telegram_commands():
+    """
+    Background task to check for and respond to incoming Telegram bot
+    commands (/status, /ping, /help). telegram_poll_once() was already
+    built to fit this exact _once/beat-schedule pattern (short 2s
+    getUpdates timeout, single pass) but was never actually wired into
+    the schedule - a leftover from the app's modularization refactor
+    that silently dropped it.
+    """
+    try:
+        from services.telegram import telegram_poll_once
+        telegram_poll_once()
+    except Exception as e:
+        logger.error(f"Telegram command poll failed: {e}")

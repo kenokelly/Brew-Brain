@@ -117,5 +117,38 @@ class TestWorker(unittest.TestCase):
         # Should call write_api.write
         mock_write.write.assert_called_once()
 
+    @patch("app.services.worker.perform_signal_loss_check")
+    @patch("app.services.worker.is_quiet_hours")
+    @patch("app.services.worker.get_config")
+    def test_check_alerts_once_skipped_when_brew_inactive(self, mock_get_config, mock_quiet, mock_signal_check):
+        """The whole alert pipeline (signal loss, temp, stall, yeast) must
+        stay silent when no brew is active - this is a second, separate
+        pipeline from anomaly.py's run_all_anomaly_checks() and was missed
+        when that one was gated on brew_active."""
+        mock_quiet.return_value = False
+        mock_get_config.side_effect = lambda k: {
+            "test_mode": False,
+            "brew_active": False,
+        }.get(k)
+
+        worker.check_alerts_once()
+
+        mock_signal_check.assert_not_called()
+
+    @patch("app.services.worker.perform_signal_loss_check")
+    @patch("app.services.worker.is_quiet_hours")
+    @patch("app.services.worker.get_config")
+    def test_check_alerts_once_runs_when_brew_active(self, mock_get_config, mock_quiet, mock_signal_check):
+        mock_quiet.return_value = False
+        mock_get_config.side_effect = lambda k: {
+            "test_mode": False,
+            "brew_active": True,
+            "tilt_timeout_min": "60",
+        }.get(k)
+
+        worker.check_alerts_once()
+
+        mock_signal_check.assert_called_once()
+
 if __name__ == "__main__":
     unittest.main()

@@ -59,6 +59,10 @@ def make_celery(app_name=__name__):
         'brewfather-sync-daily': {
             'task': 'services.tasks.sync_brewfather',
             'schedule': 86400.0,
+        },
+        'poll-telegram-commands': {
+            'task': 'services.tasks.poll_telegram_commands',
+            'schedule': 10.0,
         }
     }
     
