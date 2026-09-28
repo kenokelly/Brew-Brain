@@ -109,3 +109,32 @@ class TestConfig(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def test_get_config_picks_up_writes_from_another_process(tmp_path, monkeypatch):
+    """celery-worker/beat hold their own in-memory config; a setting saved by
+    the web process (e.g. brew_active) must reach them without a restart."""
+    import time
+    from app.core import config as cfg
+    path = tmp_path / "config.json"
+    monkeypatch.setattr(cfg, "CONFIG_PATH", str(path))
+    monkeypatch.setattr(cfg, "_config_instance", cfg.BrewBrainConfig())
+    with patch.object(cfg, "write_api"):
+        cfg.set_config("brew_active", False)
+    assert cfg.get_config("brew_active") is False
+
+    # Another process rewrites the file
+    data = json.loads(path.read_text())
+    data["brew_active"] = True
+    data["ferm_steps"] = [{"name": "Primary", "temp": 19, "days": 7}]
+    path.write_text(json.dumps(data))
+    os.utime(path, (time.time() + 5, time.time() + 5))
+    monkeypatch.setattr(cfg, "_last_mtime_check", 0.0)
+
+    assert cfg.get_config("brew_active") is True
+    assert cfg.get_config("ferm_steps")[0]["name"] == "Primary"
+
+
+def test_ferm_steps_rejects_non_list():
+    from app.core import config as cfg
+    assert cfg.BrewBrainConfig.model_validate({"ferm_steps": "[{'a': 1}]"}).ferm_steps == []

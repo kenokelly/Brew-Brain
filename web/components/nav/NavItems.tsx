@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { LayoutDashboard, Beer, Bot, CircleHelp, Flame, Settings as SettingsIcon, Monitor, Gauge, Wrench } from 'lucide-react';
+import { LayoutDashboard, Beer, Bot, CircleHelp, Flame, Settings as SettingsIcon, Monitor, Gauge, Wrench, FlaskRound } from 'lucide-react';
 
 // `dynamicHost: true` means the href's hostname is resolved from
 // window.location at click time (via onClick, not a static Link href) so it
@@ -14,6 +14,7 @@ import { LayoutDashboard, Beer, Bot, CircleHelp, Flame, Settings as SettingsIcon
 // hydration mismatch, since onClick only ever runs in the browser.
 export const NAV_ITEMS = [
     { href: '/', icon: LayoutDashboard, label: 'Dashboard', group: 'Monitor' },
+    { href: '/beta', icon: FlaskRound, label: 'Dashboard (Beta)', group: 'Monitor' },
     { href: 'http://{host}:1880/ui/', icon: Gauge, label: 'TiltPi', group: 'Monitor', dynamicHost: true },
     { href: '/taplist', icon: Beer, label: 'Tap List', group: 'Monitor' },
     { href: '/kiosk', icon: Monitor, label: 'Kiosk Mode', group: 'Monitor' },

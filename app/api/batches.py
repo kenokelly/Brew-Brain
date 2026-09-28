@@ -70,8 +70,14 @@ def sync_brewfather() -> Tuple[Response, int]:
         style_obj = rec.get('style', {})
         style_name_val = style_obj.get('name') or "Unknown"
         set_config("style", style_name_val)
-        
-        return api_response(status="synced", data={"name": b.get('name'), "style": style_name_val, "yeast": yeast_name})
+
+        # Capture the fermentation schedule for the step timeline / journal
+        from services.fermentation import parse_brewfather_schedule
+        steps, ferm_start = parse_brewfather_schedule(b)
+        set_config("ferm_steps", steps)
+        set_config("ferm_start", ferm_start)
+
+        return api_response(status="synced", data={"name": b.get('name'), "style": style_name_val, "yeast": yeast_name, "steps": len(steps)})
             
     except Exception as e:
         return handle_error(e, "Sync Error")

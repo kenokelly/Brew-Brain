@@ -63,6 +63,10 @@ def make_celery(app_name=__name__):
         'poll-telegram-commands': {
             'task': 'services.tasks.poll_telegram_commands',
             'schedule': 10.0,
+        },
+        'track-fermentation-progress': {
+            'task': 'services.tasks.track_fermentation_progress',
+            'schedule': 900.0,
         }
     }
     

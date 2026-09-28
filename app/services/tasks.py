@@ -224,3 +224,14 @@ def poll_telegram_commands():
         telegram_poll_once()
     except Exception as e:
         logger.error(f"Telegram command poll failed: {e}")
+
+
+@celery.task(name="services.tasks.track_fermentation_progress")
+def track_fermentation_progress():
+    """Log recipe step changes and fermentation phase changes to the journal."""
+    try:
+        from services.fermentation import track_progress
+        return {"status": "success", "logged": track_progress()}
+    except Exception as e:
+        logger.error(f"Fermentation progress tracking failed: {e}")
+        return {"status": "error", "message": str(e)}

@@ -175,7 +175,16 @@ def send_telegram_message(message: str, force: bool = False, category: str = "al
         Dict with status or error
     """
     from core.cache import cache
-    
+
+    # Journal every alert/report the system raises, before the delivery gates:
+    # the journal is "what Brew Brain noticed", even when quiet hours or rate
+    # limiting keep it off Telegram. Repeats are de-duplicated by the journal.
+    try:
+        from services.journal import add_entry, level_for_message
+        add_entry(message, kind=category, level=level_for_message(message) if category == "alert" else "info")
+    except Exception as e:
+        logger.debug(f"Journal hook skipped: {e}")
+
     # Always define the key so we can update it after sending, even if forced
     verbosity_key = f"last_notified_{category}"
 

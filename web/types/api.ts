@@ -415,3 +415,82 @@ export interface BrewDayCheckResponse {
     checks: BrewDayCheckItem[];
     timestamp: string;
 }
+
+// ============================================
+// FERMENTATION (beta dashboard)
+// ============================================
+
+export type FermentationPhase = 'LAG' | 'ACTIVE' | 'SLOWING' | 'STABLE' | 'STALLED' | 'NO DATA';
+
+export interface FermentationStep {
+    name: string;
+    type: string;
+    temp: number | null;
+    days: number;
+    start: string;
+    end: string;
+}
+
+export interface FermentationSchedule {
+    steps: FermentationStep[];
+    current_index: number;
+    current: FermentationStep | null;
+    next: FermentationStep | null;
+    days_to_next: number | null;
+    days_to_crash: number | null;
+    days_to_end: number;
+    end: string;
+}
+
+export interface FermentationSummary {
+    batch_name: string;
+    style: string;
+    yeast: string;
+    brew_active: boolean;
+    test_mode: boolean;
+    og: number;
+    target_fg: number;
+    sg: number | null;
+    temp: number | null;
+    temp_unit: string;
+    target_temp: number | null;
+    temp_delta: number | null;
+    velocity: number | null;
+    phase: FermentationPhase;
+    attenuation: number | null;
+    abv: number | null;
+    eta_days: number | null;
+    day: number | null;
+    start: string | null;
+    schedule: FermentationSchedule | null;
+    sensor: {
+        rssi: number | null;
+        last_reading: string | null;
+        last_reading_age_min: number | null;
+        pi_temp: number | null;
+    };
+}
+
+export interface FermentationPoint {
+    ts: number;
+    t: string;
+    sg: number | null;
+    temp: number | null;
+    target: number | null;
+    velocity: number | null;
+    abv: number | null;
+}
+
+export interface FermentationHistory {
+    start: string;
+    og: number;
+    points: FermentationPoint[];
+}
+
+export interface JournalEntry {
+    id: string;
+    ts: string;
+    kind: 'alert' | 'report' | 'step' | 'phase' | 'note' | 'info';
+    level: 'info' | 'warning' | 'critical';
+    text: string;
+}

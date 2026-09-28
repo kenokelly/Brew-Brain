@@ -14,3 +14,7 @@ backups/
 web/public/sw.js
 web/public/workbox-*.js
 data/brew_brain.log
+
+# Autopilot journal (runtime state)
+data/journal.json
+data/journal.lock

@@ -1,7 +1,7 @@
 import os
 import logging
 import json
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from logging.handlers import RotatingFileHandler
 from datetime import datetime, timezone
 from influxdb_client import Point
@@ -86,6 +86,13 @@ class BrewBrainConfig(BaseModel):
     # When set, overrides the yeast-profile-based bounds in temp deviation checks.
     target_temp: Optional[float] = None
 
+    # Fermentation schedule from the Brewfather recipe:
+    # [{"name": str, "type": str, "temp": float (°C), "days": float}, ...]
+    ferm_steps: List[Dict[str, Any]] = []
+    # ISO timestamp the first step started (Brewfather fermentationStartDate,
+    # falling back to brewDate). Empty = use start_date.
+    ferm_start: str = ""
+
     # Prediction
     prediction_end_date: str = ""
     
@@ -106,7 +113,7 @@ class BrewBrainConfig(BaseModel):
     @field_validator('batch_name', 'batch_notes', 'style', 'yeast_strain', 
                      'bf_user', 'bf_key', 'alert_telegram_token', 'alert_telegram_chat', 'tiltpi_url',
                      'ollama_host', 'ollama_model', 'serp_api_key', 'alert_start_time', 'alert_end_time',
-                     'prediction_end_date', 'yeast_flocculation', mode='before')
+                     'prediction_end_date', 'yeast_flocculation', 'ferm_start', mode='before')
     @classmethod
     def coerce_string(cls, v: Any) -> str:
         if v is None:
@@ -131,6 +138,15 @@ class BrewBrainConfig(BaseModel):
         if isinstance(v, dict):
             return v
         return {}
+
+    @field_validator('ferm_steps', mode='before')
+    @classmethod
+    def coerce_steps(cls, v: Any) -> List[Dict[str, Any]]:
+        # InfluxDB mirrors config as str(value); a refresh from Influx hands
+        # back that repr rather than a list, so treat anything else as empty.
+        if isinstance(v, list):
+            return [s for s in v if isinstance(s, dict)]
+        return []
 
     @field_validator('og', mode='before')
     @classmethod
@@ -207,6 +223,19 @@ _config_instance = BrewBrainConfig()
 # Config Paths
 CONFIG_PATH = os.path.join(DATA_DIR, "config.json")
 
+_config_mtime: float = 0.0
+
+
+def _record_mtime() -> None:
+    """Remember config.json's mtime so _reload_if_changed() only reloads on
+    writes made by *another* process."""
+    global _config_mtime
+    try:
+        _config_mtime = os.stat(CONFIG_PATH).st_mtime
+    except OSError:
+        pass
+
+
 def _save_config_to_file():
     """Save in-memory config to local JSON file using ATOMIC writes."""
     global _config_instance
@@ -221,6 +250,7 @@ def _save_config_to_file():
             
         # Atomic replace
         os.replace(temp_path, CONFIG_PATH)
+        _record_mtime()
     except Exception as e:
         logger.error(f"Failed to atomically save config to local file: {e}")
         # Cleanup temp file if error occurred before replace
@@ -236,7 +266,8 @@ def _load_config_from_file() -> bool:
             with open(CONFIG_PATH, 'r') as f:
                 loaded = json.load(f)
                 _config_instance = BrewBrainConfig.model_validate(loaded)
-                return True
+            _record_mtime()
+            return True
     except Exception as e:
         logger.warning(f"Failed to load config file: {e}")
     return False
@@ -284,10 +315,37 @@ def refresh_config_from_influx() -> None:
     except Exception as e:
         logger.error(f"Failed to refresh config from InfluxDB: {e}")
 
+_last_mtime_check: float = 0.0
+_MTIME_CHECK_INTERVAL = 2.0
+
+
+def _reload_if_changed() -> None:
+    """Pick up config.json writes made by another process.
+
+    brew-brain, celery-worker and celery-beat each hold their own in-memory
+    config. Without this, a setting changed in the UI (e.g. brew_active) never
+    reached the Celery processes until they restarted.
+    """
+    global _last_mtime_check
+    import time
+    now = time.monotonic()
+    if now - _last_mtime_check < _MTIME_CHECK_INTERVAL:
+        return
+    _last_mtime_check = now
+    try:
+        mtime = os.stat(CONFIG_PATH).st_mtime
+    except OSError:
+        return
+    if mtime != _config_mtime:
+        _load_config_from_file()
+
+
 def get_config(key: str) -> Optional[Any]:
+    _reload_if_changed()
     return getattr(_config_instance, key, None)
 
 def get_all_config() -> Dict[str, Any]:
+    _reload_if_changed()
     return _config_instance.model_dump()
 
 def set_config(key: str, value: Any) -> None:

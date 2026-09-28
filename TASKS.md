@@ -289,8 +289,28 @@ Transform Brew Brain from a monitoring dashboard into an **Intelligent Fermentat
   corrected to the published ~0.002 pH/ppm (Palmer, *How to Brew*).
 - [x] **22.1b Mash pH API Route** — `predict_mash_ph()` had no HTTP route at all (dead code, no
   caller). Added `POST /api/water/mash-ph`.
-- [ ] **22.1c Mash Prediction Dashboard Card** — Frontend UI for the above route. **Not started.**
+- [x] **22.1c Mash Prediction Dashboard Card** — Mash pH card on the Automation → Water Profile tab (commit `4932d29`).
 - [ ] **22.2 MCP Server** — Expose Brew-Brain as an MCP tool provider. **Not started** — deferred.
+
+### Phase 23 — Beta Dashboard (`/beta`) 🧪
+
+Dark instrument-panel dashboard running alongside the production one at `/` until promoted.
+
+- [x] **23.1 Recipe step timeline** — Brewfather sync now stores the fermentation profile
+  (`ferm_steps`, `ferm_start`); `app/services/fermentation.py` lays it on the calendar
+  (current step, next step and countdown, time to cold crash / packaging, target temp).
+- [x] **23.2 Autopilot journal** — `app/services/journal.py`; every alert/report passing through
+  `send_telegram_message()` is logged (even when quiet hours suppress Telegram), plus step
+  changes, "next step in <24h" and phase changes from the `track_fermentation_progress` beat
+  task (15 min), plus manual notes. `GET/POST /api/fermentation/journal`.
+- [x] **23.3 Headline fermentation metrics** — regression velocity (pts/day), phase
+  (LAG/ACTIVE/SLOWING/STABLE/STALLED), attenuation, ABV, ETA to FG. `GET /api/fermentation/summary`.
+- [x] **23.4 Native fermentation chart** — gravity, beer temp, step target, velocity, ABV since
+  pitch (Recharts, replaces the Grafana iframe on the beta page). `GET /api/fermentation/history`.
+- [x] **23.5 Config reload across processes** — celery-worker/beat now pick up `config.json`
+  writes from the web app (they previously kept their startup copy, so e.g. Brew Active changes
+  only reached them after a restart).
+- [ ] **23.6 Promote to production** — replace `/` once validated against a live ferment.
 
 ---
 

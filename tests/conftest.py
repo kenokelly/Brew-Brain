@@ -3,6 +3,13 @@ os.environ["INFLUX_TOKEN"] = "mock"
 import pytest
 from unittest.mock import MagicMock, patch
 
+@pytest.fixture(autouse=True)
+def isolated_journal(tmp_path, monkeypatch):
+    """Every alert path writes to the autopilot journal; keep test runs out
+    of the real data/journal.json."""
+    monkeypatch.setenv("BREW_BRAIN_JOURNAL_DIR", str(tmp_path))
+    yield tmp_path
+
 @pytest.fixture
 def mock_write_api():
     """Mock the InfluxDB WriteAPI."""

@@ -21,6 +21,7 @@ from api.water import water_bp
 from api.labels import labels_bp
 from api.brewday import brewday_bp
 from api.telemetry_receiver import telemetry_receiver_bp
+from api.fermentation import fermentation_bp
 
 app = Flask(__name__, static_folder='static')
 CORS(app)
@@ -47,6 +48,7 @@ app.register_blueprint(water_bp, url_prefix='/api/water')
 app.register_blueprint(labels_bp, url_prefix='/api/label')
 app.register_blueprint(brewday_bp, url_prefix='/api/brewday')
 app.register_blueprint(telemetry_receiver_bp, url_prefix='/api/automation/telemetry')
+app.register_blueprint(fermentation_bp, url_prefix='/api/fermentation')
 
 @app.after_request
 def add_header(response):

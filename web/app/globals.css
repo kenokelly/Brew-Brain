@@ -137,3 +137,41 @@ body {
 .animate-pulse-soft {
   animation: pulse-soft 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
+/* ------------------------------------------------------------------
+   Beta dashboard (/beta): dark instrument-panel look. Scoped to
+   .beta-ui so the production pages are untouched while it's trialled.
+   ------------------------------------------------------------------ */
+.beta-ui {
+  --b-bg: #101216;
+  --b-card: #1a1d23;
+  --b-card-hi: #20242b;
+  --b-border: #262a32;
+  --b-tile: rgba(245, 158, 11, 0.12);
+  --b-text: #ecebe8;
+  --b-muted: #8a8f99;
+  --b-faint: #5c616b;
+  --b-accent: #f59e0b;
+  --b-good: #22c55e;
+  --b-warn: #f59e0b;
+  --b-bad: #ef4444;
+  --b-info: #60a5fa;
+  --b-gravity: #f25c5c;
+  --b-temp: #f59e0b;
+  --b-target: #4ade80;
+  --b-velocity: #a78bfa;
+  --b-abv: #eab308;
+  background: var(--b-bg);
+  color: var(--b-text);
+}
+
+.beta-card {
+  background: var(--b-card);
+  border: 1px solid var(--b-border);
+  border-radius: 1.25rem;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+
+.beta-mono {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+}
