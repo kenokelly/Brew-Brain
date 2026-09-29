@@ -22,6 +22,8 @@ const dayFmt = (ts: number) => {
     const d = new Date(ts * 1000);
     return `${d.getDate()}/${d.getMonth() + 1}`;
 };
+const timeFmt = (ts: number) =>
+    new Date(ts * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
 /** Whole-ferment chart since pitch, one colour per series (Grafana-free). */
 export function FermentChart({ history, summary, error }: {
@@ -47,6 +49,8 @@ export function FermentChart({ history, summary, error }: {
     // Recharts' automatic ticks come out empty over a ~0.06 SG range, so
     // lay out five explicitly.
     const sgTicks = Array.from({ length: 5 }, (_, i) => sgDomain[0] + ((sgDomain[1] - sgDomain[0]) * i) / 4);
+    // Under two days of data every tick is the same date, so label times instead
+    const shortSpan = points.length > 1 && points[points.length - 1].ts - points[0].ts < 2 * 86400;
     const vels = points.map((p) => p.velocity).filter((v): v is number => v != null);
     const avgVel = vels.length ? vels.reduce((a, b) => a + b, 0) / vels.length : null;
 
@@ -78,7 +82,7 @@ export function FermentChart({ history, summary, error }: {
                             <CartesianGrid stroke="var(--b-border)" strokeDasharray="2 6" vertical={false} />
                             <XAxis
                                 dataKey="ts" type="number" domain={['dataMin', 'dataMax']} scale="time"
-                                tickFormatter={dayFmt} stroke="var(--b-faint)" tick={{ fontSize: 11 }} minTickGap={40}
+                                tickFormatter={shortSpan ? timeFmt : dayFmt} stroke="var(--b-faint)" tick={{ fontSize: 11 }} minTickGap={40}
                             />
                             <YAxis
                                 yAxisId="sg" domain={sgDomain} ticks={sgTicks} tickFormatter={(v) => v.toFixed(3)}

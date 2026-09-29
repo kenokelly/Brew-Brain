@@ -19,13 +19,30 @@ def get_status_dict():
         # Source measurement depends on mode
         meas = "test_readings" if test_mode else "calibrated_readings"
 
-        q = f'from(bucket: "{INFLUX_BUCKET}") |> range(start: -2h) |> filter(fn: (r) => r["_measurement"] == "{meas}") |> last()'
-        for t in query_api.query(q): 
-            for r in t.records: 
+        # Readings are tagged (Color, yeast), so a bare last() returns one
+        # table per tag set — including stale ones from a previous batch's
+        # yeast. Collapse to one table per field and take the newest.
+        q = (f'from(bucket: "{INFLUX_BUCKET}") |> range(start: -2h)'
+             f' |> filter(fn: (r) => r["_measurement"] == "{meas}")'
+             f' |> group(columns: ["_field"]) |> sort(columns: ["_time"]) |> last()')
+        for t in query_api.query(q):
+            for r in t.records:
                 if r.get_field() == "sg": recent_sg = r.get_value()
                 if r.get_field() == "temp": recent_temp = r.get_value()
                 if test_mode and r.get_field() == "rssi": recent_rssi = r.get_value()
-                last_sync = r.get_time()
+                if last_sync is None or r.get_time() > last_sync:
+                    last_sync = r.get_time()
+
+        if not test_mode:
+            # calibrated_readings carries no signal strength; the raw
+            # Telegraf feed does.
+            q_rssi = (f'from(bucket: "{INFLUX_BUCKET}") |> range(start: -2h)'
+                      f' |> filter(fn: (r) => r["_measurement"] == "sensor_data" and r["_field"] == "rssi")'
+                      f' |> group() |> sort(columns: ["_time"]) |> last()')
+            for t in query_api.query(q_rssi):
+                for r in t.records:
+                    if r.get_field() == "rssi":
+                        recent_rssi = r.get_value()
 
         if not test_mode:
             # PRIORITIZE Real-Time Memory State (TILT_STATE)

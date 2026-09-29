@@ -312,6 +312,29 @@ Dark instrument-panel dashboard running alongside the production one at `/` unti
   only reached them after a restart).
 - [ ] **23.6 Promote to production** — replace `/` once validated against a live ferment.
 
+### Ops — 2026-09-29
+
+- [x] Pi dropped off Wi-Fi overnight while still running → Wi-Fi power save disabled
+  persistently, journald made persistent (100 MB cap). See `docs/TROUBLESHOOTING.md` §5.
+- [x] `deploy_and_verify.sh` now fails fast if the Pi is unreachable or rsync fails
+  (previously a bare `wait` masked rsync errors).
+- [ ] Consider wired Ethernet for the Pi (most robust fix for network drops).
+- [x] Deploys keep a week of Docker build cache (pruning all of it forced a ~15 min full
+  rebuild on every deploy).
+- [x] **Dev batch** (`app/tools/dev_batch.py`) for development against the Tilt sitting in water:
+  `docker exec brew-brain python -m tools.dev_batch start|status|restore`. `start` snapshots the
+  real batch settings once, then runs a 4-step, 30-hour schedule with Brew Active on so step
+  changes and the journal fire in real time; `restore` puts the real batch back.
+- [x] **Stale status fix**: `get_status_dict()` took `last()` per tag set (Color, yeast) and kept
+  whichever table came back last, so after a batch/yeast change the dashboard could show stale
+  gravity/temp/last-reading. Now grouped by field and newest wins; RSSI read from `sensor_data`.
+- [ ] `tilt_monitor.poll_tilt_api()` is never called (orphaned, like the Telegram poller was).
+  Status works from InfluxDB without it; wire it in or delete it.
+- [ ] Tilt calibration: reads 0.993 in plain water (should be 1.000), so offset ≈ +0.007.
+  Not applied yet, pending confirmation.
+- [ ] Frontend `__tests__/settings.test.tsx` hangs under vitest (pre-existing, not run in CI);
+  the other three frontend test files pass.
+
 ---
 
 ## Reference Docs

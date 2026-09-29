@@ -40,3 +40,9 @@ This document is a living repository of failures, successes, and insights gather
 
 ---
 *(Add new entries below this line)*
+
+### 2026-09-29
+*   **Submitter:** AI Agent
+*   **The Incident:** The Pi disappeared from the network overnight (no ping, SSH or dashboard), blocking a deploy. The deploy script still appeared to succeed.
+*   **The Root Cause:** Wi-Fi power saving was enabled on `wlan0`; the app logs were continuous through the outage, so the Pi was running but off the network. System logs weren't persistent, so there was no boot history to inspect. Separately, `deploy_and_verify.sh` used a bare `wait` after a backgrounded rsync (always exit 0) and had no reachability check.
+*   **The Lesson & Action:** Disabled Wi-Fi power save persistently, made journald persistent (100 MB cap), and made the deploy script fail fast when the Pi is unreachable or rsync fails. See `docs/TROUBLESHOOTING.md` §5. Also found the Celery worker/beat processes never reloaded `config.json`, so UI settings (e.g. Brew Active) only reached them after a restart; `get_config()` now reloads on mtime change.

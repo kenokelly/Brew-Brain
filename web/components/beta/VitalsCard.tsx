@@ -7,9 +7,11 @@ import { num, sg3, signalPct } from './format';
 
 /** Hydrometer health: signal ring plus the raw readings. */
 export function VitalsCard({ s }: { s: FermentationSummary }) {
-    const pct = signalPct(s.sensor.rssi);
     const age = s.sensor.last_reading_age_min;
     const stale = age == null || age > 60;
+    const hasRssi = s.sensor.rssi != null;
+    // No RSSI (some TiltPi setups omit it): show freshness of the last reading instead
+    const pct = hasRssi ? signalPct(s.sensor.rssi) : stale ? 0 : Math.round(100 - ((age ?? 0) / 60) * 100);
     const ring = stale ? 'var(--b-bad)' : pct >= 50 ? 'var(--b-good)' : 'var(--b-warn)';
     const r = 34;
     const c = 2 * Math.PI * r;
@@ -36,7 +38,7 @@ export function VitalsCard({ s }: { s: FermentationSummary }) {
                     </svg>
                     <div className="absolute inset-0 flex flex-col items-center justify-center">
                         <span className="beta-mono font-bold text-lg">{stale ? 'OFF' : `${pct}%`}</span>
-                        <span className="text-[10px] uppercase tracking-wider text-[var(--b-muted)]">signal</span>
+                        <span className="text-[10px] uppercase tracking-wider text-[var(--b-muted)]">{hasRssi ? 'signal' : 'fresh'}</span>
                     </div>
                 </div>
                 <dl className="flex-1 space-y-1.5 text-sm">

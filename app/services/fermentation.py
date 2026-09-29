@@ -212,7 +212,8 @@ def add_velocity_series(series: List[Dict[str, Any]], window_h: float = 12) -> N
             continue
         prev = series[j]
         dt = p["ts"] - prev["ts"]
-        if prev.get("sg") is None or dt < 3600:
+        # Under ~3h, the Tilt's ±0.001 jitter reads as ±8 pts/day swings
+        if prev.get("sg") is None or dt < 3 * 3600:
             p["velocity"] = None
         else:
             p["velocity"] = round((p["sg"] - prev["sg"]) / (dt / 86400) * 1000, 2)

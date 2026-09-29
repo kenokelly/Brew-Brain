@@ -15,6 +15,12 @@ elif [[ "$1" == "--restart-only" ]] || [[ "$1" == "-r" ]]; then
     RESTART_ONLY=true
 fi
 
+# 0. Reachability: fail fast and loudly rather than half-deploying
+if ! ssh -o ConnectTimeout=10 -o BatchMode=yes $HOST true 2>/dev/null; then
+    echo "❌ Cannot reach $HOST over SSH - is the Pi powered on and on the network?"
+    exit 1
+fi
+
 # 1. Sync & Remote Prep
 echo "📡 Synchronizing configuration..."
 
@@ -25,15 +31,21 @@ p_sync() {
 
 # Sync config and source files
 p_sync ./.env ./docker-compose.yml ./telegraf.conf ./grafana ./app ./web $HOST:$REMOTE_DIR/ &
-wait
+# A bare `wait` always returns 0, which hid rsync failures; wait on the PID
+if ! wait $!; then
+    echo "❌ rsync to $HOST failed"
+    exit 1
+fi
 
 # 2. Rebuild & Up
 echo "🚀 Rebuilding and Finalizing Deployment..."
 ssh $HOST "cd $REMOTE_DIR && docker compose up -d --build"
 
-# 2b. Prune leftover build layers so the Pi's disk doesn't fill up over repeated deploys
+# 2b. Prune build layers older than a week and dangling images so the Pi's disk
+#     doesn't fill up, while keeping recent cache so routine deploys stay fast
+#     (pruning everything forced a ~15 min full rebuild every time)
 echo "🧹 Pruning stale build cache & dangling images..."
-ssh $HOST "docker builder prune -af && docker image prune -f" > /dev/null 2>&1
+ssh $HOST "docker builder prune -f --filter until=168h && docker image prune -f" > /dev/null 2>&1
 
 # 3. Verification (Fast check)
 echo "🔍 Verifying Deployment..."

@@ -351,3 +351,29 @@ def test_get_maintenance_summary(mock_sd_io, mock_pi_temp, mock_disk):
     # Assert get_disk_usage called with right args
     mock_disk.assert_any_call("/")
     mock_disk.assert_any_call("/data")
+
+
+@patch("app.services.status.get_config")
+@patch("app.services.status.query_api.query")
+def test_get_status_dict_uses_newest_reading_across_tag_sets(mock_query, mock_get_config):
+    """A batch change alters the `yeast` tag, splitting readings into tables;
+    last_sync must be the newest record, not whichever table came last."""
+    mock_get_config.side_effect = lambda k: {"test_mode": False, "og": "1.050", "target_fg": "1.010"}.get(k)
+
+    def rec(field, value, minute):
+        r = MagicMock()
+        r.get_field.return_value = field
+        r.get_value.return_value = value
+        r.get_time.return_value = datetime.datetime(2026, 9, 29, 10, minute, tzinfo=datetime.timezone.utc)
+        return r
+
+    new = MagicMock(); new.records = [rec("sg", 1.012, 30), rec("temp", 20.0, 30)]
+    old = MagicMock(); old.records = [rec("sg", 1.040, 5)]
+    rssi = MagicMock(); rssi.records = [rec("rssi", -57, 29)]
+    mock_query.side_effect = [[new, old], [rssi]]
+
+    with patch.dict("sys.modules", {"services.tilt_monitor": MagicMock(get_tilt_state=lambda: {})}):
+        status = get_status_dict()
+
+    assert status["last_sync"].startswith("2026-09-29T10:30")
+    assert status["rssi"] == -57
