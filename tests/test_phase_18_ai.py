@@ -64,7 +64,11 @@ class TestPhase18AI(unittest.TestCase):
     @patch('services.ai.get_config')
     @patch('services.ai.requests.post')
     def test_get_proactive_advice_resource_control(self, mock_post, mock_config, mock_query, mock_vel):
-        """Verify keep_alive: 0 is present in Ollama calls."""
+        """Advice keeps the model warm (shared keep_alive) and caps reply length.
+
+        It used keep_alive: 0, which evicted the model after every dashboard
+        view so the next chat message paid a ~23s reload on top of CPU
+        inference."""
         mock_config.return_value = "llama3"
         mock_query.return_value = {"sg_readings": [1.050, 1.040], "sg_times": [datetime.now(), datetime.now()]}
         mock_vel.return_value = 5.0
@@ -75,14 +79,19 @@ class TestPhase18AI(unittest.TestCase):
         mock_response.json.return_value = {"response": "Advice text"}
         mock_post.return_value = mock_response
 
-        with patch('services.status.get_status_dict') as mock_status:
+        import services.ai as ai_mod
+        with patch('services.status.get_status_dict') as mock_status, \
+             patch.object(ai_mod.cache, 'get', return_value=None), \
+             patch.object(ai_mod.cache, 'set') as mock_cache_set, \
+             patch.object(ai_mod.cache, 'redis_client', None):
             mock_status.return_value = {"sg": 1.040, "temp": 20.0}
             get_proactive_advice()
 
-        # Check that keep_alive: 0 was sent
         args, kwargs = mock_post.call_args
         payload = kwargs['json']
-        self.assertEqual(payload['keep_alive'], 0)
+        self.assertEqual(payload['keep_alive'], ai_mod.OLLAMA_KEEP_ALIVE)
+        self.assertEqual(payload['options']['num_predict'], ai_mod.ADVICE_MAX_TOKENS)
+        mock_cache_set.assert_called_once()
         self.assertIn("Fermentation Velocity: 5.0", payload['prompt'])
 
     @patch('ml.features.calculate_sg_velocity')

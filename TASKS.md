@@ -330,6 +330,11 @@ Dark instrument-panel dashboard running alongside the production one at `/` unti
   gravity/temp/last-reading. Now grouped by field and newest wins; RSSI read from `sensor_data`.
 - [ ] `tilt_monitor.poll_tilt_api()` is never called (orphaned, like the Telegram poller was).
   Status works from InfluxDB without it; wire it in or delete it.
+- [x] **Brewmaster chat reliability**: opening the Dashboard fired a ~2 min AI advice
+  generation on every view; Ollama serves one request at a time, so chat queued behind it and
+  timed out, and `keep_alive: 0` on the other AI calls evicted the model each time. Fixed: chat is
+  a Celery job the page polls (survives screen lock/app switch, resumes after reload), advice is
+  cached 1h with a single-flight lock, all calls share a 10m keep_alive, and reply length is capped.
 - [ ] Tilt calibration: reads 0.993 in plain water (should be 1.000), so offset ≈ +0.007.
   Not applied yet, pending confirmation.
 - [ ] Frontend `__tests__/settings.test.tsx` hangs under vitest (pre-existing, not run in CI);

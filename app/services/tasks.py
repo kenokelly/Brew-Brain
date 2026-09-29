@@ -235,3 +235,19 @@ def track_fermentation_progress():
     except Exception as e:
         logger.error(f"Fermentation progress tracking failed: {e}")
         return {"status": "error", "message": str(e)}
+
+
+@celery.task(name="services.tasks.run_chat_task")
+def run_chat_task(message, history=None):
+    """Brewmaster chat as a background job.
+
+    A reply takes 1-4 minutes on the Pi's CPU. Holding the HTTP request open
+    that long fails on phones (the browser drops it when the screen locks or
+    the app backgrounds), so the chat page polls for this result instead.
+    """
+    try:
+        from services.ai import generate_chat_response
+        return generate_chat_response(message, history=history)
+    except Exception as e:
+        logger.error(f"Chat task failed: {e}")
+        return {"status": "error", "message": str(e)}

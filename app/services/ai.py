@@ -8,20 +8,28 @@ from core.cache import cache
 from core.config import get_config, logger
 from ml.features import query_batch_data, calculate_sg_velocity
 
-# `keep_alive: 0` (used throughout this module for RAM management on the Pi)
-# unloads the model after every response, so the *next* call has to load it
-# back from disk before it can generate anything. But even with the model
-# already resident, unaccelerated CPU inference on this Pi is just slow:
-# measured requests (phi3:mini, already warm per `ollama ps`) took up to 95s
-# for a one-sentence prompt. This isn't primarily a cold-load problem, it's
-# that there's no GPU/NPU here - every response is going to take a while.
-# Every requests.post() timeout below must have real margin over that, or
-# the call will always time out and fall back to the canned offline message
-# - never a real answer. Interactive/conversational endpoints use a short
-# keep_alive window instead of 0, so at least repeat messages in the same
-# conversation skip the reload portion of the cost.
+# There's no GPU/NPU on this Pi, so every response is slow: measured
+# requests (phi3:mini, already warm) took up to 95s for a one-sentence
+# prompt, plus ~23s to load the model from the SD card when it isn't
+# resident. Every requests.post() timeout below must have real margin over
+# that, or the call will always time out and fall back to the canned
+# offline message - never a real answer.
+#
+# All calls share one keep_alive window. They used to mix `keep_alive: 0`
+# (unload immediately) with chat's warm window, so any dashboard AI call
+# evicted the model and the next chat message paid the reload again. The
+# model is ~2.2GB against ~6GB free, so keeping it resident is fine.
 OLLAMA_COLD_START_TIMEOUT = 150
 OLLAMA_INTERACTIVE_KEEP_ALIVE = "10m"
+OLLAMA_KEEP_ALIVE = OLLAMA_INTERACTIVE_KEEP_ALIVE
+# Chat runs as a background job, and Ollama serves one request at a time, so
+# a message can queue behind another AI call (~2 min) before its own turn.
+OLLAMA_CHAT_TIMEOUT = 300
+# Cap reply length so one long answer can't hold the Pi's CPU for minutes.
+CHAT_MAX_TOKENS = 400
+ADVICE_MAX_TOKENS = 200
+ADVICE_CACHE_KEY = "ai_proactive_advice"
+ADVICE_TTL_S = 3600
 
 
 def analyze_yeast_history(yeast_name: str) -> Optional[dict]:
@@ -111,7 +119,7 @@ def simulate_brew_insight(yeast_name, brew_count, mean_fg, p95_fg):
             "prompt": prompt,
             "system": "You are an expert AI brewmaster assisting with fermentation risk analysis. Keep it under 2 sentences.",
             "stream": False,
-            "keep_alive": 0
+            "keep_alive": OLLAMA_KEEP_ALIVE
         }
         res = requests.post(ollama_url, json=payload, timeout=OLLAMA_COLD_START_TIMEOUT)
         if res.status_code == 200:
@@ -158,12 +166,13 @@ def generate_chat_response(message: str, history: Optional[list] = None) -> dict
             "prompt": prompt,
             "system": system_prompt,
             "stream": False,
-            "keep_alive": OLLAMA_INTERACTIVE_KEEP_ALIVE
+            "keep_alive": OLLAMA_INTERACTIVE_KEEP_ALIVE,
+            "options": {"num_predict": CHAT_MAX_TOKENS},
         }
 
         try:
             logger.info(f"Sending request to Ollama ({ollama_url}) with model {payload.get('model')}")
-            res = requests.post(ollama_url, json=payload, timeout=OLLAMA_COLD_START_TIMEOUT)
+            res = requests.post(ollama_url, json=payload, timeout=OLLAMA_CHAT_TIMEOUT)
             if res.status_code == 200:
                 text = res.json().get("response")
                 if text:
@@ -182,6 +191,37 @@ def generate_chat_response(message: str, history: Optional[list] = None) -> dict
         return {"status": "error", "message": str(e)}
 
 def get_proactive_advice() -> dict:
+    """
+    Proactive advice for the dashboard, cached for an hour.
+
+    The dashboard's advice card requested this on every page view, and each
+    generation holds the Pi's CPU for ~2 minutes. Ollama serves one request
+    at a time, so a chat message sent right after opening the dashboard
+    queued behind it and timed out. Serve the cached answer; generate at most
+    one at a time (a Redis lock) and only when the cache has expired.
+    """
+    cached = cache.get(ADVICE_CACHE_KEY)
+    if cached:
+        return cached
+    lock = cache.redis_client.set(f"{ADVICE_CACHE_KEY}_lock", "1", nx=True, ex=OLLAMA_COLD_START_TIMEOUT + 30) \
+        if cache.redis_client else True
+    if not lock:
+        return {
+            "status": "fallback",
+            "advice": "The Brewmaster is thinking about your batch. Check back in a couple of minutes.",
+            "source": "pending",
+        }
+    try:
+        result = _generate_proactive_advice()
+        if result.get("status") == "success":
+            cache.set(ADVICE_CACHE_KEY, result, ttl=ADVICE_TTL_S)
+        return result
+    finally:
+        if cache.redis_client:
+            cache.redis_client.delete(f"{ADVICE_CACHE_KEY}_lock")
+
+
+def _generate_proactive_advice() -> dict:
     """
     Analyzes current fermentation and provides proactive advice using AI.
     """
@@ -226,7 +266,7 @@ def get_proactive_advice() -> dict:
 
         prompt = "\n".join(context_parts) + "\n\nProvide specific proactive recommendations for the next 24-48 hours."
 
-        # 2. Call Ollama with Waste Management (keep_alive: 0)
+        # 2. Call Ollama
         ollama_host = os.environ.get("OLLAMA_HOST", get_config("ollama_host") or "ollama")
         ollama_url = f"http://{ollama_host}:11434/api/generate"
         
@@ -236,7 +276,8 @@ def get_proactive_advice() -> dict:
                 "prompt": prompt,
                 "system": system_prompt,
                 "stream": False,
-                "keep_alive": 0 # Immediately unload model from RAM after generation
+                "keep_alive": OLLAMA_KEEP_ALIVE,
+                "options": {"num_predict": ADVICE_MAX_TOKENS},
             }
             logger.info(f"Sending resource-optimized request to Ollama: {context_parts[-1]}")
             res = requests.post(ollama_url, json=payload, timeout=OLLAMA_COLD_START_TIMEOUT)
@@ -292,7 +333,7 @@ def analyze_anomaly(anomaly_data: dict) -> dict:
                 "prompt": prompt,
                 "system": system_prompt,
                 "stream": False,
-                "keep_alive": 0
+                "keep_alive": OLLAMA_KEEP_ALIVE
             }
             res = requests.post(ollama_url, json=payload, timeout=OLLAMA_COLD_START_TIMEOUT)
             if res.status_code == 200:
@@ -366,7 +407,7 @@ def predict_issues() -> Optional[str]:
                 "prompt": prompt,
                 "system": system_prompt,
                 "stream": False,
-                "keep_alive": 0
+                "keep_alive": OLLAMA_KEEP_ALIVE
             }
             
             res = requests.post(ollama_url, json=payload, timeout=OLLAMA_COLD_START_TIMEOUT)
@@ -412,7 +453,7 @@ def generate_narrative(batch_data: dict) -> dict:
                 "model": get_config("ollama_model") or "llama3:latest",
                 "prompt": prompt,
                 "stream": False,
-                "keep_alive": 0
+                "keep_alive": OLLAMA_KEEP_ALIVE
             }
             res = requests.post(ollama_url, json=payload, timeout=OLLAMA_COLD_START_TIMEOUT)
             if res.status_code == 200:
@@ -614,7 +655,7 @@ def generate_brew_evaluation(session_summary: dict) -> dict:
     Generate an end-of-session AI evaluation of the brew day.
 
     Analyses gravity readings, corrections, phase timings, and events to
-    produce a quality assessment. Uses keep_alive: 0 to unload the model
+    produce a quality assessment. Uses the shared keep_alive window so it doesn't evict the model
     immediately after generation (session is over).
 
     Args:
@@ -674,7 +715,7 @@ def generate_brew_evaluation(session_summary: dict) -> dict:
                 "prompt": prompt,
                 "system": system_prompt,
                 "stream": False,
-                "keep_alive": 0,
+                "keep_alive": OLLAMA_KEEP_ALIVE,
             }
             logger.info(f"Generating brew day evaluation for {batch_name}")
             res = requests.post(ollama_url, json=payload, timeout=OLLAMA_COLD_START_TIMEOUT)

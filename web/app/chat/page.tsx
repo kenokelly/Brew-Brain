@@ -17,49 +17,103 @@ interface ChatResponse {
     source?: string;
 }
 
+const GREETING: Message = { role: 'assistant', content: 'Hello! I am your Brewmaster AI. How can I help with your fermentation today?' };
+const STORE_KEY = 'brewmaster_chat';
+const POLL_MS = 3000;
+// Queued behind another AI call (~2 min) plus its own reply (1-3 min)
+const MAX_WAIT_MS = 7 * 60 * 1000;
+
+type Pending = { taskId: string; since: number };
+type ChatStatus = { status: 'queued' | 'thinking' | ChatResponse['status'] | string; response?: string; message?: string };
+
+// Per-tab persistence, so leaving the page or a reload mid-reply picks the
+// conversation (and the pending reply) back up. Storage can throw in
+// private mode; the chat still works without it.
+function loadStore(): { messages: Message[]; pending: Pending | null } {
+    try {
+        const raw = sessionStorage.getItem(STORE_KEY);
+        if (raw) return JSON.parse(raw);
+    } catch { /* ignore */ }
+    return { messages: [GREETING], pending: null };
+}
+function saveStore(messages: Message[], pending: Pending | null) {
+    try { sessionStorage.setItem(STORE_KEY, JSON.stringify({ messages, pending })); } catch { /* ignore */ }
+}
+
 export default function ChatPage() {
-    const [messages, setMessages] = useState<Message[]>([
-        { role: 'assistant', content: 'Hello! I am your Brewmaster AI. How can I help with your fermentation today?' }
-    ]);
+    const [messages, setMessages] = useState<Message[]>([GREETING]);
+    const [pending, setPending] = useState<Pending | null>(null);
+    const [phase, setPhase] = useState<'queued' | 'thinking'>('queued');
     const [input, setInput] = useState('');
-    const [loading, setLoading] = useState(false);
     const scrollRef = useRef<HTMLDivElement>(null);
+    const loading = pending !== null;
+
+    // Restore after mount (sessionStorage isn't available during prerender)
+    useEffect(() => {
+        const stored = loadStore();
+        // Restoring persisted state after mount is the intent here: a lazy
+        // useState initializer would diverge from the static prerender.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setMessages(stored.messages?.length ? stored.messages : [GREETING]);
+        setPending(stored.pending);
+    }, []);
+
+    useEffect(() => { saveStore(messages, pending); }, [messages, pending]);
 
     useEffect(() => {
         if (scrollRef.current) {
             scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
         }
-    }, [messages]);
+    }, [messages, loading]);
+
+    // Poll the background job until the reply lands. Replies take minutes on
+    // the Pi, and phones drop long-held requests when the screen locks, so
+    // the reply is fetched with short polls instead of one long request.
+    useEffect(() => {
+        if (!pending) return;
+        let cancelled = false;
+        const finish = (content: string) => {
+            if (cancelled) return;
+            setMessages(prev => [...prev, { role: 'assistant', content }]);
+            setPending(null);
+        };
+        const tick = async () => {
+            if (Date.now() - pending.since > MAX_WAIT_MS) {
+                finish("The Brewmaster didn't answer in time. The Pi may be busy; try again in a minute.");
+                return;
+            }
+            try {
+                const res = await apiFetch<{ data: ChatStatus }>(`/api/ai/chat/status/${pending.taskId}`);
+                const d = res.data;
+                if (d.status === 'success' || d.status === 'fallback') return finish(d.response || '');
+                if (d.status === 'error') return finish('Sorry, the Brewmaster hit an error answering that.');
+                if (!cancelled) setPhase(d.status === 'thinking' ? 'thinking' : 'queued');
+            } catch {
+                // Transient (Wi-Fi blip, app resumed from background): keep polling
+            }
+            if (!cancelled) timer = setTimeout(tick, POLL_MS);
+        };
+        let timer = setTimeout(tick, 500);
+        return () => { cancelled = true; clearTimeout(timer); };
+    }, [pending]);
 
     const handleSend = async () => {
         if (!input.trim() || loading) return;
 
         const userMsg = input.trim();
+        const history = messages.slice(1); // Skip the greeting to keep context clean
         setInput('');
         setMessages(prev => [...prev, { role: 'user', content: userMsg }]);
-        setLoading(true);
+        setPhase('queued');
 
         try {
-            const res = await apiFetch<any>('/api/ai/chat', {
+            const res = await apiFetch<{ data: { task_id: string } }>('/api/ai/chat', {
                 method: 'POST',
-                body: { 
-                    message: userMsg,
-                    history: messages.slice(1) // Skip the first greeting to keep context clean
-                }
+                body: { message: userMsg, history },
             });
-
-            // The backend wraps results in a "data" object: { status: "success", data: { response: "...", ... } }
-            const data = res.data || res;
-
-            if (data.status === 'success' || data.status === 'fallback') {
-                setMessages(prev => [...prev, { role: 'assistant', content: data.response }]);
-            } else {
-                setMessages(prev => [...prev, { role: 'assistant', content: 'Sorry, I encountered an error processing your request.' }]);
-            }
-        } catch (_err) {
-            setMessages(prev => [...prev, { role: 'assistant', content: 'Connection to Brewmaster failed. Is Ollama running?' }]);
-        } finally {
-            setLoading(false);
+            setPending({ taskId: res.data.task_id, since: Date.now() });
+        } catch {
+            setMessages(prev => [...prev, { role: 'assistant', content: "Couldn't reach Brew Brain to send that. Check you're on the home network and try again." }]);
         }
     };
 
@@ -120,7 +174,11 @@ export default function ChatPage() {
                         </div>
                         <div className="bg-card border border-border/50 p-4 rounded-2xl rounded-tl-none flex items-center gap-2">
                             <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
-                            <span className="text-xs text-muted-foreground">Thinking... (runs on-device with no GPU, can take up to 2 minutes)</span>
+                            <span className="text-xs text-muted-foreground">
+                                {phase === 'queued'
+                                    ? 'Waiting for the Brewmaster (the Pi may be finishing another AI task)...'
+                                    : 'Thinking... (runs on the Pi with no GPU, usually 1-3 minutes). Safe to leave this page.'}
+                            </span>
                         </div>
                     </div>
                 )}
