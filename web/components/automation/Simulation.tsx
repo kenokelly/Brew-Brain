@@ -205,6 +205,8 @@ export function Simulation() {
                                         </div>
                                         <button
                                             onClick={() => removeGrain(grain.id)}
+                                            aria-label="Remove grain"
+                                            title={grains.length === 1 ? "A simulation needs at least one grain" : "Remove grain"}
                                             disabled={grains.length === 1}
                                             className="p-2 text-red-400 hover:bg-red-500/20 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                                         >

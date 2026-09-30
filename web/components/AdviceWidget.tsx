@@ -82,6 +82,7 @@ export function AdviceWidget({ className }: { className?: string }) {
                 </div>
                 <button 
                     onClick={fetchAdvice}
+                    aria-label="Refresh advice"
                     disabled={isLoading}
                     className="p-2 rounded-full hover:bg-purple-500/10 text-purple-500 transition-colors disabled:opacity-50"
                 >

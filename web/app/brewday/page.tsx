@@ -617,6 +617,7 @@ export default function BrewDayPage() {
                                     </select>
                                     <button
                                         onClick={addTimer}
+                                        aria-label="Add timer"
                                         disabled={!newTimerName.trim()}
                                         className="p-2 rounded-xl bg-amber-600/15 text-amber-400 hover:bg-amber-600/25 transition-colors disabled:opacity-40 border border-amber-500/20"
                                     >
@@ -804,6 +805,7 @@ export default function BrewDayPage() {
                             />
                             <button
                                 onClick={sendChat}
+                                aria-label="Send message to Brew Day Coach"
                                 disabled={!chatInput.trim() || chatLoading || !session}
                                 className="absolute right-2 top-2 bottom-2 px-4 rounded-xl bg-amber-600 text-white hover:bg-amber-500 transition-colors disabled:opacity-50 disabled:grayscale"
                             >

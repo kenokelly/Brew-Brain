@@ -143,8 +143,12 @@ def get_daily_telemetry() -> dict:
         og = float(get_config("og") or 1.050)
         
         # 1. Get Latest and 24h ago data
-        q_now = f'from(bucket: "{INFLUX_BUCKET}") |> range(start: -1h) |> filter(fn: (r) => r["_measurement"] == "calibrated_readings") |> last()'
-        q_24h = f'from(bucket: "{INFLUX_BUCKET}") |> range(start: -25h, stop: -23h) |> filter(fn: (r) => r["_measurement"] == "calibrated_readings") |> last()'
+        # Group by field before last(): readings are split into tables by tag
+        # (Color, yeast), and a bare last() per table can return a previous
+        # batch's reading (same issue as get_status_dict).
+        newest = '|> group(columns: ["_field"]) |> sort(columns: ["_time"]) |> last()'
+        q_now = f'from(bucket: "{INFLUX_BUCKET}") |> range(start: -1h) |> filter(fn: (r) => r["_measurement"] == "calibrated_readings") {newest}'
+        q_24h = f'from(bucket: "{INFLUX_BUCKET}") |> range(start: -25h, stop: -23h) |> filter(fn: (r) => r["_measurement"] == "calibrated_readings") {newest}'
         
         res_now = query_api.query(q_now)
         res_24h = query_api.query(q_24h)
