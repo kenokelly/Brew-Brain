@@ -26,17 +26,21 @@ def push_recipe_to_repo(recipe_data, token, repo_name):
             # Ideally caller passes content.
             return {"error": "No XML content provided to save."}
         else:
-            # Construct minimal valid XML from dict (fallback)
-            # This is a bit hacky but ensures we save *something* useful.
+            # Construct minimal valid XML from dict (fallback). Values are
+            # escaped: recipe names ("Salt & Pepper Gose") and source URLs
+            # (query strings) routinely contain & and <, which otherwise
+            # produce an unparseable file.
+            from xml.sax.saxutils import escape
+            x = {k: escape(str(recipe_data.get(k))) for k in ("name", "og", "ibu", "abv", "source_url")}
             content = f"""<?xml version="1.0" encoding="ISO-8859-1"?>
 <RECIPES>
   <RECIPE>
-    <NAME>{recipe_data.get('name')}</NAME>
-    <OG>{recipe_data.get('og')}</OG>
-    <IBU>{recipe_data.get('ibu')}</IBU>
-    <EST_ABV>{recipe_data.get('abv')}</EST_ABV>
-    <SOURCE>{recipe_data.get('source_url')}</SOURCE>
-    <NOTES>Imported via Brew-Brain from {recipe_data.get('source_url')}</NOTES>
+    <NAME>{x['name']}</NAME>
+    <OG>{x['og']}</OG>
+    <IBU>{x['ibu']}</IBU>
+    <EST_ABV>{x['abv']}</EST_ABV>
+    <SOURCE>{x['source_url']}</SOURCE>
+    <NOTES>Imported via Brew-Brain from {x['source_url']}</NOTES>
   </RECIPE>
 </RECIPES>"""
 

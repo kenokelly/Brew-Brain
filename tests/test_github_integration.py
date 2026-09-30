@@ -123,6 +123,22 @@ class TestGithubIntegration(unittest.TestCase):
         self.assertIn("<SOURCE>http://example.com</SOURCE>", args[2])
         self.assertEqual(result, {"status": "success", "message": f"Created recipes/Fallback_Beer.xml in {repo_name}"})
 
+    def test_push_recipe_fallback_xml_escapes_special_characters(self):
+        recipe_data = {
+            "name": "Salt & Pepper <Gose>",
+            "og": "1.040", "ibu": "10", "abv": "4.2",
+            "source_url": "http://example.com/r?id=1&src=x",
+        }
+        self.mock_repo.get_contents.side_effect = Exception("Not Found")
+
+        push_recipe_to_repo(recipe_data, "fake_token", "user/repo")
+
+        xml = self.mock_repo.create_file.call_args[0][2]
+        import xml.etree.ElementTree as ET
+        root = ET.fromstring(xml.encode("ISO-8859-1"))  # raises if not well-formed
+        self.assertEqual(root.find("RECIPE/NAME").text, "Salt & Pepper <Gose>")
+        self.assertEqual(root.find("RECIPE/SOURCE").text, "http://example.com/r?id=1&src=x")
+
     def test_push_recipe_missing_xml_content_with_xml_url(self):
         # Setup
         recipe_data = {
