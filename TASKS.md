@@ -335,6 +335,11 @@ Dark instrument-panel dashboard running alongside the production one at `/` unti
   timed out, and `keep_alive: 0` on the other AI calls evicted the model each time. Fixed: chat is
   a Celery job the page polls (survives screen lock/app switch, resumes after reload), advice is
   cached 1h with a single-flight lock, all calls share a 10m keep_alive, and reply length is capped.
+- [x] **Self-recovery** (`ops/recovery/`, installed by every deploy): network watchdog
+  (reconnect → radio toggle → NetworkManager restart → reboot, max 3 reboots/6h), app container
+  restarts on failed health checks, hardware watchdog, reboot on kernel panic, and a Telegram +
+  journal report after recovery. Tested against stubbed commands (`tests/test_recovery_watchdog.py`).
+  **Not yet installed: the Pi has been offline since 2026-10-06.**
 - [ ] Tilt calibration: reads 0.993 in plain water (should be 1.000), so offset ≈ +0.007.
   Not applied yet, pending confirmation.
 - [ ] Frontend `__tests__/settings.test.tsx` hangs under vitest (pre-existing, not run in CI);

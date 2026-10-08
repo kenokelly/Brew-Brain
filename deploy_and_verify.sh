@@ -30,10 +30,18 @@ p_sync() {
 }
 
 # Sync config and source files
-p_sync ./.env ./docker-compose.yml ./telegraf.conf ./grafana ./app ./web $HOST:$REMOTE_DIR/ &
+p_sync ./.env ./docker-compose.yml ./telegraf.conf ./grafana ./app ./web ./ops $HOST:$REMOTE_DIR/ &
 # A bare `wait` always returns 0, which hid rsync failures; wait on the PID
 if ! wait $!; then
     echo "❌ rsync to $HOST failed"
+    exit 1
+fi
+
+# 1b. Self-recovery (network watchdog, hardware watchdog, kernel panic
+#     reboot). Idempotent, so it's safe to re-run on every deploy.
+echo "🛟 Installing self-recovery..."
+if ! ssh $HOST "cd $REMOTE_DIR && sudo -n ops/recovery/install.sh"; then
+    echo "❌ Self-recovery install failed"
     exit 1
 fi
 

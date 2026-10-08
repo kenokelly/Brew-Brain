@@ -1,0 +1,9 @@
+[Unit]
+Description=Brew Brain self-recovery check (network, app containers)
+After=network.target docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/brew-brain-recovery
+# A reconnect/radio toggle can take a while; never let a check pile up
+TimeoutStartSec=90
