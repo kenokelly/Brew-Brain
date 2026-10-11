@@ -2,12 +2,13 @@
 set -e
 
 # Configuration
-# The Pi's address comes from DHCP and has changed (.226 -> .237 in Oct 2026).
+# The Pi has a DHCP reservation for 192.168.155.24 (set Oct 2026, after its
+# address moved .226 -> .237).
 # Override with BREW_BRAIN_HOST, otherwise try the last known address and
 # fall back to scanning the LAN for the host named "tiltpi".
 PI_USER="kokelly"
 PI_HOSTNAME="tiltpi"
-PI_IP="${BREW_BRAIN_HOST:-192.168.155.237}"
+PI_IP="${BREW_BRAIN_HOST:-192.168.155.24}"
 HOST="$PI_USER@$PI_IP"
 REMOTE_DIR="brew-brain"
 LOCAL_DIR="$(pwd)"

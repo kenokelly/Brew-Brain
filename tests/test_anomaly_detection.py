@@ -32,6 +32,11 @@ class TestAnomalyDetection(unittest.TestCase):
         self.mock_telegram = self.patcher_telegram.start()
         self.mock_broadcast = self.patcher_broadcast.start()
 
+        # Alert cooldowns live in the cache; start each test with none active
+        from app.services import anomaly
+        for kind in anomaly.ALERT_COOLDOWN_MIN:
+            anomaly.cache._local_cache.pop(f"anomaly_alert_ts_{kind}", None)
+
         # Default config mock
         self.mock_config.side_effect = lambda k: {
             "batch_name": "Test Batch",
@@ -95,6 +100,31 @@ class TestAnomalyDetection(unittest.TestCase):
         result = check_stalled_fermentation("Stall Test")
         self.assertEqual(result["status"], "stalled")
         self.mock_telegram.assert_called_once()
+
+    def test_stalled_alert_has_cooldown(self):
+        """The check runs every 5 min; a persisting stall alerts once, not every run."""
+        from app.services.anomaly import check_stalled_fermentation
+        now = datetime.now(timezone.utc)
+        self.mock_query.query.return_value = [MockTable([MockRecord(1.040, now - timedelta(hours=i)) for i in range(24, -1, -1)])]
+
+        first = check_stalled_fermentation("Stall Test")
+        second = check_stalled_fermentation("Stall Test")
+        self.assertTrue(first["alert_sent"])
+        self.assertEqual(second["status"], "stalled")
+        self.assertFalse(second["alert_sent"])
+        self.mock_telegram.assert_called_once()
+
+    def test_rising_gravity_is_not_a_stall(self):
+        """Gravity climbing (hydrometer moved/misreading) must not report a stall."""
+        from app.services.anomaly import check_stalled_fermentation
+        now = datetime.now(timezone.utc)
+        # 0.993 -> 1.040 over 24h, as seen with the Tilt in water on 2026-10-11
+        readings = [MockRecord(0.993 + 0.047 * (24 - i) / 24, now - timedelta(hours=i)) for i in range(24, -1, -1)]
+        self.mock_query.query.return_value = [MockTable(readings)]
+
+        result = check_stalled_fermentation("Rise Test")
+        self.assertEqual(result["status"], "normal")
+        self.mock_telegram.assert_not_called()
 
     def test_check_temperature_deviation(self):
         from app.services.anomaly import check_temperature_deviation

@@ -22,6 +22,28 @@ logger = logging.getLogger(__name__)
 
 # Thresholds
 STALL_THRESHOLD_POINTS_PER_DAY = 1.0  # SG change < 0.001/day
+
+# Minimum minutes between repeat alerts of each kind. These checks run every
+# 5 minutes and a condition (a stall, a moved hydrometer) persists, so
+# without a cooldown each one re-alerted on every run - Telegram got a
+# STALLED + STATISTICAL ANOMALY pair every 5 minutes on 2026-10-11.
+ALERT_COOLDOWN_MIN = {
+    "stalled": 12 * 60,
+    "statistical_anomaly": 6 * 60,
+    "runaway": 6 * 60,
+    "temp_deviation": 60,
+}
+
+
+def _alert_due(kind: str) -> bool:
+    """True (and starts the cooldown) if a `kind` alert may be sent now."""
+    key = f"anomaly_alert_ts_{kind}"
+    now = datetime.now(timezone.utc).timestamp()
+    last = cache.get(key)
+    if last is not None and (now - last) / 60 < ALERT_COOLDOWN_MIN[kind]:
+        return False
+    cache.set(key, now, ttl=ALERT_COOLDOWN_MIN[kind] * 60 + 3600)
+    return True
 RUNAWAY_THRESHOLD_POINTS_12H = 20.0   # SG change > 0.020 in 12h
 TEMP_DEVIATION_C = 1.0                 # ±1.0°C from target for 30m
 SIGNAL_LOSS_MINUTES = 60               # No reading for > 60 min
@@ -116,13 +138,14 @@ def calculate_anomaly_score() -> Dict[str, Any]:
                 f"Temp Z: {temp_zscore:.2f} | SG Rate Z: {sg_rate_zscore:.2f}\n\n"
                 f"*Action:* Review current readings"
             )
-            send_telegram_message(alert_msg)
-            broadcast_alert("statistical_anomaly", f"Statistical anomaly detected: {which_anomaly}", "warning", {
-                "anomaly_score": result["anomaly_score"],
-                "temp_zscore": result["temp_zscore"],
-                "sg_rate_zscore": result["sg_rate_zscore"]
-            })
-            result["alert_sent"] = True
+            if _alert_due("statistical_anomaly"):
+                send_telegram_message(alert_msg)
+                broadcast_alert("statistical_anomaly", f"Statistical anomaly detected: {which_anomaly}", "warning", {
+                    "anomaly_score": result["anomaly_score"],
+                    "temp_zscore": result["temp_zscore"],
+                    "sg_rate_zscore": result["sg_rate_zscore"]
+                })
+                result["alert_sent"] = True
             
         elif max_zscore > Z_SCORE_THRESHOLD * 0.8:  # 80% of threshold
             result["status"] = "elevated"
@@ -173,8 +196,10 @@ def check_stalled_fermentation(batch_name: str = "Current Batch") -> Dict[str, A
         sg_change = first_sg - last_sg  # Positive = dropping (fermenting)
         points_per_day = (sg_change * 1000) / (hours_elapsed / 24)
         
-        # Only alert if we're in active fermentation (SG > 1.020)
-        if last_sg > 1.020 and points_per_day < STALL_THRESHOLD_POINTS_PER_DAY:
+        # Only alert if we're in active fermentation (SG > 1.020) and gravity
+        # has flattened. Gravity *rising* by more than noise isn't a stall -
+        # it means the hydrometer was moved or is misreading.
+        if last_sg > 1.020 and -STALL_THRESHOLD_POINTS_PER_DAY < points_per_day < STALL_THRESHOLD_POINTS_PER_DAY:
             alert_msg = (
                 f"🛑 *STALLED FERMENTATION: {batch_name}*\n\n"
                 f"SG Change: {sg_change:.4f} ({points_per_day:.1f} pts/day)\n"
@@ -185,11 +210,13 @@ def check_stalled_fermentation(batch_name: str = "Current Batch") -> Dict[str, A
                 f"• Gently rouse yeast\n"
                 f"• Consider yeast nutrient"
             )
-            send_telegram_message(alert_msg, current_values={"sg": last_sg})
-            broadcast_alert("stalled", f"Stalled fermentation: {batch_name}", "critical", {"sg": last_sg})
+            sent = _alert_due("stalled")
+            if sent:
+                send_telegram_message(alert_msg, current_values={"sg": last_sg})
+                broadcast_alert("stalled", f"Stalled fermentation: {batch_name}", "critical", {"sg": last_sg})
             return {
                 "status": "stalled",
-                "alert_sent": True,
+                "alert_sent": sent,
                 "sg_change": round(sg_change, 4),
                 "points_per_day": round(points_per_day, 2),
                 "current_sg": round(last_sg, 3)
@@ -305,11 +332,13 @@ def check_temperature_deviation(
             f"Profile: {profile_source}\n\n"
             f"*Action:* Check glycol chiller / heating wrap"
         )
-        send_telegram_message(alert_msg, current_values={"temp": avg_temp})
-        broadcast_alert("temp_deviation", f"Temp {direction}: {avg_temp:.1f}°C", "warning", {"temp": avg_temp})
+        sent = _alert_due("temp_deviation")
+        if sent:
+            send_telegram_message(alert_msg, current_values={"temp": avg_temp})
+            broadcast_alert("temp_deviation", f"Temp {direction}: {avg_temp:.1f}°C", "warning", {"temp": avg_temp})
         return {
             "status": "deviation",
-            "alert_sent": True,
+            "alert_sent": sent,
             "current_temp": round(avg_temp, 1),
             "safe_range": range_str,
             "deviation": round(deviation, 1),
@@ -372,11 +401,13 @@ def check_runaway_fermentation(batch_name: str = "Current Batch") -> Dict[str, A
                 f"• Blowoff tube clearance\n"
                 f"• Lower temp if needed"
             )
-            send_telegram_message(alert_msg)
-            broadcast_alert("runaway", f"Runaway fermentation: {batch_name}", "critical", {"sg_drop": sg_drop})
+            sent = _alert_due("runaway")
+            if sent:
+                send_telegram_message(alert_msg)
+                broadcast_alert("runaway", f"Runaway fermentation: {batch_name}", "critical", {"sg_drop": sg_drop})
             return {
                 "status": "runaway",
-                "alert_sent": True,
+                "alert_sent": sent,
                 "sg_drop_12h": round(sg_drop, 4),
                 "points_dropped": round(points_dropped, 1)
             }
