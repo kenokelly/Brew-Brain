@@ -2,7 +2,13 @@
 set -e
 
 # Configuration
-HOST="kokelly@192.168.155.226"
+# The Pi's address comes from DHCP and has changed (.226 -> .237 in Oct 2026).
+# Override with BREW_BRAIN_HOST, otherwise try the last known address and
+# fall back to scanning the LAN for the host named "tiltpi".
+PI_USER="kokelly"
+PI_HOSTNAME="tiltpi"
+PI_IP="${BREW_BRAIN_HOST:-192.168.155.237}"
+HOST="$PI_USER@$PI_IP"
 REMOTE_DIR="brew-brain"
 LOCAL_DIR="$(pwd)"
 
@@ -16,9 +22,24 @@ elif [[ "$1" == "--restart-only" ]] || [[ "$1" == "-r" ]]; then
 fi
 
 # 0. Reachability: fail fast and loudly rather than half-deploying
-if ! ssh -o ConnectTimeout=10 -o BatchMode=yes $HOST true 2>/dev/null; then
-    echo "❌ Cannot reach $HOST over SSH - is the Pi powered on and on the network?"
-    exit 1
+is_pi() {
+    [ "$(ssh -o ConnectTimeout=4 -o BatchMode=yes -o StrictHostKeyChecking=accept-new \
+        "$PI_USER@$1" hostname 2>/dev/null)" = "$PI_HOSTNAME" ]
+}
+if ! is_pi "$PI_IP"; then
+    echo "🔎 $PI_HOSTNAME not at $PI_IP; scanning the LAN..."
+    subnet="${PI_IP%.*}"
+    found=""
+    for ip in $(for i in $(seq 1 254); do (nc -z -G 1 "$subnet.$i" 22 2>/dev/null && echo "$subnet.$i") & done; wait); do
+        if is_pi "$ip"; then found="$ip"; break; fi
+    done
+    if [ -z "$found" ]; then
+        echo "❌ Cannot find $PI_HOSTNAME on $subnet.0/24 - is the Pi powered on and on the network?"
+        exit 1
+    fi
+    echo "📍 Found $PI_HOSTNAME at $found (update PI_IP in this script, or reserve it in the router)"
+    PI_IP="$found"
+    HOST="$PI_USER@$PI_IP"
 fi
 
 # 1. Sync & Remote Prep

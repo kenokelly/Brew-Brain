@@ -22,6 +22,10 @@ install -m 0644 90-brew-brain-panic.conf /etc/sysctl.d/90-brew-brain-panic.conf
 # Wi-Fi power saving drops the Pi off the network (2026-09-29 incident)
 nmcli -t -f NAME,TYPE con show | awk -F: '$2 == "802-11-wireless" {print $1}' | while read -r c; do
     nmcli con modify "$c" 802-11-wireless.powersave 2 || true
+    # Retry forever. The default gives up after 4 failed attempts; on
+    # 2026-10-11 the access point rejected a few attempts and the Pi then
+    # stayed offline for days until it was power-cycled.
+    nmcli con modify "$c" connection.autoconnect-retries 0 || true
 done
 iw dev wlan0 set power_save off 2>/dev/null || true
 
