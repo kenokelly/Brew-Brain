@@ -339,7 +339,15 @@ Dark instrument-panel dashboard running alongside the production one at `/` unti
   (reconnect → radio toggle → NetworkManager restart → reboot, max 3 reboots/6h), app container
   restarts on failed health checks, hardware watchdog, reboot on kernel panic, and a Telegram +
   journal report after recovery. Tested against stubbed commands (`tests/test_recovery_watchdog.py`).
-  **Not yet installed: the Pi has been offline since 2026-10-06.**
+  Installed 2026-10-11 and verified across a reboot.
+- [x] **Outage 2026-10-06 → 10-11, root cause**: the access point rejected Wi-Fi association a few
+  times (ASSOC-REJECT status 16) and NetworkManager gave up for good (default autoconnect-retries),
+  leaving the Pi running but offline until power-cycled. Fixed: retries set to infinite, self-recovery
+  installed. Pi now has a **DHCP reservation at 192.168.155.24**; the deploy script also scans the LAN
+  for host `tiltpi` if that address doesn't answer.
+- [x] **Alert spam fix**: anomaly.py stall/anomaly/runaway/temp checks had no cooldown (re-alerted
+  every 5 min); stall also fired on *rising* gravity. Cooldowns 12h/6h/6h/1h; rising gravity excluded.
+- [ ] Brewmaster prompt: pass rounded values and real batch context (step, velocity, ETA, journal).
 - [ ] Tilt calibration: reads 0.993 in plain water (should be 1.000), so offset ≈ +0.007.
   Not applied yet, pending confirmation.
 - [ ] Frontend `__tests__/settings.test.tsx` hangs under vitest (pre-existing, not run in CI);
