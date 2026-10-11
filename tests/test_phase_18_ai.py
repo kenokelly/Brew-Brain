@@ -59,20 +59,17 @@ class TestPhase18AI(unittest.TestCase):
         res = search_yeast_meta("London Ale")
         self.assertEqual(res["name"], "Wyeast 1318 London Ale III")
 
-    @patch('ml.features.calculate_sg_velocity')
-    @patch('ml.features.query_batch_data')
+    @patch('services.ai.build_batch_context', return_value="Batch: Test IPA\nGravity falling 5.0 points/day over the last 24 h")
     @patch('services.ai.get_config')
     @patch('services.ai.requests.post')
-    def test_get_proactive_advice_resource_control(self, mock_post, mock_config, mock_query, mock_vel):
+    def test_get_proactive_advice_resource_control(self, mock_post, mock_config, mock_ctx):
         """Advice keeps the model warm (shared keep_alive) and caps reply length.
 
         It used keep_alive: 0, which evicted the model after every dashboard
         view so the next chat message paid a ~23s reload on top of CPU
         inference."""
-        mock_config.return_value = "llama3"
-        mock_query.return_value = {"sg_readings": [1.050, 1.040], "sg_times": [datetime.now(), datetime.now()]}
-        mock_vel.return_value = 5.0
-        
+        mock_config.side_effect = lambda k: {"yeast_strain": "Unknown"}.get(k, "llama3")
+
         # Mock successful response
         mock_response = MagicMock()
         mock_response.status_code = 200
@@ -92,7 +89,9 @@ class TestPhase18AI(unittest.TestCase):
         self.assertEqual(payload['keep_alive'], ai_mod.OLLAMA_KEEP_ALIVE)
         self.assertEqual(payload['options']['num_predict'], ai_mod.ADVICE_MAX_TOKENS)
         mock_cache_set.assert_called_once()
-        self.assertIn("Fermentation Velocity: 5.0", payload['prompt'])
+        self.assertIn("Gravity falling 5.0 points/day", payload['prompt'])
+        # Reads the real config key (it used to read a non-existent "yeast_name")
+        self.assertIn(unittest.mock.call("yeast_strain"), mock_config.call_args_list)
 
     @patch('ml.features.calculate_sg_velocity')
     @patch('ml.features.query_batch_data')

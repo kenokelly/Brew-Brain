@@ -131,21 +131,134 @@ def simulate_brew_insight(yeast_name, brew_count, mean_fg, p95_fg):
     
     return None
 
+_PHASE_TEXT = {
+    "LAG": "lag phase (yeast not yet visibly active)",
+    "ACTIVE": "active fermentation",
+    "SLOWING": "fermentation slowing down",
+    "STABLE": "gravity stable (likely finished or nearly finished)",
+    "STALLED": "possibly stalled (gravity flat well above target)",
+    "NO DATA": "unknown (not enough recent readings)",
+}
+
+
+def _ago(iso: str, now: datetime) -> str:
+    try:
+        mins = (now - datetime.fromisoformat(iso)).total_seconds() / 60
+    except (TypeError, ValueError):
+        return "recently"
+    if mins < 60:
+        return f"{int(mins)} min ago"
+    if mins < 48 * 60:
+        return f"{int(mins / 60)} h ago"
+    return f"{int(mins / 1440)} days ago"
+
+
+def build_batch_context(journal_entries: int = 5) -> str:
+    """Plain-text summary of the live batch for AI prompts.
+
+    The AI used to get only a raw SG and an unrounded temperature
+    ("22.22222222222222C"), so its answers were generic or invented details.
+    This pulls the same numbers the beta dashboard shows - rounded, labelled
+    and with units - plus the recipe schedule and recent journal events.
+    Kept short: every token costs CPU time on the Pi.
+    """
+    from services.fermentation import get_fermentation_summary
+
+    now = datetime.now(timezone.utc)
+    s = get_fermentation_summary(now)
+    lines = []
+
+    recipe = ", ".join(x for x in (s.get("style"), f"yeast {s.get('yeast')}" if s.get("yeast") else None)
+                       if x and "Unknown" not in str(x))
+    lines.append(f"Batch: {s.get('batch_name') or 'unnamed'}" + (f" ({recipe})" if recipe else ""))
+    if s.get("day"):
+        lines.append(f"Day {s['day']} since pitch")
+    lines.append(f"Original gravity {s['og']:.3f}, target final gravity {s['target_fg']:.3f}")
+
+    sg = s.get("sg")
+    if sg is not None:
+        line = f"Current gravity {sg:.3f}"
+        if s.get("attenuation") is not None:
+            line += f" ({s['attenuation']:.0f}% attenuation, about {s.get('abv') or 0:.1f}% ABV so far)"
+        lines.append(line)
+    else:
+        lines.append("Current gravity: no reading")
+
+    v = s.get("velocity")
+    if v is not None:
+        if v <= -0.2:
+            lines.append(f"Gravity falling {-v:.1f} points/day over the last 24 h")
+        elif v >= 0.2:
+            lines.append(f"Gravity RISING {v:.1f} points/day over the last 24 h (unusual: hydrometer moved or misreading?)")
+        else:
+            lines.append("Gravity flat over the last 24 h")
+    lines.append(f"Fermentation state: {_PHASE_TEXT.get(s.get('phase'), s.get('phase'))}")
+    eta = s.get("eta_days")
+    if eta == 0:
+        lines.append("Gravity is at or below the target final gravity")
+    elif eta is not None:
+        lines.append(f"Estimated {eta:.1f} days to target final gravity at the current rate")
+
+    temp = s.get("temp")
+    if temp is not None:
+        line = f"Beer temperature {temp:.1f}°C"
+        if s.get("target_temp") is not None:
+            line += f" (target {s['target_temp']:.1f}°C, {s.get('temp_delta') or 0:+.1f}°C off)"
+        lines.append(line)
+
+    sched = s.get("schedule") or {}
+    cur, nxt = sched.get("current"), sched.get("next")
+    if cur:
+        line = f"Recipe step {sched['current_index'] + 1} of {len(sched['steps'])}: {cur['name']}"
+        if cur.get("temp") is not None:
+            line += f" at {cur['temp']:g}°C"
+        lines.append(line)
+    if nxt:
+        days = sched.get("days_to_next")
+        when = f"in {days * 24:.0f} h" if days is not None and days < 1 else f"in {days:.1f} days" if days is not None else ""
+        lines.append(f"Next step: {nxt['name']}" + (f" at {nxt['temp']:g}°C" if nxt.get("temp") is not None else "") + f" {when}".rstrip())
+    elif sched and sched.get("current_index", 0) >= len(sched.get("steps", [])):
+        lines.append("Fermentation schedule complete; ready to package")
+
+    age = (s.get("sensor") or {}).get("last_reading_age_min")
+    if age is None or age > 60:
+        lines.append("WARNING: no hydrometer reading in the last hour; data may be stale")
+    if s.get("test_mode"):
+        lines.append("NOTE: test mode is on; readings are simulated")
+    if not s.get("brew_active"):
+        lines.append("NOTE: Brew Active is off (no batch is being actively monitored)")
+
+    try:
+        from services.journal import list_entries
+        recent = list_entries(journal_entries)
+    except Exception:
+        recent = []
+    if recent:
+        lines.append("Recent events (newest first):")
+        lines.extend(f"- {_ago(e['ts'], now)}: {e['text'][:140]}" for e in recent)
+
+    return "\n".join(lines)
+
+
 def generate_chat_response(message: str, history: Optional[list] = None) -> dict:
     """
     Generates a response from the Brewmaster AI (Local Ollama).
     """
     try:
-        from services.status import get_status_dict
-        status = get_status_dict()
-        sg = status.get("sg", "N/A")
-        temp = status.get("temp", "N/A")
-        
+        try:
+            context = build_batch_context()
+        except Exception as ctx_e:
+            logger.warning(f"Batch context unavailable for chat: {ctx_e}")
+            context = "Live batch data is currently unavailable."
+
         system_prompt = (
-            "You are the 'Brewmaster', a helpful and expert AI assistant for homebrewers. "
-            "You have access to real-time fermentation data. "
-            "The user's current batch is at " + str(sg) + " SG and " + str(temp) + "C. "
-            "Be professional, encouraging, and highly technical when appropriate."
+            "You are the 'Brewmaster', an expert homebrewing assistant. "
+            "Here is the live data for the user's current batch:\n"
+            f"{context}\n\n"
+            "Base your answer on these numbers and quote them where useful. "
+            "Don't invent readings, dates or ingredients that aren't listed. "
+            "If the data looks implausible (for example gravity below 1.000, or rising), "
+            "say so and suggest checking the hydrometer. Be concise and practical."
         )
 
         # 1. Try Local Ollama
@@ -182,7 +295,7 @@ def generate_chat_response(message: str, history: Optional[list] = None) -> dict
 
         return {
             "status": "fallback", 
-            "response": "The Brewmaster is currently offline. I can see your batch is at " + str(sg) + " SG, but I can't provide detailed advice right now.",
+            "response": "The Brewmaster is currently offline, so I can't give detailed advice right now. Here's your batch as it stands:\n" + context,
             "source": "template"
         }
 
@@ -226,43 +339,26 @@ def _generate_proactive_advice() -> dict:
     Analyzes current fermentation and provides proactive advice using AI.
     """
     try:
-        from services.status import get_status_dict
         from services.yeast import search_yeast_meta
-        from ml.features import query_batch_data, calculate_sg_velocity
-        
-        status = get_status_dict()
-        batch_name = status.get("batch_name", "the current batch")
-        yeast_name = get_config("yeast_name") or "Unknown"
-        sg = status.get("sg", "N/A")
-        temp = status.get("temp", "N/A")
-        og = status.get("og", 1.050)
-        
-        # 1. Gather Context
+
+        # Same live summary the chat uses (step timeline, velocity, ETA,
+        # journal). The yeast was read from a "yeast_name" key that doesn't
+        # exist, so advice always said "Unknown" yeast; it's yeast_strain.
+        context = build_batch_context(journal_entries=3)
+        yeast_name = get_config("yeast_strain") or "Unknown"
         yeast_specs = search_yeast_meta(yeast_name) if yeast_name != "Unknown" else {}
-        
-        # Calculate Real-time Velocity (Last 24h)
-        now = datetime.now(timezone.utc)
-        start_time = now - timedelta(hours=24)
-        data = query_batch_data(start_time, now)
-        velocity = calculate_sg_velocity(data["sg_readings"], data["sg_times"]) if data["sg_readings"] else 0.0
-        
+
         system_prompt = (
             "You are the 'Brewmaster', an expert in fermentation management. "
-            "Provide proactive advice for the current batch. Suggest timing for diacetyl rests, dry hopping, or cold crashing. "
-            "Be technical, extremely concise (max 3 sentences), and prioritize yeast-specific behavior."
+            "Provide proactive advice for the current batch: timing for diacetyl rests, dry hopping, "
+            "or cold crashing, and anything in the data that needs attention. Base it on the data given; "
+            "don't invent readings. Be technical and extremely concise (max 3 sentences)."
         )
-        
-        context_parts = [
-            f"Batch: {batch_name}",
-            f"Yeast: {yeast_name}",
-            f"Current SG: {sg} (OG: {og})",
-            f"Current Temp: {temp}C",
-            f"Fermentation Velocity: {velocity} gravity points/day"
-        ]
-        
+
+        context_parts = [context]
         if yeast_specs and "error" not in yeast_specs:
             # Only include key specs to save context tokens/RAM
-            context_parts.append(f"Yeast Specs: {yeast_specs.get('attenuation')}, {yeast_specs.get('temp_range')}")
+            context_parts.append(f"Yeast specs: {yeast_specs.get('attenuation')}, {yeast_specs.get('temp_range')}")
 
         prompt = "\n".join(context_parts) + "\n\nProvide specific proactive recommendations for the next 24-48 hours."
 
@@ -279,7 +375,7 @@ def _generate_proactive_advice() -> dict:
                 "keep_alive": OLLAMA_KEEP_ALIVE,
                 "options": {"num_predict": ADVICE_MAX_TOKENS},
             }
-            logger.info(f"Sending resource-optimized request to Ollama: {context_parts[-1]}")
+            logger.info("Sending proactive advice request to Ollama")
             res = requests.post(ollama_url, json=payload, timeout=OLLAMA_COLD_START_TIMEOUT)
             if res.status_code == 200:
                 text = res.json().get("response")

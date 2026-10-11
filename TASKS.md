@@ -347,7 +347,9 @@ Dark instrument-panel dashboard running alongside the production one at `/` unti
   for host `tiltpi` if that address doesn't answer.
 - [x] **Alert spam fix**: anomaly.py stall/anomaly/runaway/temp checks had no cooldown (re-alerted
   every 5 min); stall also fired on *rising* gravity. Cooldowns 12h/6h/6h/1h; rising gravity excluded.
-- [ ] Brewmaster prompt: pass rounded values and real batch context (step, velocity, ETA, journal).
+- [x] Brewmaster chat and dashboard advice get the live batch summary (`build_batch_context()`:
+  rounded values, step timeline, velocity, ETA, recent journal). Advice read a non-existent
+  `yeast_name` key (always "Unknown"); now `yeast_strain`.
 - [ ] Tilt calibration: reads 0.993 in plain water (should be 1.000), so offset ≈ +0.007.
   Not applied yet, pending confirmation.
 - [ ] Frontend `__tests__/settings.test.tsx` hangs under vitest (pre-existing, not run in CI);

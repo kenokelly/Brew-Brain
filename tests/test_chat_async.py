@@ -56,3 +56,76 @@ def test_chat_status_states():
     done.get.return_value = {"status": "success", "response": "Looks healthy."}
     with patch("celery.result.AsyncResult", return_value=done):
         assert c.get("/api/ai/chat/status/t1").get_json()["data"]["response"] == "Looks healthy."
+
+
+# ---------------------------------------------------------------------------
+# Batch context given to the AI
+# ---------------------------------------------------------------------------
+
+from datetime import datetime, timedelta, timezone
+
+
+def _summary(**over):
+    now = datetime.now(timezone.utc)
+    steps = [
+        {"name": "Primary", "type": "Primary", "temp": 19.0, "days": 4,
+         "start": (now - timedelta(days=5)).isoformat(), "end": (now - timedelta(days=1)).isoformat()},
+        {"name": "Secondary", "type": "Secondary", "temp": 22.0, "days": 2,
+         "start": (now - timedelta(days=1)).isoformat(), "end": (now + timedelta(days=1)).isoformat()},
+        {"name": "Cold Crash", "type": "Cold Crash", "temp": 2.0, "days": 2,
+         "start": (now + timedelta(days=1)).isoformat(), "end": (now + timedelta(days=3)).isoformat()},
+    ]
+    s = {
+        "batch_name": "Hazy Daisy", "style": "NEIPA", "yeast": "Verdant IPA", "brew_active": True, "test_mode": False,
+        "og": 1.065, "target_fg": 1.012, "sg": 1.01523, "temp": 22.22222222222222, "temp_unit": "C",
+        "target_temp": 22.0, "temp_delta": 0.2, "velocity": -0.8, "phase": "SLOWING",
+        "attenuation": 76.6, "abv": 6.534, "eta_days": 4.0, "day": 6,
+        "schedule": {"steps": steps, "current_index": 1, "current": steps[1], "next": steps[2], "days_to_next": 1.0},
+        "sensor": {"rssi": -60, "last_reading_age_min": 2.0},
+    }
+    s.update(over)
+    return s
+
+
+def _context(summary, journal=()):
+    with patch("services.fermentation.get_fermentation_summary", return_value=summary), \
+         patch("services.journal.list_entries", return_value=list(journal)):
+        return ai.build_batch_context()
+
+
+def test_batch_context_is_rounded_and_complete():
+    now = datetime.now(timezone.utc)
+    ctx = _context(_summary(), [{"ts": (now - timedelta(hours=3)).isoformat(), "kind": "note", "text": "Dry hops in"}])
+    assert "22.22222" not in ctx                      # no raw floats
+    assert "Beer temperature 22.2°C (target 22.0°C, +0.2°C off)" in ctx
+    assert "Current gravity 1.015 (77% attenuation, about 6.5% ABV so far)" in ctx
+    assert "Gravity falling 0.8 points/day" in ctx
+    assert "Recipe step 2 of 3: Secondary at 22°C" in ctx
+    assert "Next step: Cold Crash at 2°C in 1.0 days" in ctx
+    assert "Day 6 since pitch" in ctx and "Verdant IPA" in ctx
+    assert "3 h ago: Dry hops in" in ctx
+
+
+def test_batch_context_flags_implausible_and_stale_data():
+    ctx = _context(_summary(velocity=5.6, sensor={"rssi": None, "last_reading_age_min": 300}, brew_active=False))
+    assert "RISING 5.6 points/day" in ctx
+    assert "no hydrometer reading in the last hour" in ctx
+    assert "Brew Active is off" in ctx
+
+
+def test_chat_prompt_carries_batch_context():
+    resp = MagicMock(status_code=200)
+    resp.json.return_value = {"response": "Looks healthy."}
+    with patch.object(ai, "build_batch_context", return_value="Batch: Hazy Daisy\nCurrent gravity 1.015"), \
+         patch("services.ai.requests.post", return_value=resp) as post:
+        out = ai.generate_chat_response("How's it going?")
+    assert out["status"] == "success"
+    system = post.call_args.kwargs["json"]["system"]
+    assert "Current gravity 1.015" in system and "Don't invent" in system
+
+
+def test_chat_fallback_includes_batch_summary_when_ollama_down():
+    with patch.object(ai, "build_batch_context", return_value="Current gravity 1.015"), \
+         patch("services.ai.requests.post", side_effect=ConnectionError("down")):
+        out = ai.generate_chat_response("Hi")
+    assert out["status"] == "fallback" and "Current gravity 1.015" in out["response"]
