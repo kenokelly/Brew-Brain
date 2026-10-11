@@ -444,7 +444,9 @@ def check_alerts_once() -> None:
                 target_fg = float(get_config("target_fg") or 1.010)
                 logger.info(f"Stall check: drop={daily_drop:.4f} curr={sg_current:.3f} target_fg={target_fg:.3f}")
 
-                if daily_drop < 0.002 and sg_current > (target_fg + 0.005):
+                # Flat, not rising: gravity going *up* means the hydrometer
+                # was moved or is misreading, not a stalled fermentation.
+                if -0.002 < daily_drop < 0.002 and sg_current > (target_fg + 0.005):
                     send_telegram_message(
                         f"⚠️ *STALL DETECTED*\n"
                         f"Gravity dropped only {daily_drop:.3f} pts in 24h.\n"
