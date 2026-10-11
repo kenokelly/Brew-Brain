@@ -129,3 +129,12 @@ def test_chat_fallback_includes_batch_summary_when_ollama_down():
          patch("services.ai.requests.post", side_effect=ConnectionError("down")):
         out = ai.generate_chat_response("Hi")
     assert out["status"] == "fallback" and "Current gravity 1.015" in out["response"]
+
+
+def test_batch_context_collapses_repeated_journal_alerts():
+    now = datetime.now(timezone.utc).isoformat()
+    repeats = [{"ts": now, "kind": "alert", "text": f"📊 STATISTICAL ANOMALY: DEV Z-Score: {40 + i}"} for i in range(6)]
+    other = [{"ts": now, "kind": "note", "text": "Tilt moved to the fermenter"}]
+    ctx = _context(_summary(), repeats + other)
+    assert ctx.count("STATISTICAL ANOMALY") == 1
+    assert "Tilt moved to the fermenter" in ctx

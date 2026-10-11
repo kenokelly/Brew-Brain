@@ -11,6 +11,7 @@ const PHASE_STYLE: Record<FermentationPhase, string> = {
     SLOWING: 'text-[var(--b-warn)] bg-[var(--b-warn)]/15',
     STABLE: 'text-[var(--b-info)] bg-[var(--b-info)]/15',
     STALLED: 'text-[var(--b-bad)] bg-[var(--b-bad)]/15',
+    RISING: 'text-[var(--b-bad)] bg-[var(--b-bad)]/15',
     LAG: 'text-[var(--b-muted)] bg-[var(--b-card-hi)]',
     'NO DATA': 'text-[var(--b-muted)] bg-[var(--b-card-hi)]',
 };

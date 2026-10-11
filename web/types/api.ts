@@ -420,7 +420,7 @@ export interface BrewDayCheckResponse {
 // FERMENTATION (beta dashboard)
 // ============================================
 
-export type FermentationPhase = 'LAG' | 'ACTIVE' | 'SLOWING' | 'STABLE' | 'STALLED' | 'NO DATA';
+export type FermentationPhase = 'LAG' | 'ACTIVE' | 'SLOWING' | 'STABLE' | 'STALLED' | 'RISING' | 'NO DATA';
 
 export interface FermentationStep {
     name: string;

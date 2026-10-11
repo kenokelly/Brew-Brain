@@ -137,6 +137,7 @@ _PHASE_TEXT = {
     "SLOWING": "fermentation slowing down",
     "STABLE": "gravity stable (likely finished or nearly finished)",
     "STALLED": "possibly stalled (gravity flat well above target)",
+    "RISING": "gravity rising - not a fermentation state; check the hydrometer",
     "NO DATA": "unknown (not enough recent readings)",
 }
 
@@ -230,7 +231,17 @@ def build_batch_context(journal_entries: int = 5) -> str:
 
     try:
         from services.journal import list_entries
-        recent = list_entries(journal_entries)
+        # Collapse repeats (an alert re-firing with slightly different
+        # numbers) so the AI sees distinct events
+        import re
+        recent, seen = [], set()
+        for e in list_entries(journal_entries * 6):
+            key = re.sub(r"[-+]?\d[\d.]*", "#", e["text"])[:80]
+            if key not in seen:
+                seen.add(key)
+                recent.append(e)
+            if len(recent) == journal_entries:
+                break
     except Exception:
         recent = []
     if recent:

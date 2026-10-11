@@ -73,6 +73,9 @@ def test_velocity_needs_enough_span_and_points():
     # not stuck: the false "NO FERMENTATION" case this classifier avoids.
     (-0.3, 1.017, 170, "STABLE"),
     (-0.1, 1.040, 120, "STALLED"),
+    # Rising gravity (Tilt moved / misreading) is not a stall
+    (5.6, 1.040, 120, "RISING"),
+    (0.6, 1.016, 150, "RISING"),
 ])
 def test_classify_phase(velocity, sg, hours, expected):
     assert ferm.classify_phase(velocity, sg, 1.065, 1.012, hours) == expected

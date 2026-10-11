@@ -110,13 +110,18 @@ def classify_phase(velocity: Optional[float], sg: Optional[float], og: float,
                    target_fg: float, hours_since_start: Optional[float]) -> str:
     """One-word state for the fermentation card.
 
-    LAG / ACTIVE / SLOWING / STABLE / STALLED / NO DATA. STALLED needs the
+    LAG / ACTIVE / SLOWING / STABLE / STALLED / RISING / NO DATA. RISING
+    means gravity is going *up* - the hydrometer was moved or is misreading,
+    which isn't any fermentation state (it used to be reported as STALLED).
+    STALLED needs the
     beer to still be well above target *and* under ~70% attenuation — gravity
     that's flat at 1.017 against a 1.012 target is finishing, not stuck.
     """
     if sg is None or velocity is None:
         return "NO DATA"
     drop = -velocity
+    if drop <= -MOVING_PTS_PER_DAY:
+        return "RISING"
     att = attenuation_pct(og, sg)
     if hours_since_start is not None and hours_since_start < 48 and drop < ACTIVE_PTS_PER_DAY and att < 15:
         return "LAG"
@@ -356,6 +361,7 @@ _PHASE_NOTES = {
     "SLOWING": "fermentation slowing, {drop:.1f} pts/day at {sg:.4f} ({att:.0f}% attenuation)",
     "STABLE": "gravity stable at {sg:.4f} ({drop:.1f} pts/day). Likely done, take a hydrometer FG to confirm",
     "STALLED": "gravity flat at {sg:.4f} with only {att:.0f}% attenuation. Check yeast and beer temp",
+    "RISING": "gravity rising {rise:.1f} pts/day (now {sg:.4f}). Hydrometer moved or misreading? Check it",
 }
 
 
@@ -416,8 +422,8 @@ def track_progress(now: Optional[datetime] = None) -> List[str]:
         elif state.get("pending") == phase:
             note = _PHASE_NOTES.get(phase)
             if note and s.get("sg") and s.get("velocity") is not None:
-                level = "warning" if phase == "STALLED" else "info"
-                log(note.format(drop=-s["velocity"], sg=s["sg"], att=s.get("attenuation") or 0), "phase", level)
+                level = "warning" if phase in ("STALLED", "RISING") else "info"
+                log(note.format(drop=-s["velocity"], rise=s["velocity"], sg=s["sg"], att=s.get("attenuation") or 0), "phase", level)
             state["phase"] = phase
             state.pop("pending", None)
         else:
