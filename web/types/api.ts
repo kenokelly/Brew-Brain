@@ -420,7 +420,7 @@ export interface BrewDayCheckResponse {
 // FERMENTATION (beta dashboard)
 // ============================================
 
-export type FermentationPhase = 'LAG' | 'ACTIVE' | 'SLOWING' | 'STABLE' | 'STALLED' | 'RISING' | 'NO DATA';
+export type FermentationPhase = 'LAG' | 'ACTIVE' | 'SLOWING' | 'STABLE' | 'STALLED' | 'RISING' | 'WATER TEST' | 'NO DATA';
 
 export interface FermentationStep {
     name: string;
@@ -442,7 +442,21 @@ export interface FermentationSchedule {
     end: string;
 }
 
+export interface WaterCalibration {
+    status: 'waiting' | 'settling' | 'ready' | 'calibrated' | 'implausible' | 'error';
+    message?: string;
+    readings?: number;
+    raw_mean?: number;
+    calibrated_mean?: number;
+    spread?: number;
+    current_offset?: number;
+    suggested_offset?: number;
+    settled?: boolean;
+}
+
 export interface FermentationSummary {
+    water_test?: boolean;
+    calibration?: WaterCalibration;
     batch_name: string;
     style: string;
     yeast: string;

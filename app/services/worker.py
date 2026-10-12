@@ -327,6 +327,10 @@ def check_alerts_once() -> None:
     # yeast anomaly) between batches regardless of the setting.
     if not get_config("brew_active"):
         return
+    # Water test: temp/stall/yeast checks don't apply to a Tilt in plain
+    # water (Tilt health is covered by anomaly.py).
+    if get_config("water_test"):
+        return
 
     now = time.time()
     SIGNAL_COOLDOWN = 14400   # 4 hours for signal loss

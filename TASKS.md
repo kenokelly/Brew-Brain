@@ -353,6 +353,12 @@ Dark instrument-panel dashboard running alongside the production one at `/` unti
 - [x] **Tilt monitoring**: frozen-reading alert (flat gravity while temperature moves), signal-loss
   query fixed for per-deploy Telegraf hostname tags, duplicate signal-loss alert removed from
   worker.py, and self-recovery restarts the Tilt receiver (Node-RED, then Bluetooth) when it goes quiet.
+- [x] **Water test mode** (beta dashboard → "Water test"): Tilt in plain water without faking a
+  batch. Pauses fermentation alerts (stall/runaway/anomaly/temp/FG, both pipelines) but keeps
+  Tilt offline/frozen alerts and receiver recovery; calibration card shows raw reading vs 1.000,
+  wobble, and suggested offset with an Apply button (refuses corrections > 15 points: that's a
+  tilted Tilt, not calibration). `POST /api/fermentation/water-test {start|stop|apply_offset}`.
+  Supersedes `tools/dev_batch` for water testing.
 - [ ] Tilt calibration: reads 0.993 in plain water (should be 1.000), so offset ≈ +0.007.
   Not applied yet, pending confirmation.
 - [ ] Frontend `__tests__/settings.test.tsx` hangs under vitest (pre-existing, not run in CI);

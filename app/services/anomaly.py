@@ -704,10 +704,21 @@ def run_all_anomaly_checks(batch_name: str = "Current Batch") -> Dict[str, Any]:
     # Phase 17.8: suppress all Tilt-related checks/alerts when no brew is
     # active (e.g. between batches) - there's nothing wrong with the Tilt
     # being "offline" if nobody is fermenting anything on it right now.
-    if not get_config("brew_active"):
+    water_test = bool(get_config("water_test"))
+    if not get_config("brew_active") and not water_test:
         results["anomaly_status"] = "ok"
         results["status"] = "ok"
         results["skipped"] = "brew_inactive"
+        return results
+
+    # Water test: the Tilt is in plain water, so fermentation checks (stall,
+    # runaway, temp, FG, statistical) are meaningless. Keep the Tilt health
+    # checks.
+    if water_test:
+        results["checks"]["signal_loss"] = check_signal_loss(batch_name)
+        results["checks"]["frozen_reading"] = check_frozen_reading(batch_name)
+        results["alerts_sent"] = sum(1 for c in results["checks"].values() if c.get("alert_sent", False))
+        results["status"] = "water_test"
         return results
 
     # Run rule-based checks

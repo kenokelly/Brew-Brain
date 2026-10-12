@@ -43,6 +43,10 @@ class BrewBrainConfig(BaseModel):
     # temp deviation) so they stay silent between batches when the Tilt is
     # expected to be offline. Phase 17.8.
     brew_active: bool = False
+    # Water test: Tilt floating in plain water to check calibration. Pauses
+    # fermentation alerts (stall/runaway/anomaly/temp/FG) but keeps the
+    # Tilt health ones (offline, frozen) and receiver recovery.
+    water_test: bool = False
     
     # Active Batch Details
     og: float = 1.050
@@ -206,7 +210,7 @@ class BrewBrainConfig(BaseModel):
         except (ValueError, TypeError):
             return fallback
 
-    @field_validator('test_mode', 'brew_active', mode='before')
+    @field_validator('test_mode', 'brew_active', 'water_test', mode='before')
     @classmethod
     def coerce_bool(cls, v: Any) -> bool:
         if v is None:

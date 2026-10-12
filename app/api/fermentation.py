@@ -51,3 +51,40 @@ def add_journal_note() -> Tuple[Response, int]:
         return api_response(data={"entry": entry}, code=201)
     except Exception as e:
         return handle_error(e, "Journal note error")
+
+
+@fermentation_bp.route('/water-test', methods=['POST'])
+@require_api_token
+def water_test() -> Tuple[Response, int]:
+    """Start/stop the water test, or apply its suggested Tilt offset.
+
+    Body: {"action": "start" | "stop" | "apply_offset"}
+    """
+    try:
+        from core.config import get_config, set_config
+        from services.fermentation import get_water_test_calibration
+        from services.journal import add_entry
+
+        action = (request.get_json(silent=True) or {}).get('action')
+        if action == 'start':
+            set_config('water_test', True)
+            add_entry("Water test started: Tilt in plain water, fermentation alerts paused", kind="info", dedupe_minutes=0)
+            return api_response(data={"water_test": True})
+        if action == 'stop':
+            set_config('water_test', False)
+            add_entry("Water test ended: fermentation alerts back on", kind="info", dedupe_minutes=0)
+            return api_response(data={"water_test": False})
+        if action == 'apply_offset':
+            if not get_config('water_test'):
+                return api_response(status="error", error="Start a water test first", code=409)
+            cal = get_water_test_calibration()
+            if cal.get("status") != "ready":
+                return api_response(status="error", error=cal.get("message") or "Not ready to calibrate", code=409, data=cal)
+            old = float(get_config('offset') or 0.0)
+            set_config('offset', cal["suggested_offset"])
+            add_entry(f"Tilt calibrated in water: offset {old:+.3f} → {cal['suggested_offset']:+.3f} "
+                      f"(raw {cal['raw_mean']:.4f})", kind="note", dedupe_minutes=0)
+            return api_response(data={"offset": cal["suggested_offset"], "previous_offset": old})
+        return api_response(status="error", error="action must be start, stop or apply_offset", code=400)
+    except Exception as e:
+        return handle_error(e, "Water test error")

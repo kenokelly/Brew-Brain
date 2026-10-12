@@ -258,6 +258,63 @@ def _query_sg_temp(start: datetime, every: Optional[str] = None) -> List[Dict[st
     return [by_ts[k] for k in sorted(by_ts)]
 
 
+# ---------------------------------------------------------------------------
+# Water test (calibration)
+# ---------------------------------------------------------------------------
+
+WATER_SG = 1.000
+# Corrections bigger than this aren't calibration: the Tilt is tilted against
+# something or not floating (e.g. 1.040 in water on 2026-10-11).
+MAX_SANE_OFFSET = 0.015
+SETTLED_SPREAD = 0.002
+
+
+def water_test_calibration(raw: List[float], current_offset: float) -> Dict[str, Any]:
+    """Suggest a Tilt offset from raw (uncalibrated) readings taken in water.
+
+    Pure function: `raw` is the last hour of raw SG values, oldest first.
+    """
+    if len(raw) < 10:
+        return {"status": "waiting", "readings": len(raw),
+                "message": "Collecting readings: needs ~10 minutes in plain water."}
+    recent = raw[-30:]
+    mean = sum(recent) / len(recent)
+    spread = max(recent) - min(recent)
+    offset = round(WATER_SG - mean, 3)
+    result = {
+        "readings": len(raw),
+        "raw_mean": round(mean, 4),
+        "calibrated_mean": round(mean + current_offset, 4),
+        "spread": round(spread, 4),
+        "current_offset": round(current_offset, 3),
+        "suggested_offset": offset,
+        "settled": spread <= SETTLED_SPREAD,
+    }
+    if abs(offset) > MAX_SANE_OFFSET:
+        result.update(status="implausible", message=(
+            f"Reads {mean:.3f} in water, {abs(offset) * 1000:.0f} points off. That's not a calibration "
+            "error: check the Tilt is floating freely and not resting against the side or bottom."))
+    elif not result["settled"]:
+        result.update(status="settling", message="Reading still moving; give it a few more minutes.")
+    elif abs(offset - current_offset) < 0.0005:
+        result.update(status="calibrated", message="Calibrated: reads 1.000 in water with the current offset.")
+    else:
+        result.update(status="ready", message=f"Suggest offset {offset:+.3f} (currently {current_offset:+.3f}).")
+    return result
+
+
+def get_water_test_calibration() -> Dict[str, Any]:
+    from core.config import get_config
+    from core.influx import query_api, INFLUX_BUCKET
+    q = (
+        f'from(bucket: "{INFLUX_BUCKET}") |> range(start: -1h)'
+        f' |> filter(fn: (r) => r["_measurement"] == "sensor_data" and r["_field"] == "SG")'
+        f' |> group() |> sort(columns: ["_time"])'
+    )
+    raw = [r.get_value() for t in query_api.query(q) for r in t.records if r.get_value() is not None]
+    return water_test_calibration(raw, float(get_config("offset") or 0.0))
+
+
 def get_fermentation_summary(now: Optional[datetime] = None) -> Dict[str, Any]:
     from core.config import get_config
     from services.status import get_status_dict
@@ -290,7 +347,7 @@ def get_fermentation_summary(now: Optional[datetime] = None) -> Dict[str, Any]:
         if seen:
             last_age_min = round((now - seen).total_seconds() / 60, 1)
 
-    return {
+    summary = {
         "batch_name": get_config("batch_name"),
         "style": get_config("style"),
         "yeast": get_config("yeast_strain"),
@@ -304,7 +361,8 @@ def get_fermentation_summary(now: Optional[datetime] = None) -> Dict[str, Any]:
         "target_temp": target_temp,
         "temp_delta": round(temp - target_temp, 1) if temp is not None and target_temp is not None else None,
         "velocity": round(velocity, 2) if velocity is not None else None,
-        "phase": classify_phase(velocity, sg, og, target_fg, hours),
+        "phase": "WATER TEST" if get_config("water_test") else classify_phase(velocity, sg, og, target_fg, hours),
+        "water_test": bool(get_config("water_test")),
         "attenuation": round(attenuation_pct(og, sg), 1) if sg else None,
         "abv": round(abv_pct(og, sg), 2) if sg else None,
         "eta_days": eta_days_to_fg(sg, target_fg, velocity),
@@ -318,6 +376,13 @@ def get_fermentation_summary(now: Optional[datetime] = None) -> Dict[str, Any]:
             "pi_temp": status.get("pi_temp"),
         },
     }
+    if summary["water_test"]:
+        try:
+            summary["calibration"] = get_water_test_calibration()
+        except Exception as e:
+            logger.warning(f"Water test calibration failed: {e}")
+            summary["calibration"] = {"status": "error", "message": "Couldn't read calibration data."}
+    return summary
 
 
 def _window_for(span_s: float) -> str:
@@ -380,7 +445,8 @@ def track_progress(now: Optional[datetime] = None) -> List[str]:
     from core.config import get_config
     from services.journal import add_entry, get_state, set_state
 
-    if not get_config("brew_active"):
+    # Water test: no batch to track (start/stop/apply are journaled by the API)
+    if not get_config("brew_active") or get_config("water_test"):
         return []
 
     now = now or datetime.now(timezone.utc)

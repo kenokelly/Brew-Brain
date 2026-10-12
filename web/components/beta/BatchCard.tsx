@@ -89,7 +89,7 @@ export function BatchCard({ s, onSync, syncing }: { s: FermentationSummary; onSy
                 <li className="flex items-center gap-2.5 flex-wrap">
                     <Thermometer className="w-4 h-4 text-[var(--b-muted)]" />
                     <span className="beta-mono font-semibold">{num(s.temp)}°</span>
-                    <span className="text-[var(--b-muted)]">beer</span>
+                    <span className="text-[var(--b-muted)]">{s.water_test ? 'water' : 'beer'}</span>
                     {s.target_temp != null && (
                         <>
                             <span className="text-[var(--b-faint)]">·</span>
@@ -110,7 +110,9 @@ export function BatchCard({ s, onSync, syncing }: { s: FermentationSummary; onSy
                     <Chip icon={CalendarDays}>Day {s.day}</Chip>
                 )}
                 {countdown && <Chip icon={Timer} accent>{countdown}</Chip>}
-                {!s.brew_active && <Chip>Idle: turn on Brew Active in Settings</Chip>}
+                {s.water_test
+                    ? <Chip>Water test running: fermentation alerts paused</Chip>
+                    : !s.brew_active && <Chip>Idle: turn on Brew Active in Settings</Chip>}
             </div>
         </BetaCard>
     );

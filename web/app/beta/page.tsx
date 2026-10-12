@@ -2,11 +2,13 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { FlaskRound } from 'lucide-react';
+import { FlaskRound, Droplets } from 'lucide-react';
+import { api } from '@/lib/api';
 import { toast } from 'react-hot-toast';
 import { useFermentationHistory, useFermentationSummary, useJournal } from '@/lib/hooks';
 import { BatchCard } from '@/components/beta/BatchCard';
 import { FermentationCard } from '@/components/beta/FermentationCard';
+import { WaterTestCard } from '@/components/beta/WaterTestCard';
 import { FermentChart } from '@/components/beta/FermentChart';
 import { JournalCard } from '@/components/beta/JournalCard';
 import { VitalsCard } from '@/components/beta/VitalsCard';
@@ -22,6 +24,23 @@ export default function BetaDashboard() {
     const { data: history, error: historyError, mutate: mutateHistory } = useFermentationHistory();
     const { entries, error: journalError, mutate: mutateJournal } = useJournal(60);
     const [syncing, setSyncing] = useState(false);
+    const [toggling, setToggling] = useState(false);
+
+    const toggleWaterTest = async () => {
+        const starting = !summary?.water_test;
+        if (starting && !window.confirm('Start a water test? Fermentation alerts pause until you end it. Your batch settings are kept.')) return;
+        setToggling(true);
+        try {
+            await api.post('/api/fermentation/water-test', { action: starting ? 'start' : 'stop' });
+            toast.success(starting ? 'Water test started' : 'Water test ended');
+            mutateSummary();
+            mutateJournal();
+        } catch (e) {
+            toast.error(`Couldn't ${starting ? 'start' : 'end'} the water test: ${e instanceof Error ? e.message : String(e)}`);
+        } finally {
+            setToggling(false);
+        }
+    };
 
     const sync = async () => {
         setSyncing(true);
@@ -52,9 +71,23 @@ export default function BetaDashboard() {
                         <span className="font-bold tracking-widest uppercase text-[var(--b-accent)]">Beta</span>
                         <span className="text-[var(--b-muted)] hidden sm:inline">New dashboard preview</span>
                     </div>
-                    <Link href="/" className="text-sm text-[var(--b-muted)] hover:text-[var(--b-text)] underline underline-offset-4">
-                        Back to current dashboard
-                    </Link>
+                    <div className="flex items-center gap-3">
+                        {summary && (
+                            <button
+                                type="button"
+                                onClick={toggleWaterTest}
+                                disabled={toggling}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm whitespace-nowrap bg-[var(--b-card)] border border-[var(--b-border)] text-[var(--b-muted)] hover:text-[var(--b-text)] disabled:opacity-50"
+                            >
+                                <Droplets className="w-4 h-4 text-[var(--b-info)]" />
+                                {summary.water_test ? 'End water test' : 'Water test'}
+                            </button>
+                        )}
+                        <Link href="/" className="text-sm whitespace-nowrap text-[var(--b-muted)] hover:text-[var(--b-text)] underline underline-offset-4">
+                            <span className="sm:hidden">Back</span>
+                            <span className="hidden sm:inline">Back to current dashboard</span>
+                        </Link>
+                    </div>
                 </div>
 
                 {isLoading && !summary ? (
@@ -69,7 +102,9 @@ export default function BetaDashboard() {
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
                         <div className="space-y-5">
                             <BatchCard s={summary} onSync={sync} syncing={syncing} />
-                            <FermentationCard s={summary} />
+                            {summary.water_test
+                                ? <WaterTestCard s={summary} onChanged={() => { mutateSummary(); mutateJournal(); }} />
+                                : <FermentationCard s={summary} />}
                         </div>
                         <div className="space-y-5">
                             <FermentChart history={history} summary={summary} error={historyError} />

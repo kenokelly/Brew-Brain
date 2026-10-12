@@ -169,6 +169,22 @@ def build_batch_context(journal_entries: int = 5) -> str:
     s = get_fermentation_summary(now)
     lines = []
 
+    if s.get("water_test"):
+        # Tilt in plain water to check calibration: fermentation numbers
+        # (attenuation, ABV, ETA, steps) are meaningless here.
+        cal = s.get("calibration") or {}
+        lines.append("WATER TEST MODE: the Tilt hydrometer is floating in plain water to check its calibration. "
+                     "No beer is fermenting; fermentation alerts are paused.")
+        lines.append("Expected reading in water: 1.000")
+        if cal.get("raw_mean") is not None:
+            lines.append(f"Raw Tilt reading (last 30 min average): {cal['raw_mean']:.3f}, spread {cal.get('spread', 0):.3f}; "
+                         f"current offset {cal.get('current_offset', 0):+.3f}")
+        if cal.get("message"):
+            lines.append(f"Calibration status: {cal['message']}")
+        if s.get("temp") is not None:
+            lines.append(f"Water temperature {s['temp']:.1f}°C")
+        return "\n".join(lines)
+
     recipe = ", ".join(x for x in (s.get("style"), f"yeast {s.get('yeast')}" if s.get("yeast") else None)
                        if x and "Unknown" not in str(x))
     lines.append(f"Batch: {s.get('batch_name') or 'unnamed'}" + (f" ({recipe})" if recipe else ""))
