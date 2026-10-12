@@ -335,11 +335,8 @@ def check_alerts_once() -> None:
     # ---------------------------------------------------------------
     # 1. SIGNAL LOSS
     # ---------------------------------------------------------------
-    try:
-        timeout_min = int(get_config("tilt_timeout_min") or 60)
-        perform_signal_loss_check(now, timeout_min, SIGNAL_COOLDOWN)
-    except Exception as e:
-        logger.error(f"Signal loss check error: {e}")
+    # Handled by anomaly.check_signal_loss() (runs diagnostics, 4h
+    # reminders). Running both sent two "Tilt offline" alerts per outage.
 
     # ---------------------------------------------------------------
     # 2. TEMPERATURE DEVIATION

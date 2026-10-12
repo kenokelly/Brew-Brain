@@ -32,7 +32,18 @@ ALERT_COOLDOWN_MIN = {
     "statistical_anomaly": 6 * 60,
     "runaway": 6 * 60,
     "temp_deviation": 60,
+    "frozen_reading": 24 * 60,
 }
+
+# A floating Tilt's reading moves with temperature. Gravity *exactly* flat
+# while the temperature swings means it's stuck at one angle (against the
+# side/bottom, or out of liquid) - on 2026-10-11 it sat at exactly 1.040 while
+# the temperature fell ~5C, still broadcasting, so signal loss couldn't see
+# it. Flat gravity alone isn't enough: calm water or a finished, still beer
+# can legitimately hold one value for hours.
+FROZEN_READING_HOURS = 12
+FROZEN_MIN_READINGS = 60
+FROZEN_MIN_TEMP_SWING_C = 2.0
 
 
 def _alert_due(kind: str) -> bool:
@@ -455,14 +466,19 @@ def check_signal_loss(batch_name: str = "Current Batch") -> Dict[str, Any]:
             |> range(start: -24h)
             |> filter(fn: (r) => r["_measurement"] == "sensor_data")
             |> filter(fn: (r) => r["_field"] == "SG")
-            |> last()
+            |> group() |> sort(columns: ["_time"]) |> last()
         '''
+        # sensor_data is tagged with Telegraf's container hostname, which
+        # changes on every redeploy; without group() last() returns one table
+        # per hostname and an old one could make a live Tilt look offline.
         tables = query_api.query(query)
 
         last_reading_time = None
         for table in tables:
             for record in table.records:
-                last_reading_time = record.get_time()
+                t = record.get_time()
+                if last_reading_time is None or t > last_reading_time:
+                    last_reading_time = t
 
         if last_reading_time is None:
             # No readings at all in 24h
@@ -630,6 +646,48 @@ def check_fg_reached(batch_name: str = "Current Batch") -> Dict[str, Any]:
         return {"status": "error", "error": str(e)}
 
 
+def check_frozen_reading(batch_name: str = "Current Batch") -> Dict[str, Any]:
+    """Tilt still broadcasting but its gravity hasn't changed at all."""
+    try:
+        query = f'''
+        from(bucket: "{INFLUX_BUCKET}")
+            |> range(start: -{FROZEN_READING_HOURS}h)
+            |> filter(fn: (r) => r["_measurement"] == "sensor_data")
+            |> filter(fn: (r) => r["_field"] == "SG" or r["_field"] == "Temp")
+        '''
+        values, temps = [], []
+        for t in query_api.query(query):
+            for r in t.records:
+                v = r.get_value()
+                if v is None:
+                    continue
+                if r.get_field() == "SG":
+                    values.append(v)
+                else:
+                    temps.append((v - 32) * 5 / 9 if v > 40 else v)  # Tilt reports °F
+        if len(values) < FROZEN_MIN_READINGS:
+            return {"status": "insufficient_data", "readings": len(values)}
+        temp_swing = (max(temps) - min(temps)) if temps else 0.0
+        if max(values) - min(values) > 1e-9 or temp_swing < FROZEN_MIN_TEMP_SWING_C:
+            return {"status": "normal", "readings": len(values), "temp_swing": round(temp_swing, 1)}
+
+        sent = _alert_due("frozen_reading")
+        if sent:
+            send_telegram_message(
+                f"🧊 *TILT READING FROZEN: {batch_name}*\n\n"
+                f"Gravity has been exactly {values[-1]:.3f} for {FROZEN_READING_HOURS}h "
+                f"while the temperature moved {temp_swing:.1f}°C. A floating Tilt's reading "
+                f"shifts with temperature, so it's probably stuck: touching the side or "
+                f"bottom, or out of liquid.\n\n"
+                f"*Action:* Check it's floating freely."
+            )
+            broadcast_alert("frozen_reading", f"Tilt reading frozen at {values[-1]:.3f}", "warning")
+        return {"status": "frozen", "alert_sent": sent, "value": values[-1], "readings": len(values)}
+    except Exception as e:
+        logger.error(f"Frozen reading check error: {e}")
+        return {"status": "error", "error": str(e)}
+
+
 def run_all_anomaly_checks(batch_name: str = "Current Batch") -> Dict[str, Any]:
     """
     Runs all anomaly detection checks and returns combined results.
@@ -657,6 +715,7 @@ def run_all_anomaly_checks(batch_name: str = "Current Batch") -> Dict[str, Any]:
     results["checks"]["temp_deviation"] = check_temperature_deviation(batch_name=batch_name)
     results["checks"]["runaway"] = check_runaway_fermentation(batch_name)
     results["checks"]["signal_loss"] = check_signal_loss(batch_name)
+    results["checks"]["frozen_reading"] = check_frozen_reading(batch_name)
     results["checks"]["fg_reached"] = check_fg_reached(batch_name)
     
     # Run statistical anomaly detection

@@ -5,9 +5,13 @@ import numpy as np
 
 # Mocking InfluxDB Record
 class MockRecord:
-    def __init__(self, value, time=None):
+    def __init__(self, value, time=None, field="SG"):
         self.value = value
         self.time = time
+        self.field = field
+
+    def get_field(self):
+        return self.field
 
     def get_value(self):
         return self.value
@@ -124,6 +128,43 @@ class TestAnomalyDetection(unittest.TestCase):
 
         result = check_stalled_fermentation("Rise Test")
         self.assertEqual(result["status"], "normal")
+        self.mock_telegram.assert_not_called()
+
+    def _frozen_input(self, sg_values, temps_f):
+        recs = [MockRecord(v) for v in sg_values] + [MockRecord(t, field="Temp") for t in temps_f]
+        self.mock_query.query.return_value = [MockTable(recs)]
+
+    def test_frozen_reading_alerts_when_temp_moves_but_gravity_doesnt(self):
+        from app.services.anomaly import check_frozen_reading
+        # 2026-10-11: exactly 1.040 while the beer cooled ~22C -> ~17C
+        self._frozen_input([1.040] * 120, [72.0] * 60 + [63.0] * 60)
+        result = check_frozen_reading("Frozen Test")
+        self.assertEqual(result["status"], "frozen")
+        self.mock_telegram.assert_called_once()
+        self.assertIn("1.040", self.mock_telegram.call_args[0][0])
+
+    def test_flat_gravity_at_steady_temp_is_normal(self):
+        """Tilt in calm water (or a finished, still beer): flat is fine."""
+        from app.services.anomaly import check_frozen_reading
+        self._frozen_input([1.000] * 120, [68.0, 68.5] * 60)
+        self.assertEqual(check_frozen_reading("Calm")["status"], "normal")
+        self.mock_telegram.assert_not_called()
+
+    def test_jittering_gravity_is_normal(self):
+        from app.services.anomaly import check_frozen_reading
+        self._frozen_input([1.040, 1.041] * 60, [72.0] * 60 + [63.0] * 60)
+        self.assertEqual(check_frozen_reading("Live")["status"], "normal")
+
+    def test_signal_loss_uses_newest_reading_across_tag_sets(self):
+        """Telegraf's hostname tag changes per deploy; an old table must not
+        make a live Tilt look offline."""
+        from app.services.anomaly import check_signal_loss
+        now = datetime.now(timezone.utc)
+        live = MockTable([MockRecord(1.040, now - timedelta(minutes=1))])
+        stale = MockTable([MockRecord(1.040, now - timedelta(hours=5))])
+        self.mock_query.query.return_value = [live, stale]
+        result = check_signal_loss("Signal Test")
+        self.assertNotIn(result["status"], ("signal_loss", "offline"))
         self.mock_telegram.assert_not_called()
 
     def test_check_temperature_deviation(self):

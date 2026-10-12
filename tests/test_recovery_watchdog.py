@@ -39,7 +39,7 @@ def env(tmp_path):
         "RECOVERY_STATE_DIR": str(tmp_path / "state"),
         # ping/curl succeed unless a flag file says the thing is down
         "RECOVERY_PING": stub("ping", f'[ -f "{flags}/net_down" ] && exit 1; exit 0'),
-        "RECOVERY_CURL": stub("curl", f'for a in "$@"; do case "$a" in *3001*) [ -f "{flags}/web_down" ] && exit 7;; *5000*) [ -f "{flags}/api_down" ] && exit 7;; esac; done; exit 0'),
+        "RECOVERY_CURL": stub("curl", f'for a in "$@"; do case "$a" in *1880*) cat "{flags}/tilt.json" 2>/dev/null || echo "[]"; exit 0;; *3001*) [ -f "{flags}/web_down" ] && exit 7;; *5000*) [ -f "{flags}/api_down" ] && exit 7;; esac; done; exit 0'),
         "RECOVERY_NMCLI": stub("nmcli"),
         "RECOVERY_SYSTEMCTL": stub("systemctl"),
         "RECOVERY_DOCKER": stub("docker"),
@@ -65,6 +65,15 @@ def env(tmp_path):
         def reports(self):
             # The Telegram message spans lines in the log; count by marker
             return calls.read_text().count("docker exec -e MSG=")
+
+        def tilt_seen(self, minute):
+            """Receiver last heard the Tilt at `minute` (None = heard nothing)."""
+            f = flags / "tilt.json"
+            if minute is None:
+                f.write_text("[]")
+            else:
+                ts = (1_800_000_000 + minute * 60) * 1000
+                f.write_text(f'[{{"Color": "RED", "SG": 1.0, "timeStamp": {ts}}}]')
 
         def calls(self, prefix):
             return [l for l in calls.read_text().splitlines() if l.startswith(prefix)]
@@ -169,3 +178,58 @@ def test_report_waits_for_api(env):
     env.up("api_down")
     env.run(6)
     assert env.reports() == 1
+
+
+# ---------------------------------------------------------------------------
+# Tilt receiver
+# ---------------------------------------------------------------------------
+
+def test_tilt_heard_recently_does_nothing(env):
+    for m in range(1, 30):
+        env.tilt_seen(m)
+        env.run(m)
+    assert not [c for c in env.calls("systemctl") if "nodered" in c or "bluetooth" in c]
+
+
+def test_no_tilt_ever_heard_does_nothing(env):
+    """Between batches: nothing to recover."""
+    env.tilt_seen(None)
+    for m in range(1, 60):
+        env.run(m)
+    assert env.calls("systemctl") == []
+
+
+def test_tilt_silent_escalates_then_gives_up(env):
+    env.tilt_seen(0)                         # last heard at minute 0
+    for m in range(1, 15):
+        env.run(m)
+    assert env.calls("systemctl") == []      # under 15 min: wait
+    env.run(15)
+    assert env.calls("systemctl") == ["systemctl restart nodered"]
+    env.tilt_seen(None)                      # restarted receiver hears nothing
+    for m in range(16, 30):
+        env.run(m)
+    assert len(env.calls("systemctl")) == 1  # waits 15 min after a restart
+    env.run(30)
+    assert env.calls("systemctl")[1:] == ["systemctl restart bluetooth", "systemctl restart nodered"]
+    for m in range(31, 120):
+        env.run(m)
+    sc = env.calls("systemctl")
+    assert sc.count("systemctl restart nodered") == 3   # capped
+    assert sc.count("systemctl restart bluetooth") == 2
+    assert env.reports() == 1                           # one message, at give-up
+
+
+def test_tilt_back_resets_and_reports(env):
+    env.tilt_seen(0)
+    for m in range(1, 16):
+        env.run(m)                           # restart at 15
+    env.tilt_seen(17)
+    env.run(18)
+    assert env.reports() == 1
+    env.tilt_seen(18)
+    env.clear()
+    for m in range(19, 30):
+        env.tilt_seen(m)
+        env.run(m)
+    assert env.calls("systemctl") == []

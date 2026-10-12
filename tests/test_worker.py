@@ -135,11 +135,13 @@ class TestWorker(unittest.TestCase):
 
         mock_signal_check.assert_not_called()
 
+    @patch("app.services.worker.query_api")
     @patch("app.services.worker.perform_signal_loss_check")
     @patch("app.services.worker.is_quiet_hours")
     @patch("app.services.worker.get_config")
-    def test_check_alerts_once_runs_when_brew_active(self, mock_get_config, mock_quiet, mock_signal_check):
+    def test_check_alerts_once_runs_when_brew_active(self, mock_get_config, mock_quiet, mock_signal_check, mock_query):
         mock_quiet.return_value = False
+        mock_query.query.return_value = []
         mock_get_config.side_effect = lambda k: {
             "test_mode": False,
             "brew_active": True,
@@ -148,7 +150,11 @@ class TestWorker(unittest.TestCase):
 
         worker.check_alerts_once()
 
-        mock_signal_check.assert_called_once()
+        # Temperature/stall checks ran...
+        self.assertTrue(mock_query.query.called)
+        # ...but signal loss is left to anomaly.check_signal_loss(); running
+        # both sent two "Tilt offline" alerts per outage.
+        mock_signal_check.assert_not_called()
 
 if __name__ == "__main__":
     unittest.main()

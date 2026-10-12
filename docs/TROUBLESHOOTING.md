@@ -38,7 +38,12 @@ Common issues and proven fixes derived from historical deployment cycles.
 `ops/recovery/` makes the Pi recover by itself; `deploy_and_verify.sh` runs `sudo ops/recovery/install.sh` (idempotent; `--uninstall` removes it).
 - **Network watchdog** (`brew-brain-recovery.timer`, every minute, starts 3 min after boot): if the gateway (or 1.1.1.1) is unreachable it escalates: 3 min → reconnect `wlan0`, 6 min → Wi-Fi radio off/on, 10 min → restart NetworkManager, 15 min → reboot. At most 3 reboots per 6 h, then it only nudges the Wi-Fi every 30 min, so a router/ISP outage can't cause a reboot loop.
 - **App watchdog** (same timer): restarts `brew-brain` / `brew-brain-web` after 3 failed health checks in a row, at most 3 restarts per hour each. Skipped while the network is down.
+- **Tilt receiver** (same timer): if Node-RED stops hearing a Tilt it had been hearing for 15 min, restart Node-RED; then Bluetooth + Node-RED; max 3 tries, 15 min apart. Never-heard (between batches) is left alone.
 - **Hardware watchdog**: `RuntimeWatchdogSec=15s` — if the system hangs, the SoC resets the Pi.
 - **Kernel panic**: reboots after 10 s (`kernel.panic=10`, `panic_on_oops=1`).
 - **Report**: once the network and API are healthy again, one Telegram message (also in the autopilot journal) lists what happened and what fixed it.
 - **Logs**: `journalctl -t brew-brain-recovery`; state in `/var/lib/brew-brain-recovery/`. Previous boot: `journalctl -b -1`.
+
+## 7. Tilt Alerts
+- **Tilt offline** (`anomaly.check_signal_loss`): no reading for `tilt_timeout_min` (default 60) while Brew Active is on; immediate alert with diagnostics, reminders every 4 h.
+- **Tilt reading frozen** (`anomaly.check_frozen_reading`): gravity exactly flat for 12 h while temperature moved >= 2 °C, i.e. stuck against the side/bottom or out of liquid. Flat gravity at a steady temperature (calm water, finished beer) does not alert. Max once per 24 h.
