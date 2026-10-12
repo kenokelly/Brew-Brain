@@ -359,6 +359,10 @@ Dark instrument-panel dashboard running alongside the production one at `/` unti
   wobble, and suggested offset with an Apply button (refuses corrections > 15 points: that's a
   tilted Tilt, not calibration). `POST /api/fermentation/water-test {start|stop|apply_offset}`.
   Supersedes `tools/dev_batch` for water testing.
+- [x] **Cloud AI option** (Settings → Brewmaster AI): run every AI feature on the Pi (Ollama,
+  default) or via the Claude API (Opus 5 default with low effort + server-side refusal fallback;
+  Sonnet 5 / Haiku 4.5 selectable), falling back to the Pi when the cloud call fails. API key stored
+  in config (masked on read), "Test Cloud AI" button, chat header shows which AI answered.
 - [ ] Tilt calibration: reads 0.993 in plain water (should be 1.000), so offset ≈ +0.007.
   Not applied yet, pending confirmation.
 - [ ] Frontend `__tests__/settings.test.tsx` hangs under vitest (pre-existing, not run in CI);

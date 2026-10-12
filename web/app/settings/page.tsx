@@ -666,6 +666,67 @@ export default function SettingsPage() {
                                 </div>
                             </div>
                         </div>
+
+                        {/* Brewmaster AI provider: Pi (Ollama) or cloud (Claude) */}
+                        <div className="md:col-span-2 bg-secondary/20 p-4 rounded-2xl border border-border/50 space-y-4">
+                            <div className="flex items-center justify-between">
+                                <h3 className="font-bold text-sm flex items-center gap-2">
+                                    <Sparkles className="w-4 h-4 text-amber-500" /> Brewmaster AI
+                                </h3>
+                                <button type="button" onClick={() => handleTestIntegration('anthropic')} className="text-xs bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 px-3 py-1.5 rounded-lg font-bold transition-colors">Test Cloud AI</button>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Where the Brewmaster AI runs">
+                                {[
+                                    { id: 'local', title: 'On the Pi', note: 'Private, offline. Replies take 1–3 min.' },
+                                    { id: 'cloud', title: 'Cloud (Claude)', note: 'Replies in seconds. Needs internet; batch data is sent to Anthropic.' },
+                                ].map((opt) => {
+                                    const active = (settings["ai_provider"] || "local") === opt.id;
+                                    return (
+                                        <button
+                                            key={opt.id}
+                                            type="button"
+                                            role="radio"
+                                            aria-checked={active}
+                                            onClick={() => handleChange("ai_provider", opt.id)}
+                                            className={`text-left p-3 rounded-xl border transition-all ${active ? "border-amber-500 bg-amber-500/10" : "border-border/50 bg-background hover:border-amber-500/40"}`}
+                                        >
+                                            <div className="font-semibold text-sm">{opt.title}</div>
+                                            <div className="text-xs text-muted-foreground mt-0.5">{opt.note}</div>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                            {(settings["ai_provider"] || "local") === "cloud" && (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <label htmlFor="anthropic_api_key" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Anthropic API Key</label>
+                                        <input
+                                            id="anthropic_api_key"
+                                            type="password" placeholder="sk-ant-..."
+                                            value={settings["anthropic_api_key"] || ""}
+                                            onChange={(e) => handleChange("anthropic_api_key", e.target.value)}
+                                            className="w-full bg-background border border-border/50 rounded-xl px-4 py-2 text-foreground focus:ring-2 focus:ring-primary outline-none transition-all"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label htmlFor="cloud_model" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Model</label>
+                                        <select
+                                            id="cloud_model"
+                                            value={settings["cloud_model"] || "claude-opus-5"}
+                                            onChange={(e) => handleChange("cloud_model", e.target.value)}
+                                            className="w-full bg-background border border-border/50 rounded-xl px-4 py-2 text-foreground focus:ring-2 focus:ring-primary outline-none transition-all"
+                                        >
+                                            <option value="claude-opus-5">Claude Opus 5: most capable (~£14/month)</option>
+                                            <option value="claude-sonnet-5">Claude Sonnet 5: balanced (~£6/month)</option>
+                                            <option value="claude-haiku-4-5">Claude Haiku 4.5: fastest, cheapest (~£3/month)</option>
+                                        </select>
+                                    </div>
+                                    <p className="md:col-span-2 text-xs text-muted-foreground">
+                                        If the cloud is unreachable, the Brewmaster falls back to the Pi automatically. Monthly costs are estimates for hourly advice plus ~10 chats a day.
+                                    </p>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
 

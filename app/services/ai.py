@@ -32,6 +32,79 @@ ADVICE_CACHE_KEY = "ai_proactive_advice"
 ADVICE_TTL_S = 3600
 
 
+# ---------------------------------------------------------------------------
+# Provider switch: Claude API ("cloud") or Ollama on the Pi ("local")
+# ---------------------------------------------------------------------------
+
+CLOUD_MODELS = ("claude-opus-5", "claude-sonnet-5", "claude-haiku-4-5")
+CLOUD_TIMEOUT_S = 60
+# Room for the reply plus any adaptive thinking (Opus/Sonnet think by default)
+CLOUD_MAX_TOKENS = 4000
+
+
+class _LLMResponse:
+    """Minimal stand-in for a requests.Response from Ollama's /api/generate,
+    so every call site handles cloud and local replies the same way."""
+
+    def __init__(self, data: dict):
+        self.status_code = 200
+        self._data = data
+
+    def json(self) -> dict:
+        return self._data
+
+
+def cloud_ai_enabled() -> bool:
+    return get_config("ai_provider") == "cloud" and bool(get_config("anthropic_api_key"))
+
+
+def cloud_generate(system: str, prompt: str, api_key: Optional[str] = None,
+                   model: Optional[str] = None, max_tokens: int = CLOUD_MAX_TOKENS) -> str:
+    """One Claude API call; returns the reply text. Raises on any failure."""
+    import anthropic
+
+    model = model or get_config("cloud_model") or CLOUD_MODELS[0]
+    if model not in CLOUD_MODELS:
+        model = CLOUD_MODELS[0]
+    client = anthropic.Anthropic(api_key=api_key or get_config("anthropic_api_key"),
+                                 timeout=CLOUD_TIMEOUT_S, max_retries=1)
+    kwargs = dict(model=model, max_tokens=max_tokens, system=system or anthropic.NOT_GIVEN,
+                  messages=[{"role": "user", "content": prompt}])
+
+    if model == "claude-haiku-4-5":
+        # No effort setting on Haiku 4.5; no thinking unless budget_tokens is set
+        response = client.messages.create(**kwargs)
+    elif model == "claude-opus-5":
+        # Chat and advice don't need deep reasoning: low effort keeps replies
+        # quick and cheap. Server-side fallback re-runs a declined request on
+        # another model instead of failing.
+        response = client.beta.messages.create(
+            **kwargs, output_config={"effort": "low"},
+            betas=["server-side-fallback-2026-07-01"], fallbacks="default",
+        )
+    else:
+        response = client.messages.create(**kwargs, output_config={"effort": "low"})
+
+    if response.stop_reason == "refusal":
+        raise RuntimeError("Claude declined the request")
+    text = "".join(b.text for b in response.content if b.type == "text").strip()
+    if not text:
+        raise RuntimeError(f"Empty reply (stop_reason={response.stop_reason})")
+    return text
+
+
+def _llm_post(ollama_url: str, payload: dict, timeout: float):
+    """Generate via the configured provider. Cloud failures fall back to the
+    local Ollama call, so the Brewmaster still answers (slowly) offline."""
+    if cloud_ai_enabled():
+        try:
+            text = cloud_generate(payload.get("system") or "", payload["prompt"])
+            return _LLMResponse({"response": text, "source": "cloud"})
+        except Exception as e:
+            logger.warning(f"Cloud AI failed ({type(e).__name__}: {e}); falling back to local Ollama")
+    return requests.post(ollama_url, json=payload, timeout=timeout)
+
+
 def analyze_yeast_history(yeast_name: str) -> Optional[dict]:
     """
     Queries InfluxDB for historical batches with the same yeast.
@@ -121,7 +194,7 @@ def simulate_brew_insight(yeast_name, brew_count, mean_fg, p95_fg):
             "stream": False,
             "keep_alive": OLLAMA_KEEP_ALIVE
         }
-        res = requests.post(ollama_url, json=payload, timeout=OLLAMA_COLD_START_TIMEOUT)
+        res = _llm_post(ollama_url, payload, timeout=OLLAMA_COLD_START_TIMEOUT)
         if res.status_code == 200:
             text = res.json().get("response")
             if text:
@@ -312,11 +385,11 @@ def generate_chat_response(message: str, history: Optional[list] = None) -> dict
 
         try:
             logger.info(f"Sending request to Ollama ({ollama_url}) with model {payload.get('model')}")
-            res = requests.post(ollama_url, json=payload, timeout=OLLAMA_CHAT_TIMEOUT)
+            res = _llm_post(ollama_url, payload, timeout=OLLAMA_CHAT_TIMEOUT)
             if res.status_code == 200:
                 text = res.json().get("response")
                 if text:
-                    return {"status": "success", "response": text.strip(), "source": "ollama"}
+                    return {"status": "success", "response": text.strip(), "source": res.json().get("source", "ollama")}
         except Exception as e:
             logger.error(f"Ollama chat failed at {ollama_url}: {e}")
 
@@ -403,11 +476,11 @@ def _generate_proactive_advice() -> dict:
                 "options": {"num_predict": ADVICE_MAX_TOKENS},
             }
             logger.info("Sending proactive advice request to Ollama")
-            res = requests.post(ollama_url, json=payload, timeout=OLLAMA_COLD_START_TIMEOUT)
+            res = _llm_post(ollama_url, payload, timeout=OLLAMA_COLD_START_TIMEOUT)
             if res.status_code == 200:
                 text = res.json().get("response")
                 if text:
-                    return {"status": "success", "advice": text.strip(), "source": "ollama"}
+                    return {"status": "success", "advice": text.strip(), "source": res.json().get("source", "ollama")}
         except Exception as e:
             logger.error(f"Ollama proactive advice failed at {ollama_url}: {e}")
 
@@ -458,7 +531,7 @@ def analyze_anomaly(anomaly_data: dict) -> dict:
                 "stream": False,
                 "keep_alive": OLLAMA_KEEP_ALIVE
             }
-            res = requests.post(ollama_url, json=payload, timeout=OLLAMA_COLD_START_TIMEOUT)
+            res = _llm_post(ollama_url, payload, timeout=OLLAMA_COLD_START_TIMEOUT)
             if res.status_code == 200:
                 text = res.json().get("response")
                 if text:
@@ -533,7 +606,7 @@ def predict_issues() -> Optional[str]:
                 "keep_alive": OLLAMA_KEEP_ALIVE
             }
             
-            res = requests.post(ollama_url, json=payload, timeout=OLLAMA_COLD_START_TIMEOUT)
+            res = _llm_post(ollama_url, payload, timeout=OLLAMA_COLD_START_TIMEOUT)
             if res.status_code == 200:
                 answer = res.json().get("response", "").strip()
                 if "Normal" not in answer:
@@ -578,7 +651,7 @@ def generate_narrative(batch_data: dict) -> dict:
                 "stream": False,
                 "keep_alive": OLLAMA_KEEP_ALIVE
             }
-            res = requests.post(ollama_url, json=payload, timeout=OLLAMA_COLD_START_TIMEOUT)
+            res = _llm_post(ollama_url, payload, timeout=OLLAMA_COLD_START_TIMEOUT)
             if res.status_code == 200:
                 text = res.json().get("response")
                 if text:
@@ -656,11 +729,11 @@ def generate_brewday_coaching_response(context: dict, message: str) -> dict:
                 "keep_alive": "30m",
             }
             logger.info(f"Brew Day Coach request to Ollama ({phase} phase)")
-            res = requests.post(ollama_url, json=payload, timeout=OLLAMA_COLD_START_TIMEOUT)
+            res = _llm_post(ollama_url, payload, timeout=OLLAMA_COLD_START_TIMEOUT)
             if res.status_code == 200:
                 text = res.json().get("response")
                 if text:
-                    return {"status": "success", "response": text.strip(), "source": "ollama"}
+                    return {"status": "success", "response": text.strip(), "source": res.json().get("source", "ollama")}
         except Exception as e:
             logger.error(f"Ollama brew day coaching failed: {e}")
 
@@ -739,7 +812,7 @@ def generate_correction_explanation(correction_data: dict) -> dict:
                 "stream": False,
                 "keep_alive": "30m",
             }
-            res = requests.post(ollama_url, json=payload, timeout=OLLAMA_COLD_START_TIMEOUT)
+            res = _llm_post(ollama_url, payload, timeout=OLLAMA_COLD_START_TIMEOUT)
             if res.status_code == 200:
                 text = res.json().get("response")
                 if text:
@@ -841,7 +914,7 @@ def generate_brew_evaluation(session_summary: dict) -> dict:
                 "keep_alive": OLLAMA_KEEP_ALIVE,
             }
             logger.info(f"Generating brew day evaluation for {batch_name}")
-            res = requests.post(ollama_url, json=payload, timeout=OLLAMA_COLD_START_TIMEOUT)
+            res = _llm_post(ollama_url, payload, timeout=OLLAMA_COLD_START_TIMEOUT)
             if res.status_code == 200:
                 text = res.json().get("response")
                 if text:

@@ -9,6 +9,8 @@ import { apiFetch } from '@/lib/api';
 interface Message {
     role: 'user' | 'assistant';
     content: string;
+    /** Where an assistant reply came from: "cloud" (Claude) or "ollama" (the Pi) */
+    source?: string;
 }
 
 interface ChatResponse {
@@ -24,7 +26,7 @@ const POLL_MS = 3000;
 const MAX_WAIT_MS = 7 * 60 * 1000;
 
 type Pending = { taskId: string; since: number };
-type ChatStatus = { status: 'queued' | 'thinking' | ChatResponse['status'] | string; response?: string; message?: string };
+type ChatStatus = { status: 'queued' | 'thinking' | ChatResponse['status'] | string; response?: string; message?: string; source?: string };
 
 // Per-tab persistence, so leaving the page or a reload mid-reply picks the
 // conversation (and the pending reply) back up. Storage can throw in
@@ -47,6 +49,7 @@ export default function ChatPage() {
     const [input, setInput] = useState('');
     const scrollRef = useRef<HTMLDivElement>(null);
     const loading = pending !== null;
+    const lastSource = [...messages].reverse().find((m) => m.role === 'assistant' && m.source)?.source;
 
     // Restore after mount (sessionStorage isn't available during prerender)
     useEffect(() => {
@@ -72,9 +75,9 @@ export default function ChatPage() {
     useEffect(() => {
         if (!pending) return;
         let cancelled = false;
-        const finish = (content: string) => {
+        const finish = (content: string, source?: string) => {
             if (cancelled) return;
-            setMessages(prev => [...prev, { role: 'assistant', content }]);
+            setMessages(prev => [...prev, { role: 'assistant', content, source }]);
             setPending(null);
         };
         const tick = async () => {
@@ -85,7 +88,7 @@ export default function ChatPage() {
             try {
                 const res = await apiFetch<{ data: ChatStatus }>(`/api/ai/chat/status/${pending.taskId}`);
                 const d = res.data;
-                if (d.status === 'success' || d.status === 'fallback') return finish(d.response || '');
+                if (d.status === 'success' || d.status === 'fallback') return finish(d.response || '', d.source);
                 if (d.status === 'error') return finish('Sorry, the Brewmaster hit an error answering that.');
                 if (!cancelled) setPhase(d.status === 'thinking' ? 'thinking' : 'queued');
             } catch {
@@ -132,7 +135,9 @@ export default function ChatPage() {
                         <h1 className="font-bold tracking-tight">Brewmaster AI</h1>
                         <div className="flex items-center gap-1.5">
                             <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                            <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Local Ollama Active</span>
+                            <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">
+                                {lastSource === 'cloud' ? 'Cloud AI (Claude)' : lastSource === 'ollama' ? 'On-device AI (Pi)' : 'Brewmaster AI'}
+                            </span>
                         </div>
                     </div>
                 </div>
@@ -177,7 +182,7 @@ export default function ChatPage() {
                             <span className="text-xs text-muted-foreground">
                                 {phase === 'queued'
                                     ? 'Waiting for the Brewmaster (the Pi may be finishing another AI task)...'
-                                    : 'Thinking... (runs on the Pi with no GPU, usually 1-3 minutes). Safe to leave this page.'}
+                                    : 'Thinking... (cloud AI answers in seconds; on the Pi it can take 1-3 minutes). Safe to leave this page.'}
                             </span>
                         </div>
                     </div>

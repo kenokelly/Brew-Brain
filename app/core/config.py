@@ -67,6 +67,11 @@ class BrewBrainConfig(BaseModel):
     # AI/Services
     ollama_host: str = "127.0.0.1"
     ollama_model: str = "llama3:latest"
+    # "local" = Ollama on the Pi; "cloud" = Claude API, falling back to
+    # Ollama if the cloud call fails (no internet, bad key, outage).
+    ai_provider: str = "local"
+    anthropic_api_key: str = ""
+    cloud_model: str = "claude-opus-5"
     serp_api_key: str = ""
     
     # Simulation Defaults
@@ -117,7 +122,8 @@ class BrewBrainConfig(BaseModel):
     @field_validator('batch_name', 'batch_notes', 'style', 'yeast_strain', 
                      'bf_user', 'bf_key', 'alert_telegram_token', 'alert_telegram_chat', 'tiltpi_url',
                      'ollama_host', 'ollama_model', 'serp_api_key', 'alert_start_time', 'alert_end_time',
-                     'prediction_end_date', 'yeast_flocculation', 'ferm_start', mode='before')
+                     'prediction_end_date', 'yeast_flocculation', 'ferm_start',
+                     'anthropic_api_key', 'cloud_model', mode='before')
     @classmethod
     def coerce_string(cls, v: Any) -> str:
         if v is None:
@@ -142,6 +148,11 @@ class BrewBrainConfig(BaseModel):
         if isinstance(v, dict):
             return v
         return {}
+
+    @field_validator('ai_provider', mode='before')
+    @classmethod
+    def coerce_provider(cls, v: Any) -> str:
+        return v if v in ("local", "cloud") else "local"
 
     @field_validator('ferm_steps', mode='before')
     @classmethod
