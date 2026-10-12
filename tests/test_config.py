@@ -138,3 +138,29 @@ def test_get_config_picks_up_writes_from_another_process(tmp_path, monkeypatch):
 def test_ferm_steps_rejects_non_list():
     from app.core import config as cfg
     assert cfg.BrewBrainConfig.model_validate({"ferm_steps": "[{'a': 1}]"}).ferm_steps == []
+
+
+def test_set_config_does_not_undo_another_process_write(tmp_path, monkeypatch):
+    """2026-10-12: a batch restore (one process) was overwritten a second
+    later when another process saved water_test from its stale copy."""
+    import time
+    from app.core import config as cfg
+    path = tmp_path / "config.json"
+    monkeypatch.setattr(cfg, "CONFIG_PATH", str(path))
+    monkeypatch.setattr(cfg, "_config_instance", cfg.BrewBrainConfig(batch_name="DEV"))
+    with patch.object(cfg, "write_api"):
+        cfg.set_config("brew_active", True)          # this process's copy: DEV
+
+        # Another process restores the real batch...
+        data = json.loads(path.read_text())
+        data["batch_name"] = "IPA no 1"
+        path.write_text(json.dumps(data))
+        os.utime(path, (time.time() + 5, time.time() + 5))
+
+        # ...and this process saves a different key straight away (no
+        # 2-second reload window has passed).
+        cfg.set_config("water_test", True)
+
+    saved = json.loads(path.read_text())
+    assert saved["batch_name"] == "IPA no 1"
+    assert saved["water_test"] is True

@@ -352,21 +352,52 @@ def get_all_config() -> Dict[str, Any]:
     _reload_if_changed()
     return _config_instance.model_dump()
 
+from contextlib import contextmanager
+
+
+@contextmanager
+def _config_write_lock():
+    """Cross-process lock around read-modify-write of config.json.
+
+    brew-brain, celery-worker, celery-beat and `docker exec` tools all write
+    the same file. Without this, a process saving one key wrote back its
+    whole in-memory copy, silently undoing another process's change made
+    moments earlier (2026-10-12: a batch restore was overwritten by a
+    water-test toggle a second later).
+    """
+    import fcntl
+    os.makedirs(os.path.dirname(CONFIG_PATH) or ".", exist_ok=True)
+    with open(CONFIG_PATH + ".lock", "a") as lf:
+        fcntl.flock(lf, fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            fcntl.flock(lf, fcntl.LOCK_UN)
+
+
 def set_config(key: str, value: Any) -> None:
     """Updates config in memory, saves to local file, and mirrors to InfluxDB."""
     global _config_instance
-    
-    # Validate the single update by dumping, updating, and re-validating
-    try:
-        current_dict = _config_instance.model_dump()
-        current_dict[key] = value
-        _config_instance = BrewBrainConfig.model_validate(current_dict)
-    except Exception as e:
-        logger.error(f"Config validation failed for key '{key}' with value '{value}': {e}")
-        raise ValueError(f"Invalid config value for {key}: {e}")
-    
-    # Save to local file (Primary)
-    _save_config_to_file()
+
+    with _config_write_lock():
+        # Start from what's on disk, not this process's possibly stale copy
+        try:
+            if os.stat(CONFIG_PATH).st_mtime != _config_mtime:
+                _load_config_from_file()
+        except OSError:
+            pass
+
+        # Validate the single update by dumping, updating, and re-validating
+        try:
+            current_dict = _config_instance.model_dump()
+            current_dict[key] = value
+            _config_instance = BrewBrainConfig.model_validate(current_dict)
+        except Exception as e:
+            logger.error(f"Config validation failed for key '{key}' with value '{value}': {e}")
+            raise ValueError(f"Invalid config value for {key}: {e}")
+
+        # Save to local file (Primary)
+        _save_config_to_file()
     
     try:
         # Mirror to InfluxDB for historical tracking
