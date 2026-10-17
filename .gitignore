@@ -19,3 +19,10 @@ data/brew_brain.log
 data/journal.json
 data/journal.lock
 data/config.json.lock
+
+# Brewfather recipe push (local only)
+brewfather-push/
+
+# Runtime brew-day logs and test leftovers
+data/logs/
+test_data_config/
