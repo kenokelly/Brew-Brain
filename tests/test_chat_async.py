@@ -177,3 +177,34 @@ def test_batch_plan_takes_the_fermentation_part_of_the_notes():
 
 def test_plain_text_drops_markdown_but_keeps_bold():
     assert ai._plain_text("## Now\n- **Hold** at *20 C*") == "Now\n**Hold** at 20 C"
+
+
+def test_batch_context_skips_events_before_log_start():
+    from datetime import datetime, timezone
+    from unittest.mock import patch
+    from services import ai
+    summary = {"og": 1.042, "target_fg": 1.008, "sg": 1.035, "brew_active": True,
+               "sensor": {"last_reading_age_min": 2}}
+    entries = [
+        {"ts": "2026-10-18T19:00:00+00:00", "text": "Log restarted"},
+        {"ts": "2026-10-18T12:00:00+00:00", "text": "TILT SIGNAL LOSS: IPA no 1"},
+    ]
+    with patch("services.fermentation.get_fermentation_summary", return_value=summary), \
+         patch("services.fermentation._log_start", return_value=datetime(2026, 10, 18, 15, tzinfo=timezone.utc)), \
+         patch("services.journal.list_entries", return_value=entries):
+        ctx = ai.build_batch_context()
+    assert "Log restarted" in ctx
+    assert "SIGNAL LOSS" not in ctx
+
+
+def test_chat_prompt_explains_the_app():
+    from unittest.mock import patch, MagicMock
+    from services import ai
+    res = MagicMock(status_code=200)
+    res.json.return_value = {"response": "ok"}
+    with patch.object(ai, "build_batch_context", return_value="Batch: X"), \
+         patch.object(ai, "_llm_post", return_value=res) as post:
+        ai.generate_chat_response("how do I turn brew active on")
+    system = post.call_args[0][1]["system"]
+    assert "Brew Alerts slider" in system
+    assert "Proactive Advice" in system

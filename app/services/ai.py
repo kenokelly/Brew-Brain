@@ -215,6 +215,14 @@ _PHASE_TEXT = {
 }
 
 
+def _parse_ts(iso: Optional[str]) -> Optional[datetime]:
+    try:
+        t = datetime.fromisoformat(str(iso))
+        return t if t.tzinfo else t.replace(tzinfo=timezone.utc)
+    except (TypeError, ValueError):
+        return None
+
+
 def _ago(iso: str, now: datetime) -> str:
     try:
         mins = (now - datetime.fromisoformat(iso)).total_seconds() / 60
@@ -323,8 +331,13 @@ def build_batch_context(journal_entries: int = 5) -> str:
         # Collapse repeats (an alert re-firing with slightly different
         # numbers) so the AI sees distinct events
         import re
+        from services.fermentation import _log_start
+        since = _log_start()
         recent, seen = [], set()
         for e in list_entries(journal_entries * 6):
+            # Events from before the log start are a water test or the last batch
+            if since and _parse_ts(e.get("ts")) and _parse_ts(e["ts"]) < since:
+                continue
             key = re.sub(r"[-+]?\d[\d.]*", "#", e["text"])[:80]
             if key not in seen:
                 seen.add(key)
@@ -340,6 +353,24 @@ def build_batch_context(journal_entries: int = 5) -> str:
     return "\n".join(lines)
 
 
+# What the chat should know about Brew Brain itself, so "how do I..." questions
+# get real answers instead of "I can't see your system".
+APP_GUIDE = (
+    "You are built into Brew Brain, the user's fermentation monitor (Raspberry Pi, Tilt hydrometer, "
+    "Brewfather). The dashboard's Proactive Advice card, the alerts and the journal events below all come "
+    "from Brew Brain, i.e. from you; if the user quotes them, explain them against the live data and say "
+    "plainly if one was wrong. How the app works:\n"
+    "- Settings > System Control > Brew Alerts slider: turns Tilt alerts (signal loss, stall, runaway, "
+    "temperature) on or off. Simulated Data slider: fake readings for testing; keep it off during a brew.\n"
+    "- Dashboard: Sync from Brewfather loads the fermenting batch, recipe OG/FG and fermentation steps. "
+    "Water test button: calibrate the Tilt in plain water (alerts pause). "
+    "Fermentation chart > Start log from now: hides earlier readings such as a water test.\n"
+    "- Settings > Tilt offset corrects calibration (add the difference between a trusted reading and the Tilt).\n"
+    "- Telegram bot: alerts, a daily report, and /status, /ping, /help commands.\n"
+    "- The TiltPi / Node-RED panel shows the raw Tilt data."
+)
+
+
 def generate_chat_response(message: str, history: Optional[list] = None) -> dict:
     """
     Generates a response from the Brewmaster AI (Local Ollama).
@@ -351,14 +382,18 @@ def generate_chat_response(message: str, history: Optional[list] = None) -> dict
             logger.warning(f"Batch context unavailable for chat: {ctx_e}")
             context = "Live batch data is currently unavailable."
 
+        plan = _batch_plan()
         system_prompt = (
             "You are the 'Brewmaster', an expert homebrewing assistant. "
+            f"{APP_GUIDE}\n\n"
             "Here is the live data for the user's current batch:\n"
-            f"{context}\n\n"
+            f"{context}\n"
+            + (f"Brewer's fermentation plan: {plan}\n" if plan else "") + "\n"
             "Base your answer on these numbers and quote them where useful. "
             "Don't invent readings, dates or ingredients that aren't listed. "
             "If the data looks implausible (for example gravity below 1.000, or rising), "
-            "say so and suggest checking the hydrometer. Be concise and practical."
+            "say so and suggest checking the hydrometer. Don't contradict the recipe schedule or the "
+            "brewer's plan. Be concise and practical."
         )
 
         # 1. Try Local Ollama

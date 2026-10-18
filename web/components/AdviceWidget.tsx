@@ -7,6 +7,7 @@ import { Sparkles, RefreshCcw, ChevronRight, MessageSquare, Lightbulb, Loader2 }
 import { fetcher } from '@/lib/hooks';
 
 import { AdviceSkeleton } from '@/components/ui/skeleton';
+import { renderBold } from '@/lib/text';
 
 interface AdviceData {
     status: 'success' | 'fallback' | 'error';
@@ -152,10 +153,3 @@ export function AdviceWidget({ className }: { className?: string }) {
 }
 
 export default AdviceWidget;
-
-// The AI writes **bold** markdown; show it as bold rather than raw asterisks
-function renderBold(text: string) {
-    return text.split(/\*\*(.+?)\*\*/g).map((part, i) =>
-        i % 2 === 1 ? <strong key={i} className="font-semibold text-foreground">{part}</strong> : part
-    );
-}

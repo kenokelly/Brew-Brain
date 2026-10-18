@@ -5,6 +5,7 @@ import { Send, Bot, User, Sparkles, ChevronLeft, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { apiFetch } from '@/lib/api';
+import { renderBold } from '@/lib/text';
 
 interface Message {
     role: 'user' | 'assistant';
@@ -169,12 +170,12 @@ export default function ChatPage() {
                             {msg.role === 'user' ? <User className="w-5 h-5 text-primary" /> : <Sparkles className="w-5 h-5 text-purple-500" />}
                         </div>
                         <div className={cn(
-                            "p-4 rounded-2xl text-sm leading-relaxed",
+                            "p-4 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap",
                             msg.role === 'user' 
                                 ? "bg-primary text-primary-foreground rounded-tr-none" 
                                 : "bg-card border border-border/50 rounded-tl-none shadow-sm"
                         )}>
-                            {msg.content}
+                            {msg.role === 'user' ? msg.content : renderBold(msg.content)}
                         </div>
                     </div>
                 ))}
