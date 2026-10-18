@@ -238,6 +238,13 @@ def _batch_start() -> Optional[datetime]:
     return _parse_iso(get_config("ferm_start")) or _parse_iso(get_config("start_date"))
 
 
+def _log_start() -> Optional[datetime]:
+    """Where charts begin: the batch start, or a later "Start log from now" mark."""
+    from core.config import get_config
+    starts = [t for t in (_batch_start(), _parse_iso(get_config("log_start"))) if t]
+    return max(starts) if starts else None
+
+
 def _query_sg_temp(start: datetime, every: Optional[str] = None) -> List[Dict[str, Any]]:
     """[{ts, sg, temp}] from Influx since `start`, optionally windowed."""
     from core.influx import query_api, INFLUX_BUCKET
@@ -394,10 +401,12 @@ def get_fermentation_history(now: Optional[datetime] = None) -> Dict[str, Any]:
     from core.config import get_config
 
     now = now or datetime.now(timezone.utc)
-    start = _batch_start() or (now - timedelta(days=14))
+    start = _log_start() or (now - timedelta(days=14))
     # Brewfather can give a future start (batch planned, not yet pitched)
     # or an ancient one; keep the query bounded either way.
-    start = max(min(start, now - timedelta(hours=6)), now - timedelta(days=60))
+    if start > now:
+        start = now - timedelta(hours=6)
+    start = max(start, now - timedelta(days=60))
     series = _query_sg_temp(start, every=_window_for((now - start).total_seconds()))
 
     og = float(get_config("og") or 1.050)
@@ -414,7 +423,8 @@ def get_fermentation_history(now: Optional[datetime] = None) -> Dict[str, Any]:
         if p.get("temp") is not None:
             p["temp"] = round(p["temp"], 2)
 
-    return {"start": start.isoformat(), "og": og, "points": series}
+    return {"start": start.isoformat(), "og": og, "points": series,
+            "log_start": get_config("log_start") or None}
 
 
 # ---------------------------------------------------------------------------

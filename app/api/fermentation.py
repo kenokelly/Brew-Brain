@@ -88,3 +88,30 @@ def water_test() -> Tuple[Response, int]:
         return api_response(status="error", error="action must be start, stop or apply_offset", code=400)
     except Exception as e:
         return handle_error(e, "Water test error")
+
+
+@fermentation_bp.route('/log-start', methods=['POST'])
+@require_api_token
+def log_start() -> Tuple[Response, int]:
+    """Start the charts from now, hiding earlier readings, or go back to the batch start.
+
+    Body: {"action": "start" | "clear"}
+    """
+    try:
+        from datetime import datetime, timezone
+        from core.config import set_config
+        from services.journal import add_entry
+
+        action = (request.get_json(silent=True) or {}).get('action')
+        if action == 'start':
+            now = datetime.now(timezone.utc).isoformat()
+            set_config('log_start', now)
+            add_entry("Log restarted: charts now start from here", kind="info", dedupe_minutes=0)
+            return api_response(data={"log_start": now})
+        if action == 'clear':
+            set_config('log_start', "")
+            add_entry("Log start cleared: charts start from the batch start again", kind="info", dedupe_minutes=0)
+            return api_response(data={"log_start": ""})
+        return api_response(status="error", error="action must be start or clear", code=400)
+    except Exception as e:
+        return handle_error(e, "Log start error")

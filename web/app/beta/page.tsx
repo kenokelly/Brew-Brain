@@ -47,6 +47,18 @@ export default function BetaDashboard() {
         }
     };
 
+    const setLogStart = async (action: 'start' | 'clear') => {
+        if (action === 'start' && !window.confirm('Start the log from now? Charts will hide earlier readings, such as water tests or the last batch. Nothing is deleted.')) return;
+        try {
+            await api.post('/api/fermentation/log-start', { action });
+            toast.success(action === 'start' ? 'Log restarted from now' : 'Showing the whole batch');
+            mutateHistory();
+            mutateJournal();
+        } catch (e) {
+            toast.error(`Couldn't change the log start: ${e instanceof Error ? e.message : String(e)}`);
+        }
+    };
+
     const sync = async () => {
         setSyncing(true);
         const id = toast.loading('Syncing with Brewfather…');
@@ -124,14 +136,14 @@ export default function BetaDashboard() {
                                 : <FermentationCard s={summary} />}
                         </div>
                         <div className="space-y-5">
-                            <FermentChart history={history} summary={summary} error={historyError} />
+                            <FermentChart history={history} summary={summary} error={historyError} onLogStart={setLogStart} />
                             <VitalsCard s={summary} />
                         </div>
                         <JournalCard entries={entries} error={journalError} onAdded={() => mutateJournal()} />
                     </div>
                 )}
 
-                <MoreInsights />
+                <MoreInsights chartStart={history?.start} />
             </div>
         </div>
     );

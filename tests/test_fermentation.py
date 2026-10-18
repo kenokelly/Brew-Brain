@@ -226,3 +226,30 @@ def test_tracker_phase_needs_two_consecutive_reads():
     _run(t + timedelta(hours=1), phase="STABLE", sg=1.013, velocity=-0.2)
     logged = _run(t + timedelta(hours=1, minutes=15), phase="STABLE", sg=1.013, velocity=-0.2)
     assert logged and "gravity stable at 1.0130" in logged[0]
+
+
+# ---------------------------------------------------------------------------
+# "Start log from now"
+# ---------------------------------------------------------------------------
+
+def _config(values):
+    return lambda key: values.get(key)
+
+
+def test_history_starts_at_log_start_when_later_than_batch():
+    cfg = {"ferm_start": (NOW - timedelta(days=2)).isoformat(),
+           "log_start": (NOW - timedelta(hours=3)).isoformat(), "og": 1.042}
+    with patch("core.config.get_config", side_effect=_config(cfg)), \
+         patch.object(ferm, "_query_sg_temp", return_value=[]) as q:
+        out = ferm.get_fermentation_history(now=NOW)
+    assert q.call_args[0][0] == NOW - timedelta(hours=3)
+    assert out["start"] == (NOW - timedelta(hours=3)).isoformat()
+
+
+def test_history_ignores_log_start_from_a_previous_batch():
+    cfg = {"ferm_start": (NOW - timedelta(days=1)).isoformat(),
+           "log_start": (NOW - timedelta(days=20)).isoformat(), "og": 1.042}
+    with patch("core.config.get_config", side_effect=_config(cfg)), \
+         patch.object(ferm, "_query_sg_temp", return_value=[]) as q:
+        ferm.get_fermentation_history(now=NOW)
+    assert q.call_args[0][0] == NOW - timedelta(days=1)

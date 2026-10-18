@@ -26,10 +26,12 @@ const timeFmt = (ts: number) =>
     new Date(ts * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
 /** Whole-ferment chart since pitch, one colour per series (Grafana-free). */
-export function FermentChart({ history, summary, error }: {
+export function FermentChart({ history, summary, error, onLogStart }: {
     history?: FermentationHistory;
     summary?: FermentationSummary;
     error?: unknown;
+    /** "start" hides earlier readings from now on; "clear" goes back to the batch start */
+    onLogStart?: (action: 'start' | 'clear') => void;
 }) {
     const [hidden, setHidden] = useState<Set<SeriesKey>>(new Set());
     const points = history?.points ?? [];
@@ -55,7 +57,28 @@ export function FermentChart({ history, summary, error }: {
     const avgVel = vels.length ? vels.reduce((a, b) => a + b, 0) / vels.length : null;
 
     return (
-        <BetaCard icon={LineIcon} title="Fermentation chart" subtitle="this ferment · since OG" live={points.length > 0}>
+        <BetaCard
+            icon={LineIcon}
+            title="Fermentation chart"
+            subtitle={history?.log_start ? `since log restart · ${new Date(history.log_start).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}` : 'this ferment · since OG'}
+            live={points.length > 0}
+            badge={onLogStart && (
+                <div className="flex flex-col items-end gap-1 shrink-0">
+                    <button
+                        type="button"
+                        onClick={() => onLogStart('start')}
+                        className="text-xs whitespace-nowrap px-2.5 py-1 rounded-full bg-[var(--b-tile)] border border-[var(--b-border)] text-[var(--b-muted)] hover:text-[var(--b-text)]"
+                    >
+                        Start log from now
+                    </button>
+                    {history?.log_start && (
+                        <button type="button" onClick={() => onLogStart('clear')} className="text-xs text-[var(--b-muted)] hover:text-[var(--b-text)] underline underline-offset-2">
+                            Show whole batch
+                        </button>
+                    )}
+                </div>
+            )}
+        >
             <div className="flex flex-wrap gap-x-4 gap-y-1.5 mb-3">
                 {SERIES.map((s) => (
                     <button

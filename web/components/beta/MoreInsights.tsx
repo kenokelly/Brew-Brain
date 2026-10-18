@@ -10,15 +10,18 @@ import { PeerComparisonWidget } from '@/components/PeerComparison';
 import { SystemHealth } from '@/components/SystemHealth';
 import { GrafanaChart } from '@/components/GrafanaChart';
 
-const RANGES = ['now-24h', 'now-3d', 'now-7d', 'now-30d'];
+const RANGES = ['batch', 'now-24h', 'now-3d', 'now-7d', 'now-30d'];
 
 /**
  * Cards carried over from the original dashboard, plus the Grafana
  * fermentation chart folded away until it's wanted.
  */
-export function MoreInsights() {
+export function MoreInsights({ chartStart }: { chartStart?: string }) {
     const [chartOpen, setChartOpen] = useState(false);
-    const [timeRange, setTimeRange] = useState('now-7d');
+    const [timeRange, setTimeRange] = useState('batch');
+    // "batch" = from the batch start, or from "Start log from now" if that's later
+    const startMs = chartStart ? Date.parse(chartStart) : NaN;
+    const grafanaFrom = timeRange === 'batch' ? (Number.isNaN(startMs) ? 'now-7d' : String(startMs)) : timeRange;
 
     const openTiltPi = () => {
         window.open(`http://${window.location.hostname}:1880/ui/`, '_blank');
@@ -77,13 +80,13 @@ export function MoreInsights() {
                                             timeRange === range ? 'bg-[var(--b-accent)] text-black' : 'text-[var(--b-muted)] hover:text-[var(--b-text)]',
                                         )}
                                     >
-                                        {range.replace('now-', '')}
+                                        {range === 'batch' ? 'This batch' : range.replace('now-', '')}
                                     </button>
                                 ))}
                             </div>
                         </div>
                         <div className="w-full h-[450px] md:h-[650px] rounded-2xl overflow-hidden">
-                            <GrafanaChart timeRange={timeRange} />
+                            <GrafanaChart timeRange={grafanaFrom} />
                         </div>
                     </div>
                 )}

@@ -101,6 +101,9 @@ class BrewBrainConfig(BaseModel):
     # ISO timestamp the first step started (Brewfather fermentationStartDate,
     # falling back to brewDate). Empty = use start_date.
     ferm_start: str = ""
+    # ISO timestamp set by "Start log from now". Charts ignore readings before
+    # it (water tests, a previous batch). Empty = start at the batch start.
+    log_start: str = ""
 
     # Prediction
     prediction_end_date: str = ""

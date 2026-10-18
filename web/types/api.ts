@@ -502,6 +502,8 @@ export interface FermentationHistory {
     start: string;
     og: number;
     points: FermentationPoint[];
+    /** Set by "Start log from now"; the chart begins here instead of the batch start */
+    log_start?: string | null;
 }
 
 export interface JournalEntry {
