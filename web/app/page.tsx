@@ -17,6 +17,7 @@ import { SystemHealth } from '@/components/SystemHealth';
 import { MonitoringBanner } from '@/components/MonitoringBanner';
 import type { SystemStatus } from '@/types/api';
 import { toast } from 'react-hot-toast';
+import { authHeaders } from '@/lib/api';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -58,7 +59,7 @@ export default function Dashboard() {
   const handleSyncBrewfather = async () => {
     const toastId = toast.loading("Syncing with Brewfather...");
     try {
-      const res = await fetch('/api/sync_brewfather', { method: 'POST' });
+      const res = await fetch('/api/sync_brewfather', { method: 'POST', headers: authHeaders() });
       const d = await res.json();
       if (res.ok && d.status === 'synced') {
         toast.success(`Synced batch: ${d.data.name}`, { id: toastId });

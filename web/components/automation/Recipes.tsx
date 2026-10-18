@@ -32,7 +32,7 @@ interface AnalysisResult {
     recipes: RecipeResult[];
 }
 
-import { apiFetch } from '@/lib/api';
+import { apiFetch, authHeaders } from '@/lib/api';
 
 export function Recipes() {
     const [query, setQuery] = useState('');
@@ -337,7 +337,7 @@ function RecipeCard({
                                 try {
                                     const res = await fetch('/api/automation/brewfather/import', {
                                         method: 'POST',
-                                        headers: { 'Content-Type': 'application/json' },
+                                        headers: authHeaders({ 'Content-Type': 'application/json' }),
                                         body: JSON.stringify({ url: recipe.source_url, name: recipe.name })
                                     });
                                     const data = await res.json();

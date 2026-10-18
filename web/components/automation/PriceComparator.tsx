@@ -187,7 +187,7 @@ function validateVendor(value: any): 'TMM' | 'GEB' | 'Tie' | 'None' {
     return 'None';
 }
 
-import { apiFetch } from '@/lib/api';
+import { apiFetch, authHeaders } from '@/lib/api';
 
 // ============================================
 // MAIN COMPONENT
@@ -228,12 +228,12 @@ export function PriceComparator() {
     const pollComparisonStatus = (taskId: string) => {
         const interval = setInterval(async () => {
             try {
-                const res = await fetch(`/api/automation/sourcing/compare/status/${taskId}`);
-                const { data, status, error } = await res.json();
+                const res = await fetch(`/api/automation/sourcing/compare/status/${taskId}`, { headers: authHeaders() });
+                const { data, status, error, message } = await res.json();
 
                 if (status === 'error') {
                     clearInterval(interval);
-                    setResult({ breakdown: [], total_tmm: 0, total_geb: 0, winner: '', error });
+                    setResult({ breakdown: [], total_tmm: 0, total_geb: 0, winner: '', error: error || message || `Comparison failed (HTTP ${res.status})` });
                     setLoading(false);
                 } else if (data && data.status !== 'queued' && data.status !== 'PENDING') {
                     clearInterval(interval);

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { RefreshCw, Package, AlertTriangle, ShoppingCart } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import BarcodeInventoryScanner from "./BarcodeScanner";
+import { authHeaders } from '@/lib/api';
 
 export function Inventory() {
     const [inventory, setInventory] = useState<any>(null);
@@ -18,7 +19,7 @@ export function Inventory() {
     const fetchInventory = async () => {
         setLoading(true);
         try {
-            const res = await fetch('/api/automation/inventory');
+            const res = await fetch('/api/automation/inventory', { headers: authHeaders() });
             const json = await res.json();
             if (json.data) {
                 setInventory(json.data);
@@ -33,7 +34,7 @@ export function Inventory() {
     const handleSync = async () => {
         setSyncing(true);
         try {
-            const res = await fetch('/api/automation/inventory/sync', { method: 'POST' });
+            const res = await fetch('/api/automation/inventory/sync', { method: 'POST', headers: authHeaders() });
             const json = await res.json();
             if (json.data?.task_id) {
                 pollTaskStatus(json.data.task_id);
@@ -49,7 +50,7 @@ export function Inventory() {
     const pollTaskStatus = async (taskId: string) => {
         const interval = setInterval(async () => {
             try {
-                const res = await fetch(`/api/automation/inventory/sync/status/${taskId}`);
+                const res = await fetch(`/api/automation/inventory/sync/status/${taskId}`, { headers: authHeaders() });
                 const json = await res.json();
                 
                 if (json.data?.status === 'success') {

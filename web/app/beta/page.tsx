@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { FlaskRound, Droplets } from 'lucide-react';
-import { api } from '@/lib/api';
+import { api, authHeaders } from '@/lib/api';
 import { toast } from 'react-hot-toast';
 import { useFermentationHistory, useFermentationSummary, useJournal } from '@/lib/hooks';
 import { BatchCard } from '@/components/beta/BatchCard';
@@ -46,7 +46,7 @@ export default function BetaDashboard() {
         setSyncing(true);
         const id = toast.loading('Syncing with Brewfather…');
         try {
-            const res = await fetch('/api/sync_brewfather', { method: 'POST' });
+            const res = await fetch('/api/sync_brewfather', { method: 'POST', headers: authHeaders() });
             const d = await res.json();
             if (res.ok && d.status === 'synced') {
                 toast.success(`Synced ${d.data.name} · ${d.data.steps} fermentation steps`, { id });

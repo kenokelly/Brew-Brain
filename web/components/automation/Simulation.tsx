@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { FlaskConical, Play, Plus, Trash2, AlertTriangle, AlertCircle, TrendingUp, Brain } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { authHeaders } from '@/lib/api';
 import {
   AreaChart,
   Area,
@@ -75,7 +76,7 @@ export function Simulation() {
     const pollStatus = (taskId: string, og: number, warning?: string) => {
         const interval = setInterval(async () => {
             try {
-                const res = await fetch(`/api/automation/simulate/status/${taskId}`);
+                const res = await fetch(`/api/automation/simulate/status/${taskId}`, { headers: authHeaders() });
                 const { data, status, error } = await res.json();
                 
                 if (status === 'error') {
@@ -104,7 +105,7 @@ export function Simulation() {
         try {
             const res = await fetch('/api/automation/simulate', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: authHeaders({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify({
                     efficiency: config.efficiency,
                     volume: config.volume,
