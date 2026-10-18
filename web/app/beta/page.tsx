@@ -2,10 +2,10 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { FlaskRound, Droplets } from 'lucide-react';
+import { FlaskRound, Droplets, BookOpen } from 'lucide-react';
 import { api, authHeaders } from '@/lib/api';
 import { toast } from 'react-hot-toast';
-import { useFermentationHistory, useFermentationSummary, useJournal } from '@/lib/hooks';
+import { useFermentationHistory, useFermentationSummary, useJournal, useStatus } from '@/lib/hooks';
 import { BatchCard } from '@/components/beta/BatchCard';
 import { FermentationCard } from '@/components/beta/FermentationCard';
 import { WaterTestCard } from '@/components/beta/WaterTestCard';
@@ -13,6 +13,9 @@ import { FermentChart } from '@/components/beta/FermentChart';
 import { JournalCard } from '@/components/beta/JournalCard';
 import { VitalsCard } from '@/components/beta/VitalsCard';
 import { CardError } from '@/components/beta/BetaCard';
+import { MoreInsights } from '@/components/beta/MoreInsights';
+import { MonitoringBanner } from '@/components/MonitoringBanner';
+import { BrewDayGuide } from '@/components/BrewDayGuide';
 
 /**
  * Beta dashboard: step timeline, fermentation velocity/ETA, native chart and
@@ -25,6 +28,8 @@ export default function BetaDashboard() {
     const { entries, error: journalError, mutate: mutateJournal } = useJournal(60);
     const [syncing, setSyncing] = useState(false);
     const [toggling, setToggling] = useState(false);
+    const [isGuideOpen, setIsGuideOpen] = useState(false);
+    const { data: status } = useStatus();
 
     const toggleWaterTest = async () => {
         const starting = !summary?.water_test;
@@ -72,6 +77,14 @@ export default function BetaDashboard() {
                         <span className="text-[var(--b-muted)] hidden sm:inline">New dashboard preview</span>
                     </div>
                     <div className="flex items-center gap-3">
+                        <button
+                            type="button"
+                            onClick={() => setIsGuideOpen(true)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm whitespace-nowrap bg-[var(--b-card)] border border-[var(--b-border)] text-[var(--b-muted)] hover:text-[var(--b-text)]"
+                        >
+                            <BookOpen className="w-4 h-4 text-[var(--b-accent)]" />
+                            <span className="hidden sm:inline">Prep guide</span>
+                        </button>
                         {summary && (
                             <button
                                 type="button"
@@ -89,6 +102,10 @@ export default function BetaDashboard() {
                         </Link>
                     </div>
                 </div>
+
+                <BrewDayGuide isOpen={isGuideOpen} onClose={() => setIsGuideOpen(false)} />
+
+                <MonitoringBanner status={status} />
 
                 {isLoading && !summary ? (
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
@@ -113,6 +130,8 @@ export default function BetaDashboard() {
                         <JournalCard entries={entries} error={journalError} onAdded={() => mutateJournal()} />
                     </div>
                 )}
+
+                <MoreInsights />
             </div>
         </div>
     );

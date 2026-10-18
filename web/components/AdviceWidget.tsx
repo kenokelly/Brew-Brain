@@ -98,7 +98,7 @@ export function AdviceWidget({ className }: { className?: string }) {
                     </div>
                     <div className="space-y-3">
                         <p className="text-sm leading-relaxed text-foreground/90 whitespace-pre-wrap">
-                            {advice.advice}
+                            {renderBold(advice.advice)}
                         </p>
                         <div className="flex items-center gap-4 pt-2">
                             <button className="text-[10px] font-bold text-purple-400 hover:text-purple-300 flex items-center gap-1 transition-colors uppercase tracking-tight">
@@ -121,3 +121,10 @@ export function AdviceWidget({ className }: { className?: string }) {
 }
 
 export default AdviceWidget;
+
+// The AI writes **bold** markdown; show it as bold rather than raw asterisks
+function renderBold(text: string) {
+    return text.split(/\*\*(.+?)\*\*/g).map((part, i) =>
+        i % 2 === 1 ? <strong key={i} className="font-semibold text-foreground">{part}</strong> : part
+    );
+}
