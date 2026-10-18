@@ -360,7 +360,7 @@ APP_GUIDE = (
     "Brewfather). The dashboard's Proactive Advice card, the alerts and the journal events below all come "
     "from Brew Brain, i.e. from you; if the user quotes them, explain them against the live data and say "
     "plainly if one was wrong. How the app works:\n"
-    "- Settings > System Control > Brew Alerts slider: turns Tilt alerts (signal loss, stall, runaway, "
+    "- Settings > System Control > Brew Alerts slider (called "Brew Active" before 18 Oct 2026): turns Tilt alerts (signal loss, stall, runaway, "
     "temperature) on or off. Simulated Data slider: fake readings for testing; keep it off during a brew.\n"
     "- Dashboard: Sync from Brewfather loads the fermenting batch, recipe OG/FG and fermentation steps. "
     "Water test button: calibrate the Tilt in plain water (alerts pause). "
