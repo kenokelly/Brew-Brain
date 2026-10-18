@@ -3,8 +3,9 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import {
     Send, User, Flame, ChevronLeft, ChevronRight, Loader2,
-    Play, Square, Plus, Beaker, Clock, Sparkles, Timer, AlertTriangle,
+    Play, Square, Plus, Beaker, Clock, Sparkles, Timer, AlertTriangle, Thermometer,
 } from 'lucide-react';
+import { CartesianGrid, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
 import { cn } from '@/lib/utils';
@@ -29,6 +30,37 @@ interface BrewDaySession {
     phase_started_at: string;
     gravity_readings: GravityReading[];
     corrections_applied: Correction[];
+    temp_readings?: TempReading[];
+}
+
+interface TempReading {
+    temp_c: number;
+    target_c: number | null;
+    phase: string;
+    timestamp: string;
+}
+
+interface RampSegment {
+    phase: string;
+    target_c: number | null;
+    start_c: number;
+    end_c: number;
+    minutes: number;
+    rate_c_per_min: number | null;
+    is_ramp: boolean;
+}
+
+interface RampSummary {
+    segments: RampSegment[];
+    current: {
+        phase: string;
+        temp_c: number;
+        target_c: number | null;
+        rate_c_per_min: number | null;
+        eta_min: number | null;
+        eta_source: 'live' | 'history' | 'reached' | null;
+        history_brews: number | null;
+    } | null;
 }
 
 interface GravityReading {
@@ -58,11 +90,38 @@ interface ChatMessage {
     content: string;
 }
 
+interface CorrectionResponse {
+    reading: {
+        sg: number;
+        corrections: {
+            dme_addition_g?: number;
+            dilution_water_l?: number;
+            boil_extension_min?: number;
+            target_sg?: number;
+        };
+    };
+    explanation: { explanation?: string } | null;
+}
+
 interface CorrectionResult {
     type: string;
     amount: number;
     unit: string;
     explanation: string;
+}
+
+/** Turn the backend's correction payload into one headline action for the card. */
+function toCorrectionResult(res: CorrectionResponse): CorrectionResult {
+    const c = res.reading?.corrections || {};
+    const explanation = res.explanation?.explanation || '';
+    if (c.dme_addition_g) {
+        const extra = c.boil_extension_min ? ` Or boil ${c.boil_extension_min} min longer.` : '';
+        return { type: 'Under gravity: add DME', amount: c.dme_addition_g, unit: 'g', explanation: explanation || extra.trim() };
+    }
+    if (c.dilution_water_l) {
+        return { type: 'Over gravity: add water', amount: c.dilution_water_l, unit: 'L', explanation };
+    }
+    return { type: 'On target', amount: 0, unit: '', explanation };
 }
 
 // ---------------------------------------------------------------------------
@@ -88,6 +147,16 @@ function formatElapsed(startIso: string): string {
 function timerRemainingSec(timer: BrewTimer): number {
     const endMs = new Date(timer.started_at).getTime() + timer.duration_min * 60_000;
     return Math.max(0, Math.floor((endMs - Date.now()) / 1000));
+}
+
+function formatEta(ramp: RampSummary['current']): string | null {
+    if (!ramp || ramp.target_c == null) return null;
+    if (ramp.eta_source === 'reached') return `At target (${ramp.target_c} °C)`;
+    if (ramp.eta_min == null) return `Log another reading for an ETA to ${ramp.target_c} °C`;
+    const source = ramp.eta_source === 'history'
+        ? ` (from ${ramp.history_brews} past brew${ramp.history_brews === 1 ? '' : 's'})`
+        : '';
+    return `≈ ${Math.round(ramp.eta_min)} min to ${ramp.target_c} °C${source}`;
 }
 
 function formatMMSS(totalSec: number): string {
@@ -223,6 +292,11 @@ export default function BrewDayPage() {
     const [correctionResult, setCorrectionResult] = useState<CorrectionResult | null>(null);
     const [checkingGravity, setCheckingGravity] = useState(false);
 
+    // ── Temperature / heating ramps ──
+    const [tempForm, setTempForm] = useState({ temp: '', target: '' });
+    const [ramp, setRamp] = useState<RampSummary | null>(null);
+    const [loggingTemp, setLoggingTemp] = useState(false);
+
     // ── Chat ──
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [chatInput, setChatInput] = useState('');
@@ -251,7 +325,15 @@ export default function BrewDayPage() {
                 if (!cancelled) {
                     const s = res.data || (res as unknown as BrewDaySession);
                     setSession(s);
-                    setMessages([{ role: 'assistant', content: `Brew day started! I'll guide you through each phase. What are we brewing today?` }]);
+                    setMessages([{ role: 'assistant', content: `Welcome back to ${s.batch_name}. We're in the ${s.phase} phase.` }]);
+                    try {
+                        const r = await apiFetch<{ data: RampSummary }>(`/api/brewday/ramp?batch_id=${encodeURIComponent(s.batch_id)}`);
+                        if (!cancelled) setRamp(r.data);
+                        const lastTarget = s.temp_readings?.at(-1)?.target_c;
+                        if (!cancelled && lastTarget != null) setTempForm(f => ({ ...f, target: String(lastTarget) }));
+                    } catch {
+                        // No ramp data yet
+                    }
                 }
             } catch (err) {
                 // 404 = no active session, that's fine
@@ -280,9 +362,9 @@ export default function BrewDayPage() {
         let cancelled = false;
         const poll = async () => {
             try {
-                const res = await apiFetch<{ data: BrewTimer[] }>(`/api/brewday/timers?batch_id=${encodeURIComponent(session.batch_id)}`);
+                const res = await apiFetch<{ data: { timers: BrewTimer[] } }>(`/api/brewday/timers?batch_id=${encodeURIComponent(session.batch_id)}`);
                 if (!cancelled) {
-                    const t = res.data || (res as unknown as BrewTimer[]);
+                    const t = res.data?.timers;
                     setTimers(Array.isArray(t) ? t : []);
                 }
             } catch {
@@ -339,13 +421,16 @@ export default function BrewDayPage() {
                     batch_id: startForm.batch_id.trim(),
                     recipe: {
                         name: startForm.recipe_name.trim(),
+                        og: parseFloat(startForm.target_og) || 1.050,
                         target_og: parseFloat(startForm.target_og) || 1.050,
+                        volume: parseFloat(startForm.target_volume) || 20,
                         target_volume_l: parseFloat(startForm.target_volume) || 20,
                     },
                 },
             });
             const s = res.data || (res as unknown as BrewDaySession);
             setSession(s);
+            setRamp(null);
             setMessages([{ role: 'assistant', content: `Brew day started! I'll guide you through each phase. What are we brewing today?` }]);
             toast.success('Brew day session started!');
         } catch (err) {
@@ -362,7 +447,7 @@ export default function BrewDayPage() {
         try {
             const res = await apiFetch<{ data: BrewDaySession }>('/api/brewday/action', {
                 method: 'POST',
-                body: { batch_id: session.batch_id, action_type: 'next_phase', message: '' },
+                body: { batch_id: session.batch_id, action_type: 'advance' },
             });
             const s = res.data || (res as unknown as BrewDaySession);
             setSession(s);
@@ -385,6 +470,8 @@ export default function BrewDayPage() {
             setTimers([]);
             setMessages([]);
             setCorrectionResult(null);
+            setRamp(null);
+            setTempForm({ temp: '', target: '' });
             firedTimerAlerts.current.clear();
             toast.success('Brew day session ended!');
         } catch {
@@ -399,14 +486,15 @@ export default function BrewDayPage() {
                 method: 'POST',
                 body: {
                     batch_id: session.batch_id,
-                    action_type: 'add_timer',
-                    message: JSON.stringify({ name: newTimerName.trim(), duration_min: newTimerDuration }),
+                    action_type: 'timer',
+                    name: newTimerName.trim(),
+                    duration_min: newTimerDuration,
                 },
             });
             setNewTimerName('');
             // Re-fetch timers
-            const res = await apiFetch<{ data: BrewTimer[] }>(`/api/brewday/timers?batch_id=${encodeURIComponent(session.batch_id)}`);
-            const t = res.data || (res as unknown as BrewTimer[]);
+            const res = await apiFetch<{ data: { timers: BrewTimer[] } }>(`/api/brewday/timers?batch_id=${encodeURIComponent(session.batch_id)}`);
+            const t = res.data?.timers;
             setTimers(Array.isArray(t) ? t : []);
             toast.success('Timer added');
         } catch {
@@ -419,7 +507,7 @@ export default function BrewDayPage() {
         setCheckingGravity(true);
         setCorrectionResult(null);
         try {
-            const res = await apiFetch<{ data: CorrectionResult }>('/api/brewday/correct', {
+            const res = await apiFetch<{ data: CorrectionResponse }>('/api/brewday/correct', {
                 method: 'POST',
                 body: {
                     batch_id: session.batch_id,
@@ -428,12 +516,36 @@ export default function BrewDayPage() {
                     stage: gravityForm.stage,
                 },
             });
-            const c = res.data || (res as unknown as CorrectionResult);
-            setCorrectionResult(c);
+            setCorrectionResult(toCorrectionResult(res.data));
         } catch {
             toast.error('Failed to check gravity');
         } finally {
             setCheckingGravity(false);
+        }
+    };
+
+    const logTemp = async () => {
+        if (!session) return;
+        const temp = parseFloat(tempForm.temp);
+        if (Number.isNaN(temp)) {
+            toast.error('Enter the temperature from the G40 display.');
+            return;
+        }
+        const target = tempForm.target.trim() === '' ? null : parseFloat(tempForm.target);
+        setLoggingTemp(true);
+        try {
+            const res = await apiFetch<{ data: { reading: TempReading; ramp: RampSummary } }>('/api/brewday/action', {
+                method: 'POST',
+                body: { batch_id: session.batch_id, action_type: 'temp', temp_c: temp, target_c: target },
+            });
+            const { reading, ramp: r } = res.data;
+            setRamp(r);
+            setSession(prev => prev ? { ...prev, temp_readings: [...(prev.temp_readings || []), reading] } : prev);
+            setTempForm(f => ({ ...f, temp: '' }));
+        } catch (err) {
+            toast.error(err instanceof ApiClientError ? err.message : 'Failed to log temperature');
+        } finally {
+            setLoggingTemp(false);
         }
     };
 
@@ -506,7 +618,7 @@ export default function BrewDayPage() {
                                     </div>
                                     <div>
                                         <h2 className="font-bold text-lg">Start Brew Day</h2>
-                                        <p className="text-xs text-muted-foreground">Configure your session and let's get brewing</p>
+                                        <p className="text-xs text-muted-foreground">Configure your session and let&apos;s get brewing</p>
                                     </div>
                                 </div>
 
@@ -624,6 +736,95 @@ export default function BrewDayPage() {
                                         <Plus className="w-4 h-4" />
                                     </button>
                                 </div>
+                            </div>
+
+                            {/* Temperature / Heating Ramp */}
+                            <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-2xl p-4">
+                                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
+                                    <Thermometer className="w-3.5 h-3.5" /> Temperature &amp; Heating Ramp
+                                </h3>
+                                <div className="grid grid-cols-2 gap-3 mb-3">
+                                    <div>
+                                        <label className="text-[10px] font-semibold text-muted-foreground uppercase mb-1 block">G40 Temp (°C)</label>
+                                        <input
+                                            type="number"
+                                            inputMode="decimal"
+                                            step="0.1"
+                                            value={tempForm.temp}
+                                            onChange={e => setTempForm(f => ({ ...f, temp: e.target.value }))}
+                                            onKeyDown={e => e.key === 'Enter' && logTemp()}
+                                            placeholder="e.g. 48.5"
+                                            className="w-full bg-secondary/50 border border-border/50 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500/20 outline-none"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-semibold text-muted-foreground uppercase mb-1 block">Target (°C)</label>
+                                        <input
+                                            type="number"
+                                            inputMode="decimal"
+                                            step="0.5"
+                                            value={tempForm.target}
+                                            onChange={e => setTempForm(f => ({ ...f, target: e.target.value }))}
+                                            placeholder="e.g. 72"
+                                            className="w-full bg-secondary/50 border border-border/50 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500/20 outline-none"
+                                        />
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={logTemp}
+                                    disabled={loggingTemp || !tempForm.temp.trim()}
+                                    className="w-full flex items-center justify-center gap-2 bg-amber-600/15 hover:bg-amber-600/25 text-amber-400 font-semibold py-2.5 rounded-xl transition-colors disabled:opacity-40 border border-amber-500/20"
+                                >
+                                    {loggingTemp ? <Loader2 className="w-4 h-4 animate-spin" /> : <Thermometer className="w-4 h-4" />}
+                                    Log Temp
+                                </button>
+
+                                {ramp?.current && (
+                                    <div className="mt-4 grid grid-cols-2 gap-3 text-center">
+                                        <div className="bg-secondary/30 rounded-xl p-3">
+                                            <p className="text-2xl font-bold font-mono tabular-nums">{ramp.current.temp_c.toFixed(1)}°</p>
+                                            <p className="text-[10px] text-muted-foreground uppercase">Latest</p>
+                                        </div>
+                                        <div className="bg-secondary/30 rounded-xl p-3">
+                                            <p className="text-2xl font-bold font-mono tabular-nums">
+                                                {ramp.current.rate_c_per_min != null ? ramp.current.rate_c_per_min.toFixed(2) : '–'}
+                                            </p>
+                                            <p className="text-[10px] text-muted-foreground uppercase">°C / min</p>
+                                        </div>
+                                        {formatEta(ramp.current) && (
+                                            <p className="col-span-2 text-sm font-medium text-amber-400">{formatEta(ramp.current)}</p>
+                                        )}
+                                    </div>
+                                )}
+
+                                {(session.temp_readings?.length ?? 0) >= 2 && (() => {
+                                    const readings = session.temp_readings!;
+                                    const t0 = new Date(readings[0].timestamp).getTime();
+                                    const points = readings.map(r => ({
+                                        min: Math.round((new Date(r.timestamp).getTime() - t0) / 6000) / 10,
+                                        temp: r.temp_c,
+                                        phase: r.phase,
+                                    }));
+                                    const target = ramp?.current?.target_c;
+                                    return (
+                                        <div className="mt-4 h-40">
+                                            <ResponsiveContainer width="100%" height="100%">
+                                                <LineChart data={points} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
+                                                    <CartesianGrid strokeOpacity={0.15} strokeDasharray="2 6" vertical={false} />
+                                                    <XAxis dataKey="min" type="number" domain={['dataMin', 'dataMax']} tickFormatter={v => `${v}m`} tick={{ fontSize: 10 }} stroke="currentColor" strokeOpacity={0.4} />
+                                                    <YAxis domain={['auto', 'auto']} tickFormatter={v => `${Math.round(v)}°`} tick={{ fontSize: 10 }} width={32} stroke="currentColor" strokeOpacity={0.4} />
+                                                    <Tooltip
+                                                        formatter={(v) => [`${v} °C`, 'Temp']}
+                                                        labelFormatter={(l, p) => `${l} min · ${p?.[0]?.payload?.phase ?? ''}`}
+                                                        contentStyle={{ fontSize: 12, borderRadius: 12 }}
+                                                    />
+                                                    {target != null && <ReferenceLine y={target} stroke="#f59e0b" strokeDasharray="4 4" />}
+                                                    <Line type="monotone" dataKey="temp" stroke="#f59e0b" strokeWidth={2} dot={{ r: 2 }} isAnimationActive={false} />
+                                                </LineChart>
+                                            </ResponsiveContainer>
+                                        </div>
+                                    );
+                                })()}
                             </div>
 
                             {/* Gravity Reading */}

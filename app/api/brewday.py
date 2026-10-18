@@ -82,6 +82,7 @@ def session_action() -> Tuple[Response, int]:
         - "chat": AI coaching response
         - "advance": Advance to next phase
         - "timer": Add a timer (requires name, duration_min, addition_type in message or data)
+        - "temp": Log a temperature reading (temp_c, optional target_c)
     """
     try:
         data = request.json or {}
@@ -117,11 +118,11 @@ def session_action() -> Tuple[Response, int]:
             result = generate_brewday_coaching_response(session, message)
             return api_response(data=result)
 
-        elif action_type == "advance":
+        elif action_type in ("advance", "next_phase"):
             session = manager.advance_step(batch_id)
             return api_response(data=session)
 
-        elif action_type == "timer":
+        elif action_type in ("timer", "add_timer"):
             name = data.get("name", "Timer")
             duration_min = data.get("duration_min", 60)
             addition_type = data.get("addition_type", "general")
@@ -136,10 +137,26 @@ def session_action() -> Tuple[Response, int]:
             timer = manager.add_timer(batch_id, name, duration_min, addition_type)
             return api_response(data=timer)
 
+        elif action_type == "temp":
+            try:
+                temp_c = float(data.get("temp_c"))
+                target_raw = data.get("target_c")
+                target_c = float(target_raw) if target_raw not in (None, "") else None
+            except (ValueError, TypeError):
+                return api_response(
+                    status="error", error="temp_c and target_c must be numbers", code=400
+                )
+            if not -10 <= temp_c <= 110 or (target_c is not None and not 0 <= target_c <= 110):
+                return api_response(
+                    status="error", error="Temperatures must be in °C (0-110)", code=400
+                )
+            result = manager.record_temperature(batch_id, temp_c, target_c)
+            return api_response(data=result)
+
         else:
             return api_response(
                 status="error",
-                error=f"Unknown action_type: {action_type}. Must be 'chat', 'advance', or 'timer'.",
+                error=f"Unknown action_type: {action_type}. Must be 'chat', 'advance', 'timer' or 'temp'.",
                 code=400,
             )
 
@@ -270,3 +287,29 @@ def get_timers() -> Tuple[Response, int]:
 
     except Exception as e:
         return handle_error(e, "Brew Day Timers Error")
+
+
+@brewday_bp.route("/ramp", methods=["GET"])
+def get_ramp() -> Tuple[Response, int]:
+    """
+    Heating ramp status for a session: segments, current rate and ETA to target.
+
+    Query param: ?batch_id=xxx (or "last")
+    """
+    try:
+        batch_id = request.args.get("batch_id")
+        if not batch_id:
+            return api_response(status="error", error="Missing batch_id", code=400)
+
+        from services.brewday_coach import BrewSessionManager
+        from services.brewday_ramp import ramp_summary
+
+        session = BrewSessionManager().get_current_state(batch_id)
+        if session is None:
+            return api_response(
+                status="error", error=f"No active session for batch_id={batch_id}", code=404
+            )
+        return api_response(data=ramp_summary(session))
+
+    except Exception as e:
+        return handle_error(e, "Brew Day Ramp Error")

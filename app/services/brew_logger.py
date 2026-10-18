@@ -127,9 +127,9 @@ def generate_brewday_log(session_data: dict) -> str:
     md += "## Recipe Summary\n\n"
     md += f"- **Name:** {recipe.get('name', batch_name)}\n"
     md += f"- **Style:** {recipe.get('style', 'N/A')}\n"
-    md += f"- **Target OG:** {recipe.get('og', 'N/A')}\n"
+    md += f"- **Target OG:** {recipe.get('og') or recipe.get('target_og') or 'N/A'}\n"
     md += f"- **Target FG:** {recipe.get('fg', 'N/A')}\n"
-    md += f"- **Batch Volume:** {recipe.get('volume', 'N/A')} L\n"
+    md += f"- **Batch Volume:** {recipe.get('volume') or recipe.get('target_volume_l') or 'N/A'} L\n"
     md += f"- **Boil Time:** {recipe.get('boil_time', 'N/A')} min\n\n"
 
     # --- Session Timeline ---
@@ -160,6 +160,22 @@ def generate_brewday_log(session_data: dict) -> str:
                 f"| {r.get('stage', 'N/A')} "
                 f"| {r.get('sg', 'N/A')} "
                 f"| {r.get('volume_l', 'N/A')} |\n"
+            )
+        md += "\n"
+
+    # --- Heating Ramps ---
+    segments = (session_data.get("ramp") or {}).get("segments", [])
+    if segments:
+        md += "## Heating Ramps\n\n"
+        md += "| Phase | Target (°C) | Start (°C) | End (°C) | Minutes | Rate (°C/min) |\n"
+        md += "|-------|-------------|------------|----------|---------|---------------|\n"
+        for s in segments:
+            md += (
+                f"| {s.get('phase', 'N/A')} "
+                f"| {s.get('target_c') if s.get('target_c') is not None else '-'} "
+                f"| {s.get('start_c')} | {s.get('end_c')} "
+                f"| {s.get('minutes')} "
+                f"| {s.get('rate_c_per_min') if s.get('rate_c_per_min') is not None else '-'} |\n"
             )
         md += "\n"
 

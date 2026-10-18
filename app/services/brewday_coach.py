@@ -46,6 +46,9 @@ class BrewSessionManager:
     def _timers_key(batch_id: str) -> str:
         return f"brewday:timers:{batch_id}"
 
+    # Points at the most recently started session so the page can resume it
+    LAST_KEY: str = "brewday:last"
+
     # --- Core lifecycle ---
 
     def start_session(self, batch_id: str, recipe_data: dict) -> dict:
@@ -71,9 +74,11 @@ class BrewSessionManager:
             "phase_started_at": now,
             "gravity_readings": [],
             "corrections_applied": [],
+            "temp_readings": [],
         }
 
         cache.set(self._session_key(batch_id), session, ttl=self.SESSION_TTL)
+        cache.set(self.LAST_KEY, batch_id, ttl=self.SESSION_TTL)
 
         # Initialise empty timers list
         cache.set(self._timers_key(batch_id), [], ttl=self.SESSION_TTL)
@@ -85,7 +90,14 @@ class BrewSessionManager:
         return session
 
     def get_current_state(self, batch_id: str) -> Optional[dict]:
-        """Return the current session state, or None if no active session."""
+        """Return the current session state, or None if no active session.
+
+        batch_id "last" resolves to the most recently started session.
+        """
+        if batch_id == "last":
+            batch_id = cache.get(self.LAST_KEY)
+            if not batch_id:
+                return None
         return cache.get(self._session_key(batch_id))
 
     def advance_step(self, batch_id: str) -> dict:
@@ -255,6 +267,35 @@ class BrewSessionManager:
         )
         return reading
 
+    def record_temperature(
+        self, batch_id: str, temp_c: float, target_c: Optional[float] = None
+    ) -> dict:
+        """
+        Record a temperature reading (read off the G40) for the current phase.
+
+        Readings sharing a target form a heating ramp; see services.brewday_ramp.
+
+        Returns:
+            Dict with the reading and the updated ramp summary.
+        """
+        from services.brewday_ramp import ramp_summary, write_temp_point
+
+        session = self._require_session(batch_id)
+        reading: Dict[str, Any] = {
+            "temp_c": temp_c,
+            "target_c": target_c,
+            "phase": session["phase"],
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }
+        session.setdefault("temp_readings", []).append(reading)
+        cache.set(self._session_key(batch_id), session, ttl=self.SESSION_TTL)
+
+        self._push_event(batch_id, "temp_reading", reading)
+        write_temp_point(batch_id, reading)
+
+        logger.info(f"Temp reading recorded: {temp_c}C -> {target_c}C ({session['phase']}) for batch {batch_id}")
+        return {"reading": reading, "ramp": ramp_summary(session)}
+
     def end_session(self, batch_id: str) -> dict:
         """
         End the brew day session and return a full summary.
@@ -275,6 +316,11 @@ class BrewSessionManager:
 
         # Gather timers
         session["timers"] = self.get_timers(batch_id)
+
+        # Keep this brew's heating rates for future ETA predictions
+        from services.brewday_ramp import ramp_summary, save_session_ramps
+        session["ramp"] = ramp_summary(session)
+        save_session_ramps(session)
 
         # Persist final state before cleanup
         cache.set(self._session_key(batch_id), session, ttl=self.SESSION_TTL)
@@ -351,7 +397,7 @@ class BrewSessionManager:
                 pass
 
         # Fall back to recipe OG for post-boil / general readings
-        og = recipe.get("og") or recipe.get("OG")
+        og = recipe.get("og") or recipe.get("OG") or recipe.get("target_og")
         if og is not None:
             try:
                 return float(og)

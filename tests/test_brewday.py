@@ -275,3 +275,115 @@ class TestBrewDayAPI(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestBrewDayRamps(unittest.TestCase):
+    """Heating ramp logging, ETA and history-based predictions."""
+
+    def setUp(self):
+        import tempfile
+        from services import brewday_ramp
+        cache.clear()
+        self.ramp = brewday_ramp
+        self.tmp = tempfile.TemporaryDirectory()
+        self.history_patch = patch.object(
+            brewday_ramp, "HISTORY_FILE", os.path.join(self.tmp.name, "ramp_history.json")
+        )
+        self.history_patch.start()
+        self.influx_patch = patch.object(brewday_ramp, "write_temp_point")
+        self.influx_patch.start()
+        self.manager = BrewSessionManager()
+        self.batch_id = "ramp-batch"
+        self.manager.start_session(self.batch_id, {"name": "Ramp IPA", "target_og": 1.050,
+                                                   "target_volume_l": 23})
+
+    def tearDown(self):
+        self.history_patch.stop()
+        self.influx_patch.stop()
+        self.tmp.cleanup()
+        cache.clear()
+
+    def _readings(self, temps, minutes_apart=5, phase="strike", target=72.0):
+        from datetime import datetime, timedelta, timezone
+        t0 = datetime(2026, 10, 18, 9, 0, tzinfo=timezone.utc)
+        return [{"temp_c": t, "target_c": target, "phase": phase,
+                 "timestamp": (t0 + timedelta(minutes=i * minutes_apart)).isoformat()}
+                for i, t in enumerate(temps)]
+
+    def test_slope_and_eta_from_live_readings(self):
+        # 2 °C per minute, 52 °C now, 20 °C to go -> 10 min
+        session = {"temp_readings": self._readings([12, 22, 32, 42, 52])}
+        current = self.ramp.ramp_summary(session, history=[])["current"]
+        self.assertAlmostEqual(current["rate_c_per_min"], 2.0)
+        self.assertEqual(current["eta_source"], "live")
+        self.assertAlmostEqual(current["eta_min"], 10.0)
+
+    def test_segments_split_on_target_change(self):
+        readings = self._readings([15, 40, 65], target=66.0, phase="strike") + \
+                   self._readings([66, 66, 75], target=76.0, phase="mash")
+        segments = self.ramp.split_segments(readings)
+        self.assertEqual([s["phase"] for s in segments], ["strike", "mash"])
+        self.assertTrue(segments[0]["is_ramp"])
+
+    def test_eta_falls_back_to_history(self):
+        history = [{"ramps": [{"phase": "strike", "rate_c_per_min": 1.5}]},
+                   {"ramps": [{"phase": "strike", "rate_c_per_min": 2.5}]}]
+        session = {"temp_readings": self._readings([42])}
+        current = self.ramp.ramp_summary(session, history=history)["current"]
+        self.assertEqual(current["eta_source"], "history")
+        self.assertEqual(current["history_brews"], 2)
+        self.assertAlmostEqual(current["eta_min"], 15.0)  # 30 °C at 2.0 °C/min
+
+    def test_target_reached(self):
+        session = {"temp_readings": self._readings([60, 73])}
+        self.assertEqual(self.ramp.ramp_summary(session, history=[])["current"]["eta_source"], "reached")
+
+    def test_record_temperature_and_history_saved_on_end(self):
+        result = self.manager.record_temperature(self.batch_id, 14.0, 72.0)
+        self.assertEqual(result["reading"]["phase"], "setup")
+        state = self.manager.get_current_state(self.batch_id)
+        state["temp_readings"] = self._readings([14, 34, 54, 71])
+        cache.set(self.manager._session_key(self.batch_id), state)
+
+        summary = self.manager.end_session(self.batch_id)
+        self.assertIn("ramp", summary)
+        history = self.ramp.load_history()
+        self.assertEqual(len(history), 1)
+        self.assertEqual(history[0]["volume_l"], 23)
+        self.assertEqual(history[0]["ramps"][0]["phase"], "strike")
+
+    def test_last_resolves_to_latest_session(self):
+        self.assertEqual(self.manager.get_current_state("last")["batch_id"], self.batch_id)
+
+    def test_target_og_key_gives_corrections(self):
+        reading = self.manager.record_gravity_reading(self.batch_id, 1.040, 23, "post_boil")
+        self.assertIn("dme_addition_g", reading["corrections"])
+        self.assertEqual(reading["corrections"]["target_sg"], 1.050)
+
+    def test_api_temp_action_ramp_and_aliases(self):
+        app = Flask(__name__)
+        app.register_blueprint(brewday_bp, url_prefix="/api/brewday")
+        client = app.test_client()
+
+        res = client.post("/api/brewday/action", json={
+            "batch_id": self.batch_id, "action_type": "temp", "temp_c": 15, "target_c": 72})
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.get_json()["data"]["ramp"]["current"]["target_c"], 72.0)
+
+        res = client.post("/api/brewday/action", json={
+            "batch_id": self.batch_id, "action_type": "temp", "temp_c": "hot"})
+        self.assertEqual(res.status_code, 400)
+        res = client.post("/api/brewday/action", json={
+            "batch_id": self.batch_id, "action_type": "temp", "temp_c": 160})
+        self.assertEqual(res.status_code, 400)
+
+        res = client.get("/api/brewday/ramp?batch_id=last")
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(len(res.get_json()["data"]["segments"]), 1)
+
+        res = client.post("/api/brewday/action", json={
+            "batch_id": self.batch_id, "action_type": "next_phase"})
+        self.assertEqual(res.get_json()["data"]["phase"], "strike")
+        res = client.post("/api/brewday/action", json={
+            "batch_id": self.batch_id, "action_type": "add_timer", "name": "Mash", "duration_min": 60})
+        self.assertEqual(res.status_code, 200)
