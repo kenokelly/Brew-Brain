@@ -144,3 +144,48 @@ class TestTelemetryReceiverAPI(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestPipelineScanAPI(unittest.TestCase):
+    """R&D pipeline scan: active Brewfather batches with live Tilt readings."""
+
+    BATCHES = [
+        {"_id": "a", "batchNo": 44, "name": "Batch", "brewer": "Ken",
+         "recipe": {"name": "PGBM Hazy Pale 23L"}, "status": "Fermenting"},
+        {"_id": "b", "batchNo": 43, "name": "IPA no 1", "recipe": {"name": ""}, "status": "Archived"},
+        {"_id": "c", "batchNo": 42, "name": "Batch", "recipe": {"name": "Black IPA"}, "status": "Planning"},
+    ]
+
+    def setUp(self):
+        from api.automation import automation_bp
+        from core.auth import API_TOKEN
+        self.app = Flask(__name__)
+        self.app.register_blueprint(automation_bp)
+        self.client = self.app.test_client()
+        self.headers = {"Authorization": f"Bearer {API_TOKEN}"}
+
+    def _scan(self, tilt):
+        cache = MagicMock()
+        cache.get.return_value = None
+        with patch("core.cache.cache", cache), \
+             patch("services.alerts.fetch_brewfather_batches", return_value=self.BATCHES), \
+             patch("services.status.get_status_dict", return_value=tilt):
+            res = self.client.post("/api/automation/monitoring/scan", headers=self.headers)
+        return res, cache
+
+    def test_scan_returns_fermenting_batch_with_tilt_readings(self):
+        res, cache = self._scan({"sg": 1.04086, "temp": 19.62, "test_mode": False})
+        self.assertEqual(res.status_code, 200)
+        batches = res.get_json()["data"]["batches"]
+        self.assertEqual(len(batches), 1)
+        self.assertEqual(batches[0]["name"], "PGBM Hazy Pale 23L")
+        self.assertEqual(batches[0]["gravity"], 1.041)
+        self.assertEqual(batches[0]["temp"], 19.6)
+        self.assertEqual(batches[0]["health_check"]["status"], "stable")
+        cache.set.assert_called_once()
+        self.assertEqual(cache.set.call_args.kwargs.get("ttl"), 300)
+
+    def test_scan_flags_simulated_data(self):
+        res, _ = self._scan({"sg": 1.05, "temp": 20.0, "test_mode": True})
+        batch = res.get_json()["data"]["batches"][0]
+        self.assertEqual(batch["health_check"]["status"], "warning")

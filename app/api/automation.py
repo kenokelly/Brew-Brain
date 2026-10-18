@@ -402,6 +402,9 @@ def tiltpi_troubleshoot():
 
 # ============ Pipeline Diagnostics (B05) ============
 
+# Brewfather statuses that count as a batch in progress
+ACTIVE_BATCH_STATUSES = ("Brewing", "Fermenting", "Conditioning")
+
 @automation_bp.route('/api/automation/monitoring/scan', methods=['POST'])
 @require_api_token
 def pipeline_scan():
@@ -418,23 +421,47 @@ def pipeline_scan():
         if isinstance(batches, dict) and 'error' in batches:
             raise Exception(batches['error'])
         
-        # Transform for Pipeline UI
+        # Brewfather's batch list has no readings, so the batch being
+        # fermented takes its gravity and temperature from the Tilt.
+        from services.status import get_status_dict
+        try:
+            tilt = get_status_dict()
+        except Exception as e:
+            logger.warning(f"Pipeline scan: no Tilt status ({e})")
+            tilt = {}
+
         formatted = []
         for b in batches:
+            status = b.get("status", "Unknown")
+            if status not in ACTIVE_BATCH_STATUSES:
+                continue
+            recipe_name = (b.get("recipe") or {}).get("name")
+            name = b.get("name") or "Unknown"
+            if name == "Batch" and recipe_name:
+                name = recipe_name.strip()
+
+            gravity = b.get("measuredSg", b.get("estimatedSg"))
+            temp = b.get("measuredTemp")
+            health = {"status": "stable", "message": "Tracking with Brewfather data."}
+            if status == "Fermenting" and tilt.get("sg"):
+                gravity = round(tilt["sg"], 3)
+                temp = round(tilt["temp"], 1) if tilt.get("temp") else temp
+                if tilt.get("test_mode"):
+                    health = {"status": "warning", "message": "Simulated data is on - these are not Tilt readings."}
+                else:
+                    health = {"status": "stable", "message": "Live Tilt readings."}
+
             formatted.append({
-                "name": b.get("name", "Unknown"),
+                "name": name,
                 "number": b.get("batchNo"),
                 "brewer": b.get("brewer"),
-                "status": b.get("status", "Unknown"),
-                "gravity": b.get("measuredSg", b.get("estimatedSg")),
-                "temp": b.get("measuredTemp"),
-                "health_check": {
-                    "status": "stable",
-                    "message": "Tracking nominally with Brewfather data."
-                }
+                "status": status,
+                "gravity": gravity,
+                "temp": temp,
+                "health_check": health,
             })
-            
-        cache.set("pipeline_scan_cache", formatted, timeout=300)
+
+        cache.set("pipeline_scan_cache", formatted, ttl=300)
         return api_response(data={"batches": formatted})
     except Exception as e:
         return handle_error(e, "Pipeline Scan Error")

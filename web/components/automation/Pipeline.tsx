@@ -54,6 +54,7 @@ export function Pipeline() {
     // Telemetry state
     const [pipeline, setPipeline] = useState<PipelineResult | null>(null);
     const [loading, setLoading] = useState(false);
+    const [scanError, setScanError] = useState<string | null>(null);
     const [diagOpen, setDiagOpen] = useState(false);
     const [dataSource, setDataSource] = useState<'csv' | 'bf'>('csv');
     const [bfBatches, setBfBatches] = useState<BFBatch[]>([]);
@@ -83,11 +84,13 @@ export function Pipeline() {
     // ==========================================
     const scanPipeline = async () => {
         setLoading(true);
+        setScanError(null);
         try {
             const data = await apiFetch<any>('/api/automation/monitoring/scan', { method: 'POST' });
             setPipeline(data.data || data); // handle standard wrapper
         } catch (e: any) {
             console.error(e);
+            setScanError(e.data?.error || e.message || 'Scan failed');
         } finally {
             setLoading(false);
         }
@@ -267,7 +270,13 @@ export function Pipeline() {
                     </div>
 
                     {/* Pipeline Results */}
-                    {!pipeline && !loading && (
+                    {scanError && (
+                        <div className="p-4 bg-red-500/10 text-red-400 rounded-xl border border-red-500/20">
+                            Scan failed: {scanError}
+                        </div>
+                    )}
+
+                    {!pipeline && !loading && !scanError && (
                         <div className="py-20 text-center text-muted-foreground border-2 border-dashed border-white/5 rounded-3xl bg-black/20">
                             <Activity className="w-12 h-12 mx-auto mb-4 opacity-30" />
                             <p>Telemetry idle. Click Scan to poll Brewfather and internal DB.</p>
@@ -322,7 +331,7 @@ export function Pipeline() {
 
                             {(!pipeline.batches || pipeline.batches.length === 0) && (
                                 <div className="col-span-full py-12 text-center text-muted-foreground bg-black/20 rounded-2xl border border-white/5">
-                                    No active batches found in sync target.
+                                    No batches brewing, fermenting or conditioning in Brewfather.
                                 </div>
                             )}
                         </div>
