@@ -91,7 +91,7 @@ def get_status_dict():
         "temp_unit": locals().get("recent_unit", "C"), 
         "rssi": recent_rssi,
         "last_sync": last_sync.isoformat() if last_sync else None,
-        "test_mode": test_mode, "offset": float(get_config("offset") or 0),
+        "test_mode": test_mode, "brew_active": bool(get_config("brew_active")), "water_test": bool(get_config("water_test")), "offset": float(get_config("offset") or 0),
         "og": float(get_config("og") or 1.050), "target_fg": float(get_config("target_fg") or 1.010),
         "batch_name": get_config("batch_name"), "batch_notes": get_config("batch_notes"), "start_date": get_config("start_date"),
         "config": {"telegram_configured": bool(get_config("alert_telegram_token"))}

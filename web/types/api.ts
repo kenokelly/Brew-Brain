@@ -23,6 +23,9 @@ export interface SystemStatus {
     target_fg?: number;
     status?: string;
     last_sync?: string;
+    test_mode?: boolean;
+    brew_active?: boolean;
+    water_test?: boolean;
     // Anomaly detection fields
     anomaly_score?: number;
     anomaly_status?: 'ok' | 'elevated' | 'warning' | 'critical';

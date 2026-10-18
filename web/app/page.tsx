@@ -14,6 +14,7 @@ import { PeerComparisonWidget } from '@/components/PeerComparison';
 import { BrewDayGuide } from '@/components/BrewDayGuide';
 import { GrafanaChart } from '@/components/GrafanaChart';
 import { SystemHealth } from '@/components/SystemHealth';
+import { MonitoringBanner } from '@/components/MonitoringBanner';
 import type { SystemStatus } from '@/types/api';
 import { toast } from 'react-hot-toast';
 
@@ -125,6 +126,8 @@ export default function Dashboard() {
       </motion.header>
 
       <BrewDayGuide isOpen={isGuideOpen} onClose={() => setIsGuideOpen(false)} />
+
+      <MonitoringBanner status={status} />
 
       {/* Primary live readings — the two numbers that actually matter at a glance */}
       <motion.div
