@@ -316,15 +316,23 @@ export default function SettingsPage() {
         }
     };
 
-    const toggleTestMode = () => {
-        handleChange("test_mode", !isEnabled(settings["test_mode"]));
-        setTimeout(() => handleSave(), 100);
+    // Save just the toggled key with its new value. Calling handleSave() here
+    // sent the settings from before the click, so the toggle never stuck.
+    const saveToggle = async (key: string, label: string) => {
+        const value = !isEnabled(settings[key]);
+        handleChange(key, value);
+        try {
+            await apiFetch("/api/settings", { method: "PATCH", body: { [key]: value } });
+            toast.success(`${label} ${value ? "on" : "off"}`);
+            mutate();
+        } catch (err: any) {
+            handleChange(key, !value);
+            toast.error(`Could not save ${label}: ${err.data?.error || err.message}`);
+        }
     };
 
-    const toggleBrewActive = () => {
-        handleChange("brew_active", !isEnabled(settings["brew_active"]));
-        setTimeout(() => handleSave(), 100);
-    };
+    const toggleTestMode = () => saveToggle("test_mode", "Simulated data");
+    const toggleBrewActive = () => saveToggle("brew_active", "Brew alerts");
 
     if (!isUnlocked) {
         return (
@@ -863,40 +871,60 @@ export default function SettingsPage() {
                     
                     <div className="flex items-center justify-between p-4 bg-secondary/30 rounded-xl border border-border/50">
                         <div>
-                            <h3 className="font-bold">Brew Active</h3>
+                            <h3 className="font-bold">Brew Alerts</h3>
                             <p className="text-sm text-muted-foreground">Enable Tilt alerts (signal loss, stall, runaway, temp deviation). Leave off between batches so an idle/offline Tilt doesn&apos;t spam Telegram.</p>
                         </div>
-                        <button
-                            type="button"
-                            onClick={toggleBrewActive}
-                            className={cn(
-                                "px-6 py-2 rounded-full font-bold text-sm transition-all shadow-sm",
-                                isEnabled(settings["brew_active"])
-                                    ? "bg-emerald-500 text-emerald-950 hover:bg-emerald-400"
-                                    : "bg-secondary text-muted-foreground hover:bg-secondary/80"
-                            )}
-                        >
-                            {isEnabled(settings["brew_active"]) ? "Active" : "Idle"}
-                        </button>
+                        <div className="flex items-center gap-3 shrink-0">
+                            <span className={cn("text-sm font-bold w-10 text-right", isEnabled(settings["brew_active"]) ? "text-emerald-400" : "text-muted-foreground")}>
+                                {isEnabled(settings["brew_active"]) ? "On" : "Off"}
+                            </span>
+                            <button
+                                type="button"
+                                role="switch"
+                                aria-checked={isEnabled(settings["brew_active"])}
+                                onClick={toggleBrewActive}
+                                className={cn(
+                                    "relative inline-flex h-8 w-14 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary",
+                                    isEnabled(settings["brew_active"]) ? "bg-emerald-500" : "bg-secondary border border-border"
+                                )}
+                            >
+                                <span
+                                    className={cn(
+                                        "inline-block h-6 w-6 rounded-full bg-white shadow transition-transform",
+                                        isEnabled(settings["brew_active"]) ? "translate-x-7" : "translate-x-1"
+                                    )}
+                                />
+                            </button>
+                        </div>
                     </div>
 
                     <div className="flex items-center justify-between p-4 bg-secondary/30 rounded-xl border border-border/50">
                         <div>
-                            <h3 className="font-bold">Test Mode</h3>
-                            <p className="text-sm text-muted-foreground">Simulate sensor data for verification</p>
+                            <h3 className="font-bold">Simulated Data</h3>
+                            <p className="text-sm text-muted-foreground">Replaces the Tilt with fake readings and pauses alerts. Keep this off during a real brew.</p>
                         </div>
-                        <button
-                            type="button"
-                            onClick={toggleTestMode}
-                            className={cn(
-                                "px-6 py-2 rounded-full font-bold text-sm transition-all shadow-sm",
-                                isEnabled(settings["test_mode"])
-                                    ? "bg-amber-500 text-amber-950 hover:bg-amber-400"
-                                    : "bg-secondary text-muted-foreground hover:bg-secondary/80"
-                            )}
-                        >
-                            {isEnabled(settings["test_mode"]) ? "Enabled" : "Disabled"}
-                        </button>
+                        <div className="flex items-center gap-3 shrink-0">
+                            <span className={cn("text-sm font-bold w-10 text-right", isEnabled(settings["test_mode"]) ? "text-amber-400" : "text-muted-foreground")}>
+                                {isEnabled(settings["test_mode"]) ? "On" : "Off"}
+                            </span>
+                            <button
+                                type="button"
+                                role="switch"
+                                aria-checked={isEnabled(settings["test_mode"])}
+                                onClick={toggleTestMode}
+                                className={cn(
+                                    "relative inline-flex h-8 w-14 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary",
+                                    isEnabled(settings["test_mode"]) ? "bg-amber-500" : "bg-secondary border border-border"
+                                )}
+                            >
+                                <span
+                                    className={cn(
+                                        "inline-block h-6 w-6 rounded-full bg-white shadow transition-transform",
+                                        isEnabled(settings["test_mode"]) ? "translate-x-7" : "translate-x-1"
+                                    )}
+                                />
+                            </button>
+                        </div>
                     </div>
 
                     {isEnabled(settings["test_mode"]) && (
