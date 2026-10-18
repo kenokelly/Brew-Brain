@@ -1,4 +1,5 @@
 import logging
+import re
 import urllib.parse
 from serpapi import GoogleSearch
 from core.config import get_config
@@ -9,6 +10,25 @@ PREFERRED_VENDORS = [
     "The Malt Miller",
     "Get Er Brewed"
 ]
+
+# Shop search pages for the vendors we know. Google Shopping only returns its
+# own product panel links (ibp=oshop), which often open a blank page.
+VENDOR_SEARCH = {
+    "the malt miller": "https://www.themaltmiller.co.uk/?s={q}&post_type=product",
+    "get er brewed": "https://www.geterbrewed.com/?s={q}&post_type=product",
+}
+
+
+def product_link(item: dict, query: str) -> str:
+    """A link that opens the product: the shop's own search, or a Google Shopping search."""
+    title = item.get("title") or query
+    source = (item.get("source") or "").strip()
+    for vendor, url in VENDOR_SEARCH.items():
+        if vendor in source.lower():
+            # WordPress search treats "-word" as exclude, so drop punctuation
+            words = re.sub(r"[^\w\s%.]", " ", title).split()
+            return url.format(q=urllib.parse.quote_plus(" ".join(words)))
+    return "https://www.google.com/search?tbm=shop&q=" + urllib.parse.quote_plus(f"{title} {source}".strip())
 
 def search_ingredients(query):
     """
@@ -38,25 +58,18 @@ def search_ingredients(query):
         results = search.get_dict()
         shopping_results = results.get("shopping_results", [])
 
-        filtered_results = []
-        for item in shopping_results:
-            # Resolve working direct absolute URL to fix dead relative links
-            raw_link = item.get("product_link") or item.get("link") or item.get("merchant_link") or ""
-            if raw_link.startswith("/"):
-                raw_link = f"https://www.google.com{raw_link}"
-            if not raw_link:
-                raw_link = f"https://www.google.com/search?q={urllib.parse.quote(item.get('title', query))}"
-            item["link"] = raw_link
+        # Words that should appear in the product title ("citra" for "Citra hops")
+        generic = {"hop", "hops", "pellets", "malt", "yeast", "homebrew", "brew", "g", "kg"}
+        keywords = [w for w in query.lower().split() if w not in generic] or query.lower().split()
 
+        for item in shopping_results:
+            item["link"] = product_link(item, query)
             source = item.get("source", "")
-            if any(vendor.lower() in source.lower() for vendor in PREFERRED_VENDORS):
-                item['is_preferred'] = True
-                filtered_results.insert(0, item)
-            else:
-                item['is_preferred'] = False
-                filtered_results.append(item)
-                
-        return filtered_results
+            item['is_preferred'] = any(vendor.lower() in source.lower() for vendor in PREFERRED_VENDORS)
+            item['matches_query'] = all(k in item.get("title", "").lower() for k in keywords)
+
+        # Matching products first, then preferred vendors, otherwise Google's order
+        return sorted(shopping_results, key=lambda i: (not i['matches_query'], not i['is_preferred']))
 
     except Exception as e:
         logger.error(f"Error executing ingredient search: {e}")
