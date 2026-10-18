@@ -25,7 +25,8 @@ def sync_brewfather() -> Tuple[Response, int]:
     
     try:
         auth = base64.b64encode(f"{u}:{k}".encode()).decode()
-        url = "https://api.brewfather.app/v2/batches?status=Fermenting&include=recipe"
+        url = ("https://api.brewfather.app/v2/batches?status=Fermenting"
+               "&include=recipe,measuredOg,measuredAbv,batchNo,brewer,carbonation")
         logger.info(f"Calling Brewfather API: {url}")
         
         r = requests.get(url, headers={"Authorization": f"Basic {auth}"}, timeout=10)
@@ -59,8 +60,13 @@ def sync_brewfather() -> Tuple[Response, int]:
         # Ensure global yeast_strain is set even if not found in yeast array
         set_config("yeast_strain", yeast_name)
         
-        set_config("batch_name", b.get('name') or "New Batch")
-        set_config("og", rec.get('og') if rec.get('og') is not None else 1.050)
+        from services.labels import display_name, label_info_from_batch
+        name = display_name(b.get('name'), rec.get('name'))
+        set_config("batch_name", name)
+        set_config("label_info", label_info_from_batch(b))
+        # The OG you measured on the batch beats the recipe's estimate
+        og = b.get('measuredOg') or rec.get('og')
+        set_config("og", og if og is not None else 1.050)
         set_config("target_fg", rec.get('fg') if rec.get('fg') is not None else 1.010)
         set_config("batch_notes", b.get('notes') or rec.get('notes') or "")
         set_config("start_date", date_str)
@@ -77,7 +83,7 @@ def sync_brewfather() -> Tuple[Response, int]:
         set_config("ferm_steps", steps)
         set_config("ferm_start", ferm_start)
 
-        return api_response(status="synced", data={"name": b.get('name'), "style": style_name_val, "yeast": yeast_name, "steps": len(steps)})
+        return api_response(status="synced", data={"name": name, "style": style_name_val, "yeast": yeast_name, "steps": len(steps)})
             
     except Exception as e:
         return handle_error(e, "Sync Error")

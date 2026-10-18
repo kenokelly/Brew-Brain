@@ -104,9 +104,16 @@ class BrewBrainConfig(BaseModel):
     # ISO timestamp set by "Start log from now". Charts ignore readings before
     # it (water tests, a previous batch). Empty = start at the batch start.
     log_start: str = ""
+    # Chart view only: True shows the whole batch, ignoring log_start. Velocity,
+    # advice and alerts always start at log_start.
+    log_whole_batch: bool = False
     # ISO timestamp the last water test ended. Readings before it are the Tilt
     # in water, so velocity and charts start after it.
     water_test_ended: str = ""
+
+    # Recipe details for the keg label, saved by the Brewfather sync:
+    # recipe_name, batch_no, brewer, abv, ibu, srm, hops, malts, carbonation
+    label_info: Dict[str, Any] = {}
 
     # Prediction
     prediction_end_date: str = ""
@@ -227,7 +234,7 @@ class BrewBrainConfig(BaseModel):
         except (ValueError, TypeError):
             return fallback
 
-    @field_validator('test_mode', 'brew_active', 'water_test', mode='before')
+    @field_validator('test_mode', 'brew_active', 'water_test', 'log_whole_batch', mode='before')
     @classmethod
     def coerce_bool(cls, v: Any) -> bool:
         if v is None:
