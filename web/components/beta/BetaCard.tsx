@@ -30,7 +30,7 @@ export function BetaCard({
                 </div>
                 <div className="min-w-0 flex-1">
                     <h2 className="text-[17px] font-semibold leading-tight">{title}</h2>
-                    {subtitle && <p className="text-sm text-[var(--b-muted)] truncate">{subtitle}</p>}
+                    {subtitle && <p className="text-sm text-[var(--b-muted)] line-clamp-2">{subtitle}</p>}
                 </div>
                 {badge}
                 {live !== undefined && (

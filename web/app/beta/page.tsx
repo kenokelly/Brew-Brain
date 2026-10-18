@@ -47,11 +47,11 @@ export default function BetaDashboard() {
         }
     };
 
-    const setLogStart = async (action: 'start' | 'clear') => {
+    const setLogStart = async (action: 'start' | 'whole_batch' | 'since_log_start') => {
         if (action === 'start' && !window.confirm('Start the log from now? Charts will hide earlier readings, such as water tests or the last batch. Nothing is deleted.')) return;
         try {
             await api.post('/api/fermentation/log-start', { action });
-            toast.success(action === 'start' ? 'Log restarted from now' : 'Showing the whole batch');
+            toast.success(action === 'start' ? 'Log restarted from now' : action === 'whole_batch' ? 'Showing the whole batch' : 'Showing since the log start');
             mutateHistory();
             mutateJournal();
         } catch (e) {

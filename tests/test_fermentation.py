@@ -264,3 +264,16 @@ def test_velocity_ignores_readings_before_the_water_test_ended():
          patch.object(ferm, "_query_sg_temp", return_value=[]) as q:
         ferm.get_fermentation_summary(now=NOW)
     assert q.call_args[0][0] == ended
+
+
+def test_whole_batch_view_keeps_the_log_start_mark():
+    cfg = {"ferm_start": (NOW - timedelta(days=2)).isoformat(),
+           "log_start": (NOW - timedelta(hours=3)).isoformat(), "log_whole_batch": True, "og": 1.042}
+    with patch("core.config.get_config", side_effect=_config(cfg)), \
+         patch.object(ferm, "_query_sg_temp", return_value=[]) as q:
+        out = ferm.get_fermentation_history(now=NOW)
+    assert q.call_args[0][0] == NOW - timedelta(days=2)
+    assert out["whole_batch"] is True and out["log_start"] == cfg["log_start"]
+    # velocity and advice still use the mark
+    with patch("core.config.get_config", side_effect=_config(cfg)):
+        assert ferm._log_start() == NOW - timedelta(hours=3)

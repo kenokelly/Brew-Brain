@@ -31,7 +31,7 @@ export function FermentChart({ history, summary, error, onLogStart }: {
     summary?: FermentationSummary;
     error?: unknown;
     /** "start" hides earlier readings from now on; "clear" goes back to the batch start */
-    onLogStart?: (action: 'start' | 'clear') => void;
+    onLogStart?: (action: 'start' | 'whole_batch' | 'since_log_start') => void;
 }) {
     const [hidden, setHidden] = useState<Set<SeriesKey>>(new Set());
     const points = history?.points ?? [];
@@ -60,7 +60,7 @@ export function FermentChart({ history, summary, error, onLogStart }: {
         <BetaCard
             icon={LineIcon}
             title="Fermentation chart"
-            subtitle={history?.log_start ? `since log restart · ${new Date(history.log_start).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}` : 'this ferment · since OG'}
+            subtitle={history?.log_start && !history.whole_batch ? `Since ${fmtStart(history.log_start)}` : 'Whole batch'}
             live={points.length > 0}
             badge={onLogStart && (
                 <div className="flex flex-col items-end gap-1 shrink-0">
@@ -72,8 +72,12 @@ export function FermentChart({ history, summary, error, onLogStart }: {
                         Start log from now
                     </button>
                     {history?.log_start && (
-                        <button type="button" onClick={() => onLogStart('clear')} className="text-xs text-[var(--b-muted)] hover:text-[var(--b-text)] underline underline-offset-2">
-                            Show whole batch
+                        <button
+                            type="button"
+                            onClick={() => onLogStart(history.whole_batch ? 'since_log_start' : 'whole_batch')}
+                            className="text-xs text-[var(--b-muted)] hover:text-[var(--b-text)] underline underline-offset-2"
+                        >
+                            {history.whole_batch ? `Since ${fmtStart(history.log_start)}` : 'Show whole batch'}
                         </button>
                     )}
                 </div>
@@ -147,4 +151,10 @@ export function FermentChart({ history, summary, error, onLogStart }: {
             </div>
         </BetaCard>
     );
+}
+
+/** "18 Oct 16:00" in the viewer's time zone */
+function fmtStart(iso: string): string {
+    const d = new Date(iso);
+    return `${d.toLocaleDateString([], { day: 'numeric', month: 'short' })} ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
 }

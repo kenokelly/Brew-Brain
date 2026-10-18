@@ -409,7 +409,8 @@ def get_fermentation_history(now: Optional[datetime] = None) -> Dict[str, Any]:
     from core.config import get_config
 
     now = now or datetime.now(timezone.utc)
-    start = _log_start() or (now - timedelta(days=14))
+    whole = bool(get_config("log_whole_batch"))
+    start = (_batch_start() if whole else _log_start()) or (now - timedelta(days=14))
     # Brewfather can give a future start (batch planned, not yet pitched)
     # or an ancient one; keep the query bounded either way.
     if start > now:
@@ -432,7 +433,7 @@ def get_fermentation_history(now: Optional[datetime] = None) -> Dict[str, Any]:
             p["temp"] = round(p["temp"], 2)
 
     return {"start": start.isoformat(), "og": og, "points": series,
-            "log_start": get_config("log_start") or None}
+            "log_start": get_config("log_start") or None, "whole_batch": whole}
 
 
 # ---------------------------------------------------------------------------

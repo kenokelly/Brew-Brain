@@ -97,7 +97,8 @@ def water_test() -> Tuple[Response, int]:
 def log_start() -> Tuple[Response, int]:
     """Start the charts from now, hiding earlier readings, or go back to the batch start.
 
-    Body: {"action": "start" | "clear", "at": optional ISO time to start from instead of now}
+    Body: {"action": "start" | "whole_batch" | "since_log_start", "at": optional ISO time for start}
+    "whole_batch" / "since_log_start" only switch the chart view; the mark is kept.
     """
     try:
         from datetime import datetime, timezone
@@ -119,12 +120,15 @@ def log_start() -> Tuple[Response, int]:
                 if start > now:
                     return api_response(status="error", error="at can't be in the future", code=400)
             set_config('log_start', start.isoformat())
+            set_config('log_whole_batch', False)
             add_entry(f"Log restarted: charts now start from {start.strftime('%d %b %H:%M')} UTC", kind="info", dedupe_minutes=0)
             return api_response(data={"log_start": start.isoformat()})
-        if action == 'clear':
-            set_config('log_start', "")
-            add_entry("Log start cleared: charts start from the batch start again", kind="info", dedupe_minutes=0)
-            return api_response(data={"log_start": ""})
-        return api_response(status="error", error="action must be start or clear", code=400)
+        if action in ('whole_batch', 'clear'):
+            set_config('log_whole_batch', True)
+            return api_response(data={"whole_batch": True})
+        if action == 'since_log_start':
+            set_config('log_whole_batch', False)
+            return api_response(data={"whole_batch": False})
+        return api_response(status="error", error="action must be start, whole_batch or since_log_start", code=400)
     except Exception as e:
         return handle_error(e, "Log start error")
