@@ -1,6 +1,7 @@
-from flask import Blueprint, render_template_string
+from flask import Blueprint
 from core.config import get_config
 import datetime
+import html
 
 labels_bp = Blueprint('labels', __name__)
 
@@ -8,15 +9,22 @@ labels_bp = Blueprint('labels', __name__)
 @labels_bp.route('/', methods=['GET'])
 def generate_label():
     """Generates a printable HTML keg label for the active batch."""
-    config = get_config()
-    batch_name = config.get("batch_name", "Unknown Brew")
-    og = config.get("original_gravity", 1.050)
-    fg = config.get("current_gravity", 1.010)
-    abv = round((og - fg) * 131.25, 1) if og and fg else 0.0
-    date_brewed = config.get("date_brewed", datetime.datetime.now().strftime("%Y-%m-%d"))
-    yeast = config.get("yeast_strain", "Unknown")
+    from services.status import get_status_dict
+
+    batch_name = html.escape(get_config("batch_name") or "Unknown Brew")
+    og = float(get_config("og") or 1.050)
+    # Latest Tilt reading; the target FG until there is one
+    sg = None
+    try:
+        sg = get_status_dict().get("sg")
+    except Exception:
+        pass
+    fg = float(sg or get_config("target_fg") or 1.010)
+    abv = round((og - fg) * 131.25, 1) if og > fg else 0.0
+    date_brewed = html.escape(get_config("start_date") or datetime.datetime.now().strftime("%Y-%m-%d"))
+    yeast = html.escape(get_config("yeast_strain") or "Unknown")
     
-    html = f"""
+    page = f"""
     <!DOCTYPE html>
     <html>
     <head>
@@ -57,4 +65,5 @@ def generate_label():
     </body>
     </html>
     """
-    return render_template_string(html)
+    # Values are escaped above; render as a plain string, not a Jinja template
+    return page
