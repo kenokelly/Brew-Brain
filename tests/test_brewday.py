@@ -351,6 +351,7 @@ class TestBrewDayRamps(unittest.TestCase):
         self.assertEqual(len(history), 1)
         self.assertEqual(history[0]["volume_l"], 23)
         self.assertEqual(history[0]["ramps"][0]["phase"], "strike")
+        self.assertIsNone(self.manager.get_current_state("last"))
 
     def test_last_resolves_to_latest_session(self):
         self.assertEqual(self.manager.get_current_state("last")["batch_id"], self.batch_id)

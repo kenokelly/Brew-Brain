@@ -327,6 +327,10 @@ class BrewSessionManager:
 
         self._push_event(batch_id, "session_ended", {"ended_at": now})
 
+        # A finished session shouldn't be resumed when the page is reopened
+        if cache.get(self.LAST_KEY) == batch_id:
+            cache.delete(self.LAST_KEY)
+
         logger.info(f"Brew day session ended: batch_id={batch_id}")
         return session
 
