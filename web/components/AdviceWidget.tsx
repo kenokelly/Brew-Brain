@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
+import Link from 'next/link';
 import { Sparkles, RefreshCcw, ChevronRight, MessageSquare, Lightbulb, Loader2 } from 'lucide-react';
 import { fetcher } from '@/lib/hooks';
 
@@ -11,16 +12,26 @@ interface AdviceData {
     status: 'success' | 'fallback' | 'error';
     advice: string;
     source?: string;
+    generated_at?: string;
 }
+
+const SOURCE_TEXT: Record<string, string> = {
+    cloud: 'Claude (cloud)',
+    ollama: 'Ollama on the Pi',
+    template: 'Built-in message',
+    pending: 'Still generating',
+};
 
 export function AdviceWidget({ className }: { className?: string }) {
     const [advice, setAdvice] = useState<AdviceData | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [showDetails, setShowDetails] = useState(false);
 
-    const fetchAdvice = async () => {
+    // refresh=true asks the server for new advice instead of the hour-long cache
+    const fetchAdvice = async (refresh = false) => {
         setIsLoading(true);
         try {
-            const json = await fetcher<any>('/api/ai/advice');
+            const json = await fetcher<any>(`/api/ai/advice${refresh ? '?refresh=1' : ''}`);
             if (json.status === 'success' && json.data) {
                 setAdvice(json.data);
             }
@@ -48,7 +59,7 @@ export function AdviceWidget({ className }: { className?: string }) {
                 <Sparkles className="w-6 h-6 text-muted-foreground opacity-50" />
                 <p className="text-sm text-muted-foreground">No advice available right now (the local AI can take up to a couple of minutes to respond).</p>
                 <button
-                    onClick={fetchAdvice}
+                    onClick={() => fetchAdvice(true)}
                     disabled={isLoading}
                     className="text-xs text-primary hover:text-primary/80 transition-colors mt-1 flex items-center gap-1 disabled:opacity-50"
                 >
@@ -80,9 +91,10 @@ export function AdviceWidget({ className }: { className?: string }) {
                         </div>
                     </div>
                 </div>
-                <button 
-                    onClick={fetchAdvice}
+                <button
+                    onClick={() => fetchAdvice(true)}
                     aria-label="Refresh advice"
+                    title="Get new advice (can take a minute or two)"
                     disabled={isLoading}
                     className="p-2 rounded-full hover:bg-purple-500/10 text-purple-500 transition-colors disabled:opacity-50"
                 >
@@ -101,13 +113,32 @@ export function AdviceWidget({ className }: { className?: string }) {
                             {renderBold(advice.advice)}
                         </p>
                         <div className="flex items-center gap-4 pt-2">
-                            <button className="text-[10px] font-bold text-purple-400 hover:text-purple-300 flex items-center gap-1 transition-colors uppercase tracking-tight">
+                            <Link
+                                href={`/chat?q=${encodeURIComponent(`About the dashboard advice: "${advice.advice}" Can you explain this in more detail for my batch?`)}`}
+                                className="text-[10px] font-bold text-purple-400 hover:text-purple-300 flex items-center gap-1 transition-colors uppercase tracking-tight"
+                            >
                                 <MessageSquare className="w-3 h-3" /> Ask Detail
-                            </button>
-                            <button className="text-[10px] font-bold text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors uppercase tracking-tight">
-                                Learn More <ChevronRight className="w-3 h-3" />
+                            </Link>
+                            <button
+                                type="button"
+                                onClick={() => setShowDetails((d) => !d)}
+                                aria-expanded={showDetails}
+                                className="text-[10px] font-bold text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors uppercase tracking-tight"
+                            >
+                                {showDetails ? 'Hide details' : 'Learn More'}
+                                <ChevronRight className={cn("w-3 h-3 transition-transform", showDetails && "rotate-90")} />
                             </button>
                         </div>
+                        {showDetails && (
+                            <div className="text-xs text-muted-foreground space-y-1 border-t border-border/50 pt-2">
+                                <p>Based on the live Tilt readings since the log start, the Brewfather fermentation schedule and your batch notes.</p>
+                                <p>
+                                    From: {SOURCE_TEXT[advice.source || ''] || advice.source || 'unknown'}
+                                    {advice.generated_at && ` · ${new Date(advice.generated_at).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}`}
+                                </p>
+                                <p>New advice is generated at most once an hour. Use the refresh button to get it now.</p>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

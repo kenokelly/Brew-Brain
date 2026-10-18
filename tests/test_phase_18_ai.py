@@ -68,7 +68,8 @@ class TestPhase18AI(unittest.TestCase):
         It used keep_alive: 0, which evicted the model after every dashboard
         view so the next chat message paid a ~23s reload on top of CPU
         inference."""
-        mock_config.side_effect = lambda k: {"yeast_strain": "Unknown"}.get(k, "llama3")
+        mock_config.side_effect = lambda k: {"yeast_strain": "Unknown", "test_mode": False,
+                                             "water_test": False, "batch_notes": ""}.get(k, "llama3")
 
         # Mock successful response
         mock_response = MagicMock()

@@ -104,6 +104,9 @@ class BrewBrainConfig(BaseModel):
     # ISO timestamp set by "Start log from now". Charts ignore readings before
     # it (water tests, a previous batch). Empty = start at the batch start.
     log_start: str = ""
+    # ISO timestamp the last water test ended. Readings before it are the Tilt
+    # in water, so velocity and charts start after it.
+    water_test_ended: str = ""
 
     # Prediction
     prediction_end_date: str = ""
@@ -125,7 +128,7 @@ class BrewBrainConfig(BaseModel):
     @field_validator('batch_name', 'batch_notes', 'style', 'yeast_strain', 
                      'bf_user', 'bf_key', 'alert_telegram_token', 'alert_telegram_chat', 'tiltpi_url',
                      'ollama_host', 'ollama_model', 'serp_api_key', 'alert_start_time', 'alert_end_time',
-                     'prediction_end_date', 'yeast_flocculation', 'ferm_start',
+                     'prediction_end_date', 'yeast_flocculation', 'ferm_start', 'log_start', 'water_test_ended',
                      'anthropic_api_key', 'cloud_model', mode='before')
     @classmethod
     def coerce_string(cls, v: Any) -> str:

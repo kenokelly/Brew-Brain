@@ -253,3 +253,14 @@ def test_history_ignores_log_start_from_a_previous_batch():
          patch.object(ferm, "_query_sg_temp", return_value=[]) as q:
         ferm.get_fermentation_history(now=NOW)
     assert q.call_args[0][0] == NOW - timedelta(days=1)
+
+
+def test_velocity_ignores_readings_before_the_water_test_ended():
+    ended = NOW - timedelta(hours=5)
+    cfg = {"ferm_start": (NOW - timedelta(days=1)).isoformat(), "water_test_ended": ended.isoformat(),
+           "og": 1.042, "target_fg": 1.008}
+    with patch("core.config.get_config", side_effect=_config(cfg)), \
+         patch("services.status.get_status_dict", return_value={"sg": 1.036, "temp": 19.5}), \
+         patch.object(ferm, "_query_sg_temp", return_value=[]) as q:
+        ferm.get_fermentation_summary(now=NOW)
+    assert q.call_args[0][0] == ended

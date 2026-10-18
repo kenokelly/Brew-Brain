@@ -59,6 +59,12 @@ export default function ChatPage() {
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setMessages(stored.messages?.length ? stored.messages : [GREETING]);
         setPending(stored.pending);
+        // ?q= prefills the box (e.g. "Ask Detail" on the advice card); the user sends it
+        const q = new URLSearchParams(window.location.search).get('q');
+        if (q) {
+            setInput(q);
+            window.history.replaceState(null, '', window.location.pathname);
+        }
     }, []);
 
     useEffect(() => { saveStore(messages, pending); }, [messages, pending]);

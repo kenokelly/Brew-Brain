@@ -100,7 +100,8 @@ def get_advice() -> Tuple[Response, int]:
     AI Proactive Advice endpoint.
     """
     try:
-        result = get_proactive_advice()
+        refresh = request.args.get("refresh") in ("1", "true")
+        result = get_proactive_advice(refresh=refresh)
         return api_response(data=result)
     except Exception as e:
         return handle_error(e, "Advice Error")

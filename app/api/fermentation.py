@@ -72,6 +72,8 @@ def water_test() -> Tuple[Response, int]:
             return api_response(data={"water_test": True})
         if action == 'stop':
             set_config('water_test', False)
+            from datetime import datetime, timezone
+            set_config('water_test_ended', datetime.now(timezone.utc).isoformat())
             add_entry("Water test ended: fermentation alerts back on", kind="info", dedupe_minutes=0)
             return api_response(data={"water_test": False})
         if action == 'apply_offset':
@@ -95,19 +97,30 @@ def water_test() -> Tuple[Response, int]:
 def log_start() -> Tuple[Response, int]:
     """Start the charts from now, hiding earlier readings, or go back to the batch start.
 
-    Body: {"action": "start" | "clear"}
+    Body: {"action": "start" | "clear", "at": optional ISO time to start from instead of now}
     """
     try:
         from datetime import datetime, timezone
         from core.config import set_config
         from services.journal import add_entry
 
-        action = (request.get_json(silent=True) or {}).get('action')
+        body = request.get_json(silent=True) or {}
+        action = body.get('action')
         if action == 'start':
-            now = datetime.now(timezone.utc).isoformat()
-            set_config('log_start', now)
-            add_entry("Log restarted: charts now start from here", kind="info", dedupe_minutes=0)
-            return api_response(data={"log_start": now})
+            now = datetime.now(timezone.utc)
+            start = now
+            if body.get('at'):
+                try:
+                    start = datetime.fromisoformat(str(body['at']).replace('Z', '+00:00'))
+                except ValueError:
+                    return api_response(status="error", error="at must be an ISO date-time", code=400)
+                if start.tzinfo is None:
+                    start = start.replace(tzinfo=timezone.utc)
+                if start > now:
+                    return api_response(status="error", error="at can't be in the future", code=400)
+            set_config('log_start', start.isoformat())
+            add_entry(f"Log restarted: charts now start from {start.strftime('%d %b %H:%M')} UTC", kind="info", dedupe_minutes=0)
+            return api_response(data={"log_start": start.isoformat()})
         if action == 'clear':
             set_config('log_start', "")
             add_entry("Log start cleared: charts start from the batch start again", kind="info", dedupe_minutes=0)

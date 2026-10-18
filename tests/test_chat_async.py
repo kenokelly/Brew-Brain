@@ -138,3 +138,42 @@ def test_batch_context_collapses_repeated_journal_alerts():
     ctx = _context(_summary(), repeats + other)
     assert ctx.count("STATISTICAL ANOMALY") == 1
     assert "Tilt moved to the fermenter" in ctx
+
+
+def _cfg(**values):
+    return lambda key: values.get(key)
+
+
+def test_advice_is_fixed_text_when_data_is_simulated_or_water_test():
+    with patch.object(ai, "get_config", side_effect=_cfg(test_mode=True)), \
+         patch("services.ai.requests.post") as post:
+        assert "Simulated data is on" in ai.get_proactive_advice()["advice"]
+    with patch.object(ai, "get_config", side_effect=_cfg(water_test=True)), \
+         patch("services.ai.requests.post") as post:
+        assert "Water test running" in ai.get_proactive_advice(refresh=True)["advice"]
+    post.assert_not_called()
+
+
+def test_refresh_skips_the_cache():
+    cached = {"status": "success", "advice": "old", "source": "ollama"}
+    fresh = {"status": "success", "advice": "new", "source": "ollama"}
+    with patch.object(ai, "get_config", side_effect=_cfg()), \
+         patch.object(ai.cache, "get", return_value=cached), \
+         patch.object(ai.cache, "set"), \
+         patch.object(ai.cache, "redis_client", None), \
+         patch.object(ai, "_generate_proactive_advice", return_value=dict(fresh)):
+        assert ai.get_proactive_advice()["advice"] == "old"
+        assert ai.get_proactive_advice(refresh=True)["advice"] == "new"
+
+
+def test_batch_plan_takes_the_fermentation_part_of_the_notes():
+    notes = ("Targets: OG 1.042. Water: all RO. Fermentation: 20 C to 1.020 or lower; "
+             "25 C diacetyl rest with Galaxy dry hop; 0 C, carbonate to 2.6 vols.")
+    with patch.object(ai, "get_config", side_effect=_cfg(batch_notes=notes)):
+        plan = ai._batch_plan()
+    assert plan.startswith("20 C to 1.020")
+    assert "25 C diacetyl rest" in plan and "Targets" not in plan
+
+
+def test_plain_text_drops_markdown_but_keeps_bold():
+    assert ai._plain_text("## Now\n- **Hold** at *20 C*") == "Now\n**Hold** at 20 C"

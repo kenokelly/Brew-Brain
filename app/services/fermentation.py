@@ -239,9 +239,11 @@ def _batch_start() -> Optional[datetime]:
 
 
 def _log_start() -> Optional[datetime]:
-    """Where charts begin: the batch start, or a later "Start log from now" mark."""
+    """Where charts begin: the batch start, or a later "Start log from now" mark
+    or water test end (readings before those aren't this ferment)."""
     from core.config import get_config
-    starts = [t for t in (_batch_start(), _parse_iso(get_config("log_start"))) if t]
+    starts = [t for t in (_batch_start(), _parse_iso(get_config("log_start")),
+                          _parse_iso(get_config("water_test_ended"))) if t]
     return max(starts) if starts else None
 
 
@@ -335,7 +337,13 @@ def get_fermentation_summary(now: Optional[datetime] = None) -> Dict[str, Any]:
 
     velocity = None
     try:
-        recent = _query_sg_temp(now - timedelta(hours=VELOCITY_WINDOW_H))
+        # Don't let water-test or previous-batch readings into the rate: the
+        # Tilt going from water (1.000) into wort (1.040) reads as gravity rising
+        since = now - timedelta(hours=VELOCITY_WINDOW_H)
+        log_start = _log_start()
+        if log_start and since < log_start < now:
+            since = log_start
+        recent = _query_sg_temp(since)
         velocity = velocity_pts_per_day([(p["ts"], p["sg"]) for p in recent if p["sg"] is not None])
     except Exception as e:
         logger.warning(f"Velocity query failed: {e}")

@@ -403,7 +403,41 @@ def generate_chat_response(message: str, history: Optional[list] = None) -> dict
         logger.error(f"Chat AI Error: {e}")
         return {"status": "error", "message": str(e)}
 
-def get_proactive_advice() -> dict:
+def _fixed_advice() -> Optional[dict]:
+    """Advice that shouldn't come from the AI: simulated data or a water test."""
+    if get_config("test_mode"):
+        return {"status": "success", "source": "template",
+                "advice": "Simulated data is on, so there's no real batch to advise on. "
+                          "Turn off Simulated Data in Settings to get advice on your Tilt readings."}
+    if get_config("water_test"):
+        return {"status": "success", "source": "template",
+                "advice": "Water test running: the Tilt should read 1.000 in plain water. "
+                          "Use the water test card to check and apply the offset, then end the test "
+                          "before the Tilt goes into the fermenter."}
+    return None
+
+
+def _batch_plan(max_chars: int = 500) -> str:
+    """The fermentation part of the batch notes (temperatures, dry hop, crash), if any."""
+    import re
+    notes = (get_config("batch_notes") or "").strip()
+    if not notes:
+        return ""
+    m = re.search(r"Fermentation:(.+?)(?:(?<=\.)\s+[A-Z][a-z]+:|$)", notes, re.S)
+    plan = (m.group(1) if m else notes).strip()
+    return plan[:max_chars]
+
+
+def _plain_text(text: str) -> str:
+    """Drop markdown headers, bullets and stray emphasis; keep **bold** (the card renders it)."""
+    import re
+    text = re.sub(r"^\s*#+\s*", "", text, flags=re.M)
+    text = re.sub(r"^\s*[-*]\s+", "", text, flags=re.M)
+    text = re.sub(r"(?<!\*)\*(?!\*)([^*\n]+)(?<!\*)\*(?!\*)", r"\1", text)
+    return text.strip()
+
+
+def get_proactive_advice(refresh: bool = False) -> dict:
     """
     Proactive advice for the dashboard, cached for an hour.
 
@@ -413,7 +447,10 @@ def get_proactive_advice() -> dict:
     queued behind it and timed out. Serve the cached answer; generate at most
     one at a time (a Redis lock) and only when the cache has expired.
     """
-    cached = cache.get(ADVICE_CACHE_KEY)
+    fixed = _fixed_advice()
+    if fixed:
+        return fixed
+    cached = None if refresh else cache.get(ADVICE_CACHE_KEY)
     if cached:
         return cached
     lock = cache.redis_client.set(f"{ADVICE_CACHE_KEY}_lock", "1", nx=True, ex=OLLAMA_COLD_START_TIMEOUT + 30) \
@@ -427,6 +464,7 @@ def get_proactive_advice() -> dict:
     try:
         result = _generate_proactive_advice()
         if result.get("status") == "success":
+            result["generated_at"] = datetime.now(timezone.utc).isoformat()
             cache.set(ADVICE_CACHE_KEY, result, ttl=ADVICE_TTL_S)
         return result
     finally:
@@ -450,12 +488,18 @@ def _generate_proactive_advice() -> dict:
 
         system_prompt = (
             "You are the 'Brewmaster', an expert in fermentation management. "
-            "Provide proactive advice for the current batch: timing for diacetyl rests, dry hopping, "
-            "or cold crashing, and anything in the data that needs attention. Base it on the data given; "
-            "don't invent readings. Be technical and extremely concise (max 3 sentences)."
+            "Give proactive advice for the next 24-48 hours of this batch: what to do now and what's coming "
+            "(diacetyl rest, dry hop, cold crash) and anything in the data that needs attention. "
+            "Rules: use only the numbers given and quote them; don't invent readings, gravity targets or dates. "
+            "Follow the recipe schedule and the brewer's plan exactly; never suggest temperatures or timings "
+            "that contradict them. If the data looks wrong, say what to check. "
+            "Plain text, no headings or lists, at most 3 short sentences."
         )
 
         context_parts = [context]
+        plan = _batch_plan()
+        if plan:
+            context_parts.append(f"Brewer's fermentation plan: {plan}")
         if yeast_specs and "error" not in yeast_specs:
             # Only include key specs to save context tokens/RAM
             context_parts.append(f"Yeast specs: {yeast_specs.get('attenuation')}, {yeast_specs.get('temp_range')}")
@@ -480,7 +524,7 @@ def _generate_proactive_advice() -> dict:
             if res.status_code == 200:
                 text = res.json().get("response")
                 if text:
-                    return {"status": "success", "advice": text.strip(), "source": res.json().get("source", "ollama")}
+                    return {"status": "success", "advice": _plain_text(text), "source": res.json().get("source", "ollama")}
         except Exception as e:
             logger.error(f"Ollama proactive advice failed at {ollama_url}: {e}")
 
