@@ -7,7 +7,7 @@ def get_pi_temp():
     except (FileNotFoundError, OSError): return 0.0
 
 def get_status_dict():
-    test_mode = get_config("test_mode") == "true"
+    test_mode = bool(get_config("test_mode"))
     recent_sg, recent_temp = 0.0, 0.0
     recent_rssi = None
     last_sync = None
@@ -19,13 +19,30 @@ def get_status_dict():
         # Source measurement depends on mode
         meas = "test_readings" if test_mode else "calibrated_readings"
 
-        q = f'from(bucket: "{INFLUX_BUCKET}") |> range(start: -2h) |> filter(fn: (r) => r["_measurement"] == "{meas}") |> last()'
-        for t in query_api.query(q): 
-            for r in t.records: 
+        # Readings are tagged (Color, yeast), so a bare last() returns one
+        # table per tag set — including stale ones from a previous batch's
+        # yeast. Collapse to one table per field and take the newest.
+        q = (f'from(bucket: "{INFLUX_BUCKET}") |> range(start: -2h)'
+             f' |> filter(fn: (r) => r["_measurement"] == "{meas}")'
+             f' |> group(columns: ["_field"]) |> sort(columns: ["_time"]) |> last()')
+        for t in query_api.query(q):
+            for r in t.records:
                 if r.get_field() == "sg": recent_sg = r.get_value()
                 if r.get_field() == "temp": recent_temp = r.get_value()
                 if test_mode and r.get_field() == "rssi": recent_rssi = r.get_value()
-                last_sync = r.get_time()
+                if last_sync is None or r.get_time() > last_sync:
+                    last_sync = r.get_time()
+
+        if not test_mode:
+            # calibrated_readings carries no signal strength; the raw
+            # Telegraf feed does.
+            q_rssi = (f'from(bucket: "{INFLUX_BUCKET}") |> range(start: -2h)'
+                      f' |> filter(fn: (r) => r["_measurement"] == "sensor_data" and r["_field"] == "rssi")'
+                      f' |> group() |> sort(columns: ["_time"]) |> last()')
+            for t in query_api.query(q_rssi):
+                for r in t.records:
+                    if r.get_field() == "rssi":
+                        recent_rssi = r.get_value()
 
         if not test_mode:
             # PRIORITIZE Real-Time Memory State (TILT_STATE)
@@ -59,9 +76,12 @@ def get_status_dict():
             if recent_sg == 0.0 or recent_temp == 0.0:
                  # Original Influx Fallback Logic...
                  pass # We keep the query logic above, this just overrides it if TILT_STATE is good.
-    except (ConnectionError, OSError, KeyError):
-        # Fail gracefully — status page should never crash
-        pass
+    except Exception as e:
+        # Fail gracefully — status page should never crash (e.g. InfluxDB
+        # unreachable/unauthorized raises influxdb_client's ApiException,
+        # which isn't a builtin ConnectionError/OSError/KeyError)
+        import logging
+        logging.getLogger(__name__).warning(f"Status telemetry fetch failed: {e}")
 
 
     return {
@@ -71,7 +91,7 @@ def get_status_dict():
         "temp_unit": locals().get("recent_unit", "C"), 
         "rssi": recent_rssi,
         "last_sync": last_sync.isoformat() if last_sync else None,
-        "test_mode": test_mode, "offset": float(get_config("offset") or 0),
+        "test_mode": test_mode, "brew_active": bool(get_config("brew_active")), "water_test": bool(get_config("water_test")), "offset": float(get_config("offset") or 0),
         "og": float(get_config("og") or 1.050), "target_fg": float(get_config("target_fg") or 1.010),
         "batch_name": get_config("batch_name"), "batch_notes": get_config("batch_notes"), "start_date": get_config("start_date"),
         "config": {"telegram_configured": bool(get_config("alert_telegram_token"))}
@@ -123,8 +143,12 @@ def get_daily_telemetry() -> dict:
         og = float(get_config("og") or 1.050)
         
         # 1. Get Latest and 24h ago data
-        q_now = f'from(bucket: "{INFLUX_BUCKET}") |> range(start: -1h) |> filter(fn: (r) => r["_measurement"] == "calibrated_readings") |> last()'
-        q_24h = f'from(bucket: "{INFLUX_BUCKET}") |> range(start: -25h, stop: -23h) |> filter(fn: (r) => r["_measurement"] == "calibrated_readings") |> last()'
+        # Group by field before last(): readings are split into tables by tag
+        # (Color, yeast), and a bare last() per table can return a previous
+        # batch's reading (same issue as get_status_dict).
+        newest = '|> group(columns: ["_field"]) |> sort(columns: ["_time"]) |> last()'
+        q_now = f'from(bucket: "{INFLUX_BUCKET}") |> range(start: -1h) |> filter(fn: (r) => r["_measurement"] == "calibrated_readings") {newest}'
+        q_24h = f'from(bucket: "{INFLUX_BUCKET}") |> range(start: -25h, stop: -23h) |> filter(fn: (r) => r["_measurement"] == "calibrated_readings") {newest}'
         
         res_now = query_api.query(q_now)
         res_24h = query_api.query(q_24h)

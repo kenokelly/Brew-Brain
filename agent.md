@@ -40,7 +40,7 @@
 ## 7. Environment Configuration
 
 * **Raspberry Pi (Brew-Brain Host):**
-  * IP Address: `192.168.155.226`
+  * IP Address: `192.168.155.24`
   * SSH User: `kokelly`
-  * SSH Command: `ssh kokelly@192.168.155.226`
-  * Web UI: `http://192.168.155.226:5000`
+  * SSH Command: `ssh kokelly@192.168.155.24`
+  * Web UI: `http://192.168.155.24:5000`

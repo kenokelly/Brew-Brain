@@ -2,30 +2,25 @@
 
 :root {
   /* Premium Light Mode */
-  --background: #ffffff;
-  --foreground: #09090b;
-  /* Zinc-950 */
+  --background: #f8fafc;
+  --foreground: #0f172a;
   --card: #ffffff;
-  --card-foreground: #09090b;
+  --card-foreground: #0f172a;
   --popover: #ffffff;
-  --popover-foreground: #09090b;
-  --primary: #18181b;
-  /* Zinc-900 */
-  --primary-foreground: #fafafa;
-  --secondary: #f4f4f5;
-  /* Zinc-100 */
-  --secondary-foreground: #18181b;
-  --muted: #f4f4f5;
-  --muted-foreground: #71717a;
-  /* Zinc-500 */
-  --accent: #f4f4f5;
-  --accent-foreground: #18181b;
+  --popover-foreground: #0f172a;
+  --primary: #d97706;
+  --primary-foreground: #ffffff;
+  --secondary: #f1f5f9;
+  --secondary-foreground: #0f172a;
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b;
+  --accent: #f1f5f9;
+  --accent-foreground: #0f172a;
   --destructive: #ef4444;
-  --destructive-foreground: #fafafa;
-  --border: #e4e4e7;
-  /* Zinc-200 */
-  --input: #e4e4e7;
-  --ring: #18181b;
+  --destructive-foreground: #ffffff;
+  --border: #e2e8f0;
+  --input: #e2e8f0;
+  --ring: #d97706;
   --radius: 0.75rem;
 }
 
@@ -60,28 +55,24 @@
 .dark {
   /* Premium Dark Mode */
   --background: #09090b;
-  /* Zinc-950 */
   --foreground: #fafafa;
-  /* Zinc-50 */
-  --card: #09090b;
+  --card: #18181b;
   --card-foreground: #fafafa;
-  --popover: #09090b;
+  --popover: #18181b;
   --popover-foreground: #fafafa;
-  --primary: #fafafa;
-  --primary-foreground: #18181b;
+  --primary: #f59e0b;
+  --primary-foreground: #09090b;
   --secondary: #27272a;
-  /* Zinc-800 */
   --secondary-foreground: #fafafa;
   --muted: #27272a;
   --muted-foreground: #a1a1aa;
-  /* Zinc-400 */
   --accent: #27272a;
   --accent-foreground: #fafafa;
   --destructive: #7f1d1d;
   --destructive-foreground: #fafafa;
   --border: #27272a;
   --input: #27272a;
-  --ring: #d4d4d8;
+  --ring: #f59e0b;
 }
 
 body {
@@ -134,7 +125,7 @@ body {
   }
 
   .text-gradient {
-    @apply text-foreground font-black tracking-tight;
+    @apply font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-amber-500 via-orange-500 to-amber-700;
   }
 }
 
@@ -145,4 +136,42 @@ body {
 
 .animate-pulse-soft {
   animation: pulse-soft 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+/* ------------------------------------------------------------------
+   Beta dashboard (/beta): dark instrument-panel look. Scoped to
+   .beta-ui so the production pages are untouched while it's trialled.
+   ------------------------------------------------------------------ */
+.beta-ui {
+  --b-bg: #101216;
+  --b-card: #1a1d23;
+  --b-card-hi: #20242b;
+  --b-border: #262a32;
+  --b-tile: rgba(245, 158, 11, 0.12);
+  --b-text: #ecebe8;
+  --b-muted: #8a8f99;
+  --b-faint: #5c616b;
+  --b-accent: #f59e0b;
+  --b-good: #22c55e;
+  --b-warn: #f59e0b;
+  --b-bad: #ef4444;
+  --b-info: #60a5fa;
+  --b-gravity: #f25c5c;
+  --b-temp: #f59e0b;
+  --b-target: #4ade80;
+  --b-velocity: #a78bfa;
+  --b-abv: #eab308;
+  background: var(--b-bg);
+  color: var(--b-text);
+}
+
+.beta-card {
+  background: var(--b-card);
+  border: 1px solid var(--b-border);
+  border-radius: 1.25rem;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+
+.beta-mono {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
 }

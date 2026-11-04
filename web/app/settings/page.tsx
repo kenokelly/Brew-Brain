@@ -101,6 +101,11 @@ export default function SettingsPage() {
         setSettings(prev => ({ ...prev, [key]: value }));
     };
 
+    // The API serializes booleans as real JSON true/false, but toggles used
+    // to compare against the string "true" - which only matched after the
+    // user clicked the toggle locally, not on the value loaded from the API.
+    const isEnabled = (v: any) => v === true || v === "true";
+
     const handleSave = async (e?: React.FormEvent) => {
         if (e) e.preventDefault();
         try {
@@ -311,11 +316,23 @@ export default function SettingsPage() {
         }
     };
 
-    const toggleTestMode = () => {
-        const newVal = settings["test_mode"] === "true" ? "false" : "true";
-        handleChange("test_mode", newVal);
-        setTimeout(() => handleSave(), 100);
+    // Save just the toggled key with its new value. Calling handleSave() here
+    // sent the settings from before the click, so the toggle never stuck.
+    const saveToggle = async (key: string, label: string) => {
+        const value = !isEnabled(settings[key]);
+        handleChange(key, value);
+        try {
+            await apiFetch("/api/settings", { method: "PATCH", body: { [key]: value } });
+            toast.success(`${label} ${value ? "on" : "off"}`);
+            mutate();
+        } catch (err: any) {
+            handleChange(key, !value);
+            toast.error(`Could not save ${label}: ${err.data?.error || err.message}`);
+        }
     };
+
+    const toggleTestMode = () => saveToggle("test_mode", "Simulated data");
+    const toggleBrewActive = () => saveToggle("brew_active", "Brew alerts");
 
     if (!isUnlocked) {
         return (
@@ -352,7 +369,7 @@ export default function SettingsPage() {
                 </div>
             </div>
 
-            <form className="space-y-6">
+            <form onSubmit={handleSave} className="space-y-6">
                 
                 {/* --- TAP MANAGEMENT (RESTORED) --- */}
                 <div className="glass-card p-6 space-y-4">
@@ -464,7 +481,7 @@ export default function SettingsPage() {
                             <label className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Original Gravity (OG)</label>
                             <input
                                 type="number" step="0.001"
-                                value={settings["og"] || ""}
+                                value={settings["og"] ?? ""}
                                 onChange={(e) => handleChange("og", e.target.value)}
                                 className="w-full bg-secondary/50 border border-border/50 rounded-xl px-4 py-3 text-foreground focus:ring-2 focus:ring-primary outline-none transition-all"
                             />
@@ -473,7 +490,7 @@ export default function SettingsPage() {
                             <label className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Target FG</label>
                             <input
                                 type="number" step="0.001"
-                                value={settings["target_fg"] || ""}
+                                value={settings["target_fg"] ?? ""}
                                 onChange={(e) => handleChange("target_fg", e.target.value)}
                                 className="w-full bg-secondary/50 border border-border/50 rounded-xl px-4 py-3 text-foreground focus:ring-2 focus:ring-primary outline-none transition-all"
                             />
@@ -510,7 +527,7 @@ export default function SettingsPage() {
                         <div className="flex items-center justify-between p-4 bg-secondary/50 rounded-xl border border-border/50">
                             <span className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Current Offset</span>
                             <code className="bg-background px-3 py-1 rounded-lg border border-border font-mono font-bold text-emerald-500">
-                                {settings["offset"] || "0.000"}
+                                {settings["offset"] ?? "0.000"}
                             </code>
                         </div>
                         <div className="flex flex-col md:flex-row gap-4">
@@ -657,6 +674,67 @@ export default function SettingsPage() {
                                 </div>
                             </div>
                         </div>
+
+                        {/* Brewmaster AI provider: Pi (Ollama) or cloud (Claude) */}
+                        <div className="md:col-span-2 bg-secondary/20 p-4 rounded-2xl border border-border/50 space-y-4">
+                            <div className="flex items-center justify-between">
+                                <h3 className="font-bold text-sm flex items-center gap-2">
+                                    <Sparkles className="w-4 h-4 text-amber-500" /> Brewmaster AI
+                                </h3>
+                                <button type="button" onClick={() => handleTestIntegration('anthropic')} className="text-xs bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 px-3 py-1.5 rounded-lg font-bold transition-colors">Test Cloud AI</button>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Where the Brewmaster AI runs">
+                                {[
+                                    { id: 'local', title: 'On the Pi', note: 'Private, offline. Replies take 1–3 min.' },
+                                    { id: 'cloud', title: 'Cloud (Claude)', note: 'Replies in seconds. Needs internet; batch data is sent to Anthropic.' },
+                                ].map((opt) => {
+                                    const active = (settings["ai_provider"] || "local") === opt.id;
+                                    return (
+                                        <button
+                                            key={opt.id}
+                                            type="button"
+                                            role="radio"
+                                            aria-checked={active}
+                                            onClick={() => handleChange("ai_provider", opt.id)}
+                                            className={`text-left p-3 rounded-xl border transition-all ${active ? "border-amber-500 bg-amber-500/10" : "border-border/50 bg-background hover:border-amber-500/40"}`}
+                                        >
+                                            <div className="font-semibold text-sm">{opt.title}</div>
+                                            <div className="text-xs text-muted-foreground mt-0.5">{opt.note}</div>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                            {(settings["ai_provider"] || "local") === "cloud" && (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <label htmlFor="anthropic_api_key" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Anthropic API Key</label>
+                                        <input
+                                            id="anthropic_api_key"
+                                            type="password" placeholder="sk-ant-..."
+                                            value={settings["anthropic_api_key"] || ""}
+                                            onChange={(e) => handleChange("anthropic_api_key", e.target.value)}
+                                            className="w-full bg-background border border-border/50 rounded-xl px-4 py-2 text-foreground focus:ring-2 focus:ring-primary outline-none transition-all"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label htmlFor="cloud_model" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Model</label>
+                                        <select
+                                            id="cloud_model"
+                                            value={settings["cloud_model"] || "claude-opus-5"}
+                                            onChange={(e) => handleChange("cloud_model", e.target.value)}
+                                            className="w-full bg-background border border-border/50 rounded-xl px-4 py-2 text-foreground focus:ring-2 focus:ring-primary outline-none transition-all"
+                                        >
+                                            <option value="claude-opus-5">Claude Opus 5: most capable (~£14/month)</option>
+                                            <option value="claude-sonnet-5">Claude Sonnet 5: balanced (~£6/month)</option>
+                                            <option value="claude-haiku-4-5">Claude Haiku 4.5: fastest, cheapest (~£3/month)</option>
+                                        </select>
+                                    </div>
+                                    <p className="md:col-span-2 text-xs text-muted-foreground">
+                                        If the cloud is unreachable, the Brewmaster falls back to the Pi automatically. Monthly costs are estimates for hourly advice plus ~10 chats a day.
+                                    </p>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
 
@@ -691,7 +769,7 @@ export default function SettingsPage() {
                             <label className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Tilt Timeout (min)</label>
                             <input
                                 type="number"
-                                value={settings["tilt_timeout_min"] || "60"}
+                                value={settings["tilt_timeout_min"] ?? "60"}
                                 onChange={(e) => handleChange("tilt_timeout_min", e.target.value)}
                                 className="w-full bg-secondary/50 border border-border/50 rounded-xl px-4 py-3 text-foreground focus:ring-2 focus:ring-primary outline-none transition-all"
                             />
@@ -700,8 +778,18 @@ export default function SettingsPage() {
                             <label className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Max Temp (°C)</label>
                             <input
                                 type="number" step="0.1"
-                                value={settings["temp_max"] || "28.0"}
+                                value={settings["temp_max"] ?? "28.0"}
                                 onChange={(e) => handleChange("temp_max", e.target.value)}
+                                className="w-full bg-secondary/50 border border-border/50 rounded-xl px-4 py-3 text-foreground focus:ring-2 focus:ring-primary outline-none transition-all"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Fermentation Target Temp (°C)</label>
+                            <input
+                                type="number" step="0.1"
+                                placeholder="Uses yeast profile range if empty"
+                                value={settings["target_temp"] ?? ""}
+                                onChange={(e) => handleChange("target_temp", e.target.value === "" ? null : e.target.value)}
                                 className="w-full bg-secondary/50 border border-border/50 rounded-xl px-4 py-3 text-foreground focus:ring-2 focus:ring-primary outline-none transition-all"
                             />
                         </div>
@@ -725,7 +813,7 @@ export default function SettingsPage() {
                                 <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Alert Verbosity (min)</label>
                                 <input
                                     type="number"
-                                    value={settings["alert_verbosity_min"] || "0"}
+                                    value={settings["alert_verbosity_min"] ?? "0"}
                                     onChange={(e) => handleChange("alert_verbosity_min", e.target.value)}
                                     className="w-full bg-background border border-border/50 rounded-xl px-4 py-2 text-foreground focus:ring-2 focus:ring-primary outline-none transition-all"
                                 />
@@ -734,7 +822,7 @@ export default function SettingsPage() {
                                 <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Report Verbosity (min)</label>
                                 <input
                                     type="number"
-                                    value={settings["report_verbosity_min"] || "0"}
+                                    value={settings["report_verbosity_min"] ?? "0"}
                                     onChange={(e) => handleChange("report_verbosity_min", e.target.value)}
                                     className="w-full bg-background border border-border/50 rounded-xl px-4 py-2 text-foreground focus:ring-2 focus:ring-primary outline-none transition-all"
                                 />
@@ -743,7 +831,7 @@ export default function SettingsPage() {
                                 <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Bypass Temp Spike (°C)</label>
                                 <input
                                     type="number" step="0.1"
-                                    value={settings["bypass_temp_threshold"] || "0.5"}
+                                    value={settings["bypass_temp_threshold"] ?? "0.5"}
                                     onChange={(e) => handleChange("bypass_temp_threshold", e.target.value)}
                                     className="w-full bg-background border border-border/50 rounded-xl px-4 py-2 text-foreground focus:ring-2 focus:ring-primary outline-none transition-all"
                                 />
@@ -752,12 +840,23 @@ export default function SettingsPage() {
                                 <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Bypass SG Drop</label>
                                 <input
                                     type="number" step="0.001"
-                                    value={settings["bypass_sg_threshold"] || "0.005"}
+                                    value={settings["bypass_sg_threshold"] ?? "0.005"}
                                     onChange={(e) => handleChange("bypass_sg_threshold", e.target.value)}
                                     className="w-full bg-background border border-border/50 rounded-xl px-4 py-2 text-foreground focus:ring-2 focus:ring-primary outline-none transition-all"
                                 />
                             </div>
                         </div>
+                    </div>
+
+                    <div className="pt-4 flex justify-end border-t border-border/50">
+                        <button
+                            type="submit"
+                            disabled={saving}
+                            className="flex items-center gap-2 bg-rose-600 hover:bg-rose-500 text-white px-6 py-2.5 rounded-xl font-bold transition-all shadow-sm disabled:opacity-50"
+                        >
+                            {saving ? <RefreshCcw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                            Save Automation & Limits
+                        </button>
                     </div>
                 </div>
 
@@ -772,30 +871,69 @@ export default function SettingsPage() {
                     
                     <div className="flex items-center justify-between p-4 bg-secondary/30 rounded-xl border border-border/50">
                         <div>
-                            <h3 className="font-bold">Test Mode</h3>
-                            <p className="text-sm text-muted-foreground">Simulate sensor data for verification</p>
+                            <h3 className="font-bold">Brew Alerts</h3>
+                            <p className="text-sm text-muted-foreground">Enable Tilt alerts (signal loss, stall, runaway, temp deviation). Leave off between batches so an idle/offline Tilt doesn&apos;t spam Telegram.</p>
                         </div>
-                        <button
-                            type="button"
-                            onClick={toggleTestMode}
-                            className={cn(
-                                "px-6 py-2 rounded-full font-bold text-sm transition-all shadow-sm",
-                                settings["test_mode"] === "true"
-                                    ? "bg-amber-500 text-amber-950 hover:bg-amber-400"
-                                    : "bg-secondary text-muted-foreground hover:bg-secondary/80"
-                            )}
-                        >
-                            {settings["test_mode"] === "true" ? "Enabled" : "Disabled"}
-                        </button>
+                        <div className="flex items-center gap-3 shrink-0">
+                            <span className={cn("text-sm font-bold w-10 text-right", isEnabled(settings["brew_active"]) ? "text-emerald-400" : "text-muted-foreground")}>
+                                {isEnabled(settings["brew_active"]) ? "On" : "Off"}
+                            </span>
+                            <button
+                                type="button"
+                                role="switch"
+                                aria-checked={isEnabled(settings["brew_active"])}
+                                onClick={toggleBrewActive}
+                                className={cn(
+                                    "relative inline-flex h-8 w-14 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary",
+                                    isEnabled(settings["brew_active"]) ? "bg-emerald-500" : "bg-secondary border border-border"
+                                )}
+                            >
+                                <span
+                                    className={cn(
+                                        "inline-block h-6 w-6 rounded-full bg-white shadow transition-transform",
+                                        isEnabled(settings["brew_active"]) ? "translate-x-7" : "translate-x-1"
+                                    )}
+                                />
+                            </button>
+                        </div>
                     </div>
 
-                    {settings["test_mode"] === "true" && (
+                    <div className="flex items-center justify-between p-4 bg-secondary/30 rounded-xl border border-border/50">
+                        <div>
+                            <h3 className="font-bold">Simulated Data</h3>
+                            <p className="text-sm text-muted-foreground">Replaces the Tilt with fake readings and pauses alerts. Keep this off during a real brew.</p>
+                        </div>
+                        <div className="flex items-center gap-3 shrink-0">
+                            <span className={cn("text-sm font-bold w-10 text-right", isEnabled(settings["test_mode"]) ? "text-amber-400" : "text-muted-foreground")}>
+                                {isEnabled(settings["test_mode"]) ? "On" : "Off"}
+                            </span>
+                            <button
+                                type="button"
+                                role="switch"
+                                aria-checked={isEnabled(settings["test_mode"])}
+                                onClick={toggleTestMode}
+                                className={cn(
+                                    "relative inline-flex h-8 w-14 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary",
+                                    isEnabled(settings["test_mode"]) ? "bg-amber-500" : "bg-secondary border border-border"
+                                )}
+                            >
+                                <span
+                                    className={cn(
+                                        "inline-block h-6 w-6 rounded-full bg-white shadow transition-transform",
+                                        isEnabled(settings["test_mode"]) ? "translate-x-7" : "translate-x-1"
+                                    )}
+                                />
+                            </button>
+                        </div>
+                    </div>
+
+                    {isEnabled(settings["test_mode"]) && (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in slide-in-from-top-4 bg-amber-500/5 p-6 rounded-2xl border border-amber-500/20 mt-4">
                             <div className="space-y-2">
                                 <label className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Sim Start SG</label>
                                 <input
                                     type="number" step="0.001"
-                                    value={settings["test_sg_start"] || ""}
+                                    value={settings["test_sg_start"] ?? ""}
                                     onChange={(e) => handleChange("test_sg_start", e.target.value)}
                                     className="w-full bg-background border border-border/50 rounded-xl px-4 py-3 text-foreground focus:ring-2 focus:ring-primary outline-none transition-all"
                                 />
@@ -804,7 +942,7 @@ export default function SettingsPage() {
                                 <label className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Sim Base Temp</label>
                                 <input
                                     type="number" step="0.1"
-                                    value={settings["test_temp_base"] || ""}
+                                    value={settings["test_temp_base"] ?? ""}
                                     onChange={(e) => handleChange("test_temp_base", e.target.value)}
                                     className="w-full bg-background border border-border/50 rounded-xl px-4 py-3 text-foreground focus:ring-2 focus:ring-primary outline-none transition-all"
                                 />
@@ -813,35 +951,17 @@ export default function SettingsPage() {
                     )}
                 </div>
 
-                {/* --- DANGER ZONE --- */}
-                <div className="glass-card p-6 space-y-4 border-red-500/20 bg-red-500/5">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <div className="p-2 bg-red-500/10 rounded-xl text-red-500">
-                                <Trash2 className="w-5 h-5" />
-                            </div>
-                            <h2 className="text-xl font-bold tracking-tight text-red-500">Danger Zone</h2>
-                        </div>
-                        <button
-                            type="button"
-                            onClick={() => {
-                                if(confirm("Are you sure you want to Factory Reset? This action cannot be undone.")) {
-                                    if(prompt("Type YES to confirm wipe") === "YES") {
-                                        toast.error("Factory Reset triggered. (Note: Backend flush required for full wipe)");
-                                        // A future backend endpoint would be hit here
-                                    }
-                                }
-                            }}
-                            className="bg-red-600 hover:bg-red-500 text-white px-6 py-2 rounded-xl font-bold transition-colors shadow-sm text-sm"
-                        >
-                            Factory Reset
-                        </button>
-                    </div>
-                    <p className="text-sm text-red-400/80">
-                        Wiping settings will reset all API integrations, Telegram tokens, hardware limits, and system configurations back to their defaults.
-                    </p>
+                {/* Bottom Global Save Button */}
+                <div className="flex justify-end pt-4">
+                    <button
+                        type="submit"
+                        disabled={saving}
+                        className="flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 px-8 py-3.5 rounded-full font-bold transition-all shadow-lg text-base disabled:opacity-50"
+                    >
+                        {saving ? <RefreshCcw className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+                        {saving ? "Saving All Settings..." : "Save All Settings"}
+                    </button>
                 </div>
-
             </form>
 
             {/* --- MODALS (RESTORED) --- */}

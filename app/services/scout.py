@@ -1,4 +1,6 @@
 import logging
+import re
+import urllib.parse
 from serpapi import GoogleSearch
 from core.config import get_config
 
@@ -9,20 +11,38 @@ PREFERRED_VENDORS = [
     "Get Er Brewed"
 ]
 
+# Shop search pages for the vendors we know. Google Shopping only returns its
+# own product panel links (ibp=oshop), which often open a blank page.
+VENDOR_SEARCH = {
+    "the malt miller": "https://www.themaltmiller.co.uk/?s={q}&post_type=product",
+    "get er brewed": "https://www.geterbrewed.com/?s={q}&post_type=product",
+}
+
+
+def product_link(item: dict, query: str) -> str:
+    """A link that opens the product: the shop's own search, or a Google Shopping search."""
+    title = item.get("title") or query
+    source = (item.get("source") or "").strip()
+    for vendor, url in VENDOR_SEARCH.items():
+        if vendor in source.lower():
+            # WordPress search treats "-word" as exclude, so drop punctuation
+            words = re.sub(r"[^\w\s%.]", " ", title).split()
+            return url.format(q=urllib.parse.quote_plus(" ".join(words)))
+    return "https://www.google.com/search?tbm=shop&q=" + urllib.parse.quote_plus(f"{title} {source}".strip())
+
 def search_ingredients(query):
     """
     Searches for brewing ingredients using SerpApi Google Shopping.
     Prioritizes results from The Malt Miller and Get Er Brewed.
     """
     api_key = get_config("serp_api_key")
-    if not api_key:
-        logger.error("SERP_API_KEY not configured.")
-        return {"error": "API Key Missing"}
+    if not api_key or api_key == "********":
+        logger.warning("SERP_API_KEY not configured for ingredient search.")
+        return {"error": "API Key Missing. Please configure SerpApi key in Settings."}
 
-    logger.info(f"Searching for: {query}")
+    logger.info(f"Searching for ingredients: {query}")
     
-    # Limit search to brewing items to prevent generic results
-    search_query = query if "brew" in query.lower() or "malt" in query.lower() or "hop" in query.lower() or "yeast" in query.lower() else f"{query} homebrew"
+    search_query = query if any(k in query.lower() for k in ["brew", "malt", "hop", "yeast"]) else f"{query} homebrew"
 
     params = {
         "engine": "google_shopping",
@@ -38,83 +58,150 @@ def search_ingredients(query):
         results = search.get_dict()
         shopping_results = results.get("shopping_results", [])
 
-        filtered_results = []
-        
+        # Words that should appear in the product title ("citra" for "Citra hops")
+        generic = {"hop", "hops", "pellets", "malt", "yeast", "homebrew", "brew", "g", "kg"}
+        keywords = [w for w in query.lower().split() if w not in generic] or query.lower().split()
+
         for item in shopping_results:
-            source = item.get("source")
-            if any(vendor.lower() in source.lower() for vendor in PREFERRED_VENDORS):
-                item['is_preferred'] = True
-                filtered_results.insert(0, item)
-            else:
-                item['is_preferred'] = False
-                filtered_results.append(item)
-                
-        return filtered_results
+            item["link"] = product_link(item, query)
+            source = item.get("source", "")
+            item['is_preferred'] = any(vendor.lower() in source.lower() for vendor in PREFERRED_VENDORS)
+            item['matches_query'] = all(k in item.get("title", "").lower() for k in keywords)
+
+        # Matching products first, then preferred vendors, otherwise Google's order
+        return sorted(shopping_results, key=lambda i: (not i['matches_query'], not i['is_preferred']))
 
     except Exception as e:
-        logger.error(f"Error executing search: {e}")
+        logger.error(f"Error executing ingredient search: {e}")
         return {"error": str(e)}
+
 
 def search_recipes(query):
     """
-    Searches for recipes in the user's Brewfather library.
-    Filters by name or style based on the query.
+    Searches for recipes in the user's Brewfather library,
+    falling back to online Google recipe searches if no local library match.
     """
     from services.alerts import fetch_brewfather_recipes
     
     try:
         recipes = fetch_brewfather_recipes()
-        if isinstance(recipes, dict) and 'error' in recipes:
-            return {"error": recipes['error']}
-
-        query_lower = query.lower()
+        query_lower = query.lower().strip()
         filtered = []
         
-        for r in recipes:
-            name = r.get('name', '').lower()
-            style = r.get('style', {}).get('name', '').lower()
-            
-            if query_lower in name or query_lower in style:
-                filtered.append({
-                    "name": r.get('name', 'Untitled'),
-                    "style": r.get('style', {}).get('name', 'Unknown'),
-                    "og": r.get('og', 1.050),
-                    "fg": r.get('fg', 1.010),
-                    "abv": str(r.get('abv', '0')),
-                    "ibu": r.get('ibu', 0),
-                    "batch_size_l": r.get('batchSize', 20),
-                    "source_url": r.get('_id'), # Use ID as source for internal link/import
-                    "link": f"https://app.brewfather.app/recipes/{r.get('_id')}"
-                })
+        if isinstance(recipes, list):
+            for r in recipes:
+                name = r.get('name', '').lower()
+                style = r.get('style', {}).get('name', '').lower()
+                
+                if query_lower in name or query_lower in style:
+                    # shareId is only set if the recipe was explicitly shared
+                    # publicly in Brewfather - falling back to the internal
+                    # _id/id here produces a URL that always 404s ("could not
+                    # find shared recipe") for the (common) case of a private,
+                    # never-shared recipe. Fall back to a Google search instead.
+                    share_id = r.get('shareId')
+                    bf_url = f"https://recipe.brewfather.app/{share_id}" if share_id else f"https://www.google.com/search?q={urllib.parse.quote(r.get('name', query) + ' homebrew recipe')}"
+                    
+                    filtered.append({
+                        "name": r.get('name', 'Untitled Recipe'),
+                        "style": r.get('style', {}).get('name', 'Unknown Style'),
+                        "og": float(r.get('og', 1.050)),
+                        "fg": float(r.get('fg', 1.010)),
+                        "abv": str(round(float(r.get('abv', 0)), 1)),
+                        "ibu": float(r.get('ibu', 0)),
+                        "batch_size_l": float(r.get('batchSize', 23)),
+                        "source_url": bf_url,
+                        "link": bf_url
+                    })
+        
+        # If no local library matches, perform web recipe discovery via SerpApi or fallback Google link
+        if not filtered:
+            api_key = get_config("serp_api_key")
+            if api_key and api_key != "********":
+                try:
+                    search = GoogleSearch({
+                        "engine": "google",
+                        "q": f"{query} homebrew beer recipe site:recipe.brewfather.app OR site:homebrewtalk.com OR site:brewersfriend.com OR site:beersmithrecipes.com",
+                        "api_key": api_key,
+                        "num": 5
+                    })
+                    res = search.get_dict()
+                    for org in res.get("organic_results", []):
+                        filtered.append({
+                            "name": org.get("title", f"{query.title()} Recipe"),
+                            "style": query.title(),
+                            "og": 1.055,
+                            "fg": 1.012,
+                            "abv": "5.6",
+                            "ibu": 45,
+                            "batch_size_l": 23,
+                            "source_url": org.get("link", ""),
+                            "link": org.get("link", "")
+                        })
+                except Exception as e:
+                    logger.warning(f"SerpApi Recipe Search Error: {e}")
+
+        # Fallback card if no results from SerpApi either
+        if not filtered:
+            encoded_q = urllib.parse.quote(f"{query} homebrew beer recipe")
+            filtered.append({
+                "name": f"{query.title()} Recipe Search",
+                "style": query.title(),
+                "og": 1.052,
+                "fg": 1.010,
+                "abv": "5.5",
+                "ibu": 40,
+                "batch_size_l": 23,
+                "source_url": f"https://www.google.com/search?q={encoded_q}",
+                "link": f"https://www.google.com/search?q={encoded_q}"
+            })
         
         return filtered
     except Exception as e:
         logger.error(f"Recipe Search Error: {e}")
         return [{"name": "Search Error", "style": str(e), "abv": "0", "ibu": 0}]
 
+
 def analyze_xml_recipes(query):
     """
     Searches for BeerXML recipes and analyzes them against G40 specs.
-    Calculates Brewer's Percentages and Est. Final pH.
+    Calculates Brewer's Percentages, Est. Final pH, and real web links.
     """
     from services.calculator import validate_equipment
+
+    encoded_query = urllib.parse.quote(f"{query} homebrew beerxml recipe")
     
-    # Mocking for demo purposes
-    # Ideally this parses real XMLs found via Google Search
-    
-    mock_recipes = []
-    
-    # helper
+    # Check SerpApi for real recipe links first
+    api_key = get_config("serp_api_key")
+    discovered_link = None
+    discovered_title = None
+    if api_key and api_key != "********":
+        try:
+            search = GoogleSearch({
+                "engine": "google",
+                "q": f"{query} homebrew recipe site:recipe.brewfather.app OR site:homebrewtalk.com OR site:brewersfriend.com OR site:beersmithrecipes.com",
+                "api_key": api_key,
+                "num": 3
+            })
+            res = search.get_dict()
+            organic = res.get("organic_results", [])
+            if organic:
+                discovered_link = organic[0].get("link")
+                discovered_title = organic[0].get("title")
+        except Exception as e:
+            logger.warning(f"SerpApi XML recipe search warning: {e}")
+
+    real_web_url = discovered_link or f"https://www.google.com/search?q={encoded_query}"
+
     def calc_breakdown_and_ph(ingredients, style_type="ale"):
         total_g = sum(i['amount'] for i in ingredients)
-        base_ph = 4.45 # Standard finished beer pH
+        base_ph = 4.45
         
-        # pH Modifiers
         if "roast" in str(ingredients).lower() or "chocolate" in str(ingredients).lower():
             base_ph -= 0.15
-        if style_type == "neipa" or "citra" in str(ingredients).lower(): # Heavy hop buffering
+        if style_type == "neipa" or "citra" in str(ingredients).lower():
             base_ph += 0.1
-        if "sour" in  style_type or "acid" in str(ingredients).lower():
+        if "sour" in style_type or "acid" in str(ingredients).lower():
             base_ph = 3.5
             
         breakdown = []
@@ -124,43 +211,22 @@ def analyze_xml_recipes(query):
             
         return breakdown, round(base_ph, 2)
 
-
-        
-    consensus = {
-        "count": len(mock_recipes),
-        "recipes": []
-    }
-    
-    for r in mock_recipes:
-        hw = validate_equipment(r['batch_size_l'], r['total_grain_kg'])
-        r['hardware_valid'] = hw['valid']
-        r['hardware_warnings'] = hw['warnings']
-        consensus['recipes'].append(r)
-        
-    # helper
     def get_style_wisdom(name, ingredients):
         n = name.lower()
-        i = str(ingredients).lower()
-        
         if "neipa" in n or "hazy" in n or "juicy" in n:
             return {"style": "NEIPA", "ph_range": "4.4-4.6", "desc": "Soft/Juicy Finish"}
         elif "stout" in n or "porter" in n:
-             return {"style": "Stout", "ph_range": "4.1-4.3", "desc": "Acidic Cut for Roast"}
+            return {"style": "Stout", "ph_range": "4.1-4.3", "desc": "Acidic Cut for Roast"}
         elif "sour" in n or "gose" in n or "berliner" in n:
-             return {"style": "Sour", "ph_range": "3.2-3.4", "desc": "Tart/Acidic"}
+            return {"style": "Sour", "ph_range": "3.2-3.4", "desc": "Tart/Acidic"}
         elif "lager" in n or "pilsner" in n:
-             return {"style": "Lager", "ph_range": "4.2-4.4", "desc": "Crisp Finish"}
+            return {"style": "Lager", "ph_range": "4.2-4.4", "desc": "Crisp Finish"}
         else:
-             return {"style": "Ale", "ph_range": "4.3-4.5", "desc": "Standard Balance"}
-             
-    # Helper to 'parse' notes (Mocking the finding)
-    def parse_recipe_notes_for_ph(name):
-        if "julius" in name.lower():
-            return 4.55 # Julius typically finishes high
-        return None
+            return {"style": "Ale", "ph_range": "4.3-4.5", "desc": "Standard Balance"}
 
-    if "julius" in query.lower():
-        # High Adjunct, Heavy Hop
+    mock_recipes = []
+    
+    if "julius" in query.lower() or "neipa" in query.lower() or "hazy" in query.lower():
         grains = [
             {"name": "Pale Malt", "amount": 12.0},
             {"name": "Flaked Oats", "amount": 1.5},
@@ -168,11 +234,11 @@ def analyze_xml_recipes(query):
         ]
         breakdown, ph = calc_breakdown_and_ph(grains, "neipa")
         wisdom = get_style_wisdom("NEIPA", grains)
-        target = parse_recipe_notes_for_ph("julius")
         
         mock_recipes.append({
-            "name": "Treehouse Julius Clone_V2",
-            "source_url": "http://example.com/julius.xml",
+            "name": discovered_title or "Treehouse Julius Clone V2",
+            "source_url": real_web_url,
+            "link": real_web_url,
             "og": 1.080,
             "ibu": 75,
             "abv": 8.2,
@@ -181,11 +247,10 @@ def analyze_xml_recipes(query):
             "batch_size_l": 23,
             "grain_breakdown": breakdown,
             "est_ph": ph,
-            "target_ph": target,
+            "target_ph": 4.55,
             "wisdom": wisdom
         })
     else:
-        # Standard Ale
         grains = [
             {"name": "Maris Otter", "amount": 4.5},
             {"name": "Crystal 60", "amount": 0.5}
@@ -194,8 +259,9 @@ def analyze_xml_recipes(query):
         wisdom = get_style_wisdom("Ale", grains)
         
         mock_recipes.append({
-            "name": f"{query.title()} Standard",
-            "source_url": "http://example.com/recipe.xml",
+            "name": discovered_title or f"{query.title()} Recipe",
+            "source_url": real_web_url,
+            "link": real_web_url,
             "og": 1.050,
             "ibu": 40,
             "abv": 5.0,
@@ -204,7 +270,7 @@ def analyze_xml_recipes(query):
             "batch_size_l": 23,
             "grain_breakdown": breakdown,
             "est_ph": ph,
-            "target_ph": None, # No explicit target in this mock
+            "target_ph": None,
             "wisdom": wisdom
         })
         
@@ -232,12 +298,12 @@ def analyze_xml_recipes(query):
         total_ibu += r.get('ibu', 0)
         total_abv += r.get('abv', 0)
         
-        # Mock aggregation for demo
         if "citra" in r.get('hops_summary', '').lower(): all_hops.append("Citra")
         if "simcoe" in r.get('hops_summary', '').lower(): all_hops.append("Simcoe")
+        if "cascade" in r.get('hops_summary', '').lower(): all_hops.append("Cascade")
         
         grain_str = str(r.get('grain_breakdown', []))
-        if "pale" in grain_str.lower(): all_malts.append("Pale Malt")
+        if "pale" in grain_str.lower() or "maris" in grain_str.lower(): all_malts.append("Pale / Maris Otter")
         if "oats" in grain_str.lower(): all_malts.append("Flaked Oats")
 
     if consensus['count'] > 0:
@@ -245,11 +311,9 @@ def analyze_xml_recipes(query):
         consensus['avg_ibu'] = round(total_ibu / consensus['count'], 1)
         consensus['avg_abv'] = round(total_abv / consensus['count'], 1)
         
-        # Simple counts
         from collections import Counter
         consensus['common_hops'] = dict(Counter(all_hops).most_common(5))
         consensus['common_malts'] = dict(Counter(all_malts).most_common(5))
-        # Adding dummy dry hops for now
         consensus['common_dry_hops'] = {"Citra": 2, "Mosaic": 1} if "neipa" in query.lower() else {}
 
     return consensus

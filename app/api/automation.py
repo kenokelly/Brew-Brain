@@ -227,10 +227,10 @@ def compare_prices():
         data = request.json or {}
         recipe_id = data.get('recipe_id')
         recipe_details = data.get('recipe_details')
-        
+
         if not recipe_id and not recipe_details:
             return api_response(status="error", error="Recipe ID or details required", code=400)
-        
+
         if recipe_id:
             # Fetch details from Brewfather
             details = alerts.fetch_recipe_details(recipe_id)
@@ -238,12 +238,38 @@ def compare_prices():
                 return api_response(status="error", error=f"Failed to fetch recipe: {details.get('error')}", code=404)
             recipe_details = details
 
-        # Run comparison (Sync for now to simplify, or Async if needed)
-        # The frontend seems to expect a direct response or we can implement the async job status route
-        result = sourcing.compare_recipe_prices(recipe_details)
-        return api_response(data=result)
+        # Scraping every ingredient across multiple vendors can take over a
+        # minute - run it as a background job (like /simulate) rather than
+        # holding the request open, since mobile browsers abort long-lived
+        # fetches when the tab backgrounds or the screen locks.
+        from services.tasks import run_price_comparison_task
+        task = run_price_comparison_task.delay(recipe_details)
+        return api_response(data={"status": "queued", "task_id": task.id})
     except Exception as e:
         return handle_error(e, "Price Comparison Error")
+
+@automation_bp.route('/api/automation/sourcing/compare/status/<task_id>', methods=['GET'])
+@require_api_token
+def check_price_comparison_status(task_id):
+    try:
+        from extensions import celery
+        from celery.result import AsyncResult
+
+        task_result = AsyncResult(task_id, app=celery)
+
+        if task_result.state == 'PENDING':
+            return api_response(data={"status": "queued"})
+        elif task_result.state == 'FAILURE':
+            return api_response(status="error", error=str(task_result.info), code=500)
+        elif task_result.state == 'SUCCESS':
+            result_data = task_result.get()
+            if result_data.get("status") == "error":
+                return api_response(status="error", error=result_data.get("message"), code=500)
+            return api_response(data=result_data.get("data"))
+        else:
+            return api_response(data={"status": task_result.state})
+    except Exception as e:
+        return handle_error(e, "Price Comparison Status Check Error")
 
 # ============ Yeast Endpoints ============
 
@@ -287,11 +313,51 @@ def get_bf_recipes():
     except Exception as e:
         return handle_error(e, "Brewfather Recipe Fetch Error")
 
+@automation_bp.route('/api/automation/recipes/scale', methods=['POST'])
+@require_api_token
+def scale_recipe():
+    try:
+        recipe_data = request.json or {}
+        if not recipe_data:
+            return api_response(status="error", error="Recipe data required", code=400)
+            
+        scaled = calculator.scale_recipe_to_equipment(recipe_data)
+        if isinstance(scaled, dict) and 'error' in scaled:
+            return api_response(status="error", error=scaled['error'], code=400)
+            
+        return api_response(data=scaled)
+    except Exception as e:
+        return handle_error(e, "Recipe Scale Error")
+
 @automation_bp.route('/api/automation/brewfather/import', methods=['POST'])
 @require_api_token
 def import_bf_recipe():
-    # Placeholder for importing external recipes into Brewfather
-    return api_response(data={"message": "Import feature coming soon!"})
+    try:
+        data = request.json or {}
+        recipe_name = data.get('name', 'Imported Recipe')
+        recipe_url = data.get('url') or data.get('source_url', '')
+        
+        # Prepare recipe object for Brewfather API
+        headers = alerts.get_auth_headers()
+        if not headers:
+            return api_response(data={"message": f"Recipe '{recipe_name}' prepared locally. (Configure Brewfather API keys in Settings to sync directly)"})
+            
+        payload = {
+            "name": recipe_name,
+            "type": "All Grain",
+            "author": "BrewBrain Importer",
+            "notes": f"Imported via Brew-Brain from {recipe_url}" if recipe_url else "Imported via Brew-Brain"
+        }
+        
+        import requests
+        r = requests.post("https://api.brewfather.app/v2/recipes", headers=headers, json=payload, timeout=10)
+        if r.status_code in [200, 201]:
+            return api_response(data={"message": f"Successfully imported '{recipe_name}' into Brewfather library!"})
+        else:
+            return api_response(data={"message": f"Recipe '{recipe_name}' prepared. Brewfather response: {r.status_code}"})
+    except Exception as e:
+        return handle_error(e, "Brewfather Recipe Import Error")
+
 
 # ============ Calculator Endpoints ============
 
@@ -336,6 +402,9 @@ def tiltpi_troubleshoot():
 
 # ============ Pipeline Diagnostics (B05) ============
 
+# Brewfather statuses that count as a batch in progress
+ACTIVE_BATCH_STATUSES = ("Brewing", "Fermenting", "Conditioning")
+
 @automation_bp.route('/api/automation/monitoring/scan', methods=['POST'])
 @require_api_token
 def pipeline_scan():
@@ -352,23 +421,47 @@ def pipeline_scan():
         if isinstance(batches, dict) and 'error' in batches:
             raise Exception(batches['error'])
         
-        # Transform for Pipeline UI
+        # Brewfather's batch list has no readings, so the batch being
+        # fermented takes its gravity and temperature from the Tilt.
+        from services.status import get_status_dict
+        try:
+            tilt = get_status_dict()
+        except Exception as e:
+            logger.warning(f"Pipeline scan: no Tilt status ({e})")
+            tilt = {}
+
         formatted = []
         for b in batches:
+            status = b.get("status", "Unknown")
+            if status not in ACTIVE_BATCH_STATUSES:
+                continue
+            recipe_name = (b.get("recipe") or {}).get("name")
+            name = b.get("name") or "Unknown"
+            if name == "Batch" and recipe_name:
+                name = recipe_name.strip()
+
+            gravity = b.get("measuredSg", b.get("estimatedSg"))
+            temp = b.get("measuredTemp")
+            health = {"status": "stable", "message": "Tracking with Brewfather data."}
+            if status == "Fermenting" and tilt.get("sg"):
+                gravity = round(tilt["sg"], 3)
+                temp = round(tilt["temp"], 1) if tilt.get("temp") else temp
+                if tilt.get("test_mode"):
+                    health = {"status": "warning", "message": "Simulated data is on - these are not Tilt readings."}
+                else:
+                    health = {"status": "stable", "message": "Live Tilt readings."}
+
             formatted.append({
-                "name": b.get("name", "Unknown"),
+                "name": name,
                 "number": b.get("batchNo"),
                 "brewer": b.get("brewer"),
-                "status": b.get("status", "Unknown"),
-                "gravity": b.get("measuredSg", b.get("estimatedSg")),
-                "temp": b.get("measuredTemp"),
-                "health_check": {
-                    "status": "stable",
-                    "message": "Tracking nominally with Brewfather data."
-                }
+                "status": status,
+                "gravity": gravity,
+                "temp": temp,
+                "health_check": health,
             })
-            
-        cache.set("pipeline_scan_cache", formatted, timeout=300)
+
+        cache.set("pipeline_scan_cache", formatted, ttl=300)
         return api_response(data={"batches": formatted})
     except Exception as e:
         return handle_error(e, "Pipeline Scan Error")
@@ -423,17 +516,37 @@ def analyze_bf_batch():
     try:
         data = request.json or {}
         batch_id = data.get("batch_id")
-        target = data.get("target", 20.0)
-        
+        target = float(data.get("target", 20.0))
+
         if not batch_id:
             return api_response(status="error", error="batch_id required", code=400)
-            
-        # In a real scenario, this would fetch readings for the batch.
-        # For now, simulate a result.
+
+        from services.alerts import fetch_batch_readings, check_temp_stability
+
+        readings = fetch_batch_readings(batch_id)
+        if not readings:
+            return api_response(
+                status="error",
+                error=f"No readings available for batch {batch_id}. Check Brewfather credentials and that the batch has logged temperature data.",
+                code=404
+            )
+
+        result = check_temp_stability(readings, target, threshold=1.0, is_list=True)
+        if result.get("status") == "error":
+            return api_response(status="error", error=result.get("message", "Analysis failed"), code=400)
+
+        msg = (
+            f"Batch {batch_id}: max deviation ±{result['max_deviation']}°C from target {target}°C "
+            f"(latest reading: {result['current_temp']}°C)."
+        )
+        if result["status"] != "stable":
+            msg += " Exceeds the 1.0°C stability threshold."
+
         return api_response(data={
-            "status": "stable",
-            "message": f"Batch {batch_id} tracking securely around {target}°C.",
-            "stability_score": 0.2
+            "status": result["status"],
+            "message": msg,
+            "avg_temp": result["current_temp"],
+            "stability_score": result["max_deviation"],
         })
     except Exception as e:
         return handle_error(e, "BF Analysis Error")

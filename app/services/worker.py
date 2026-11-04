@@ -128,7 +128,7 @@ def process_data_once():
     """Single execution of data processing for APScheduler."""
     try:
         offset = float(get_config("offset") or 0.0)
-        test_mode = get_config("test_mode") == "true"
+        test_mode = bool(get_config("test_mode"))
         float(get_config("target_temp") or 20.0)
         points_to_write = []
         
@@ -320,6 +320,18 @@ def check_alerts_once() -> None:
     if is_quiet_hours():
         return
 
+    # This pipeline is entirely separate from anomaly.py's
+    # run_all_anomaly_checks() (different Celery Beat task, different
+    # implementation of the same checks) and was missed when that one was
+    # gated on brew_active - it kept alerting (signal loss, temp, stall,
+    # yeast anomaly) between batches regardless of the setting.
+    if not get_config("brew_active"):
+        return
+    # Water test: temp/stall/yeast checks don't apply to a Tilt in plain
+    # water (Tilt health is covered by anomaly.py).
+    if get_config("water_test"):
+        return
+
     now = time.time()
     SIGNAL_COOLDOWN = 14400   # 4 hours for signal loss
     TEMP_COOLDOWN = 1800      # 30 minutes for temperature alerts
@@ -327,11 +339,8 @@ def check_alerts_once() -> None:
     # ---------------------------------------------------------------
     # 1. SIGNAL LOSS
     # ---------------------------------------------------------------
-    try:
-        timeout_min = int(get_config("tilt_timeout_min") or 60)
-        perform_signal_loss_check(now, timeout_min, SIGNAL_COOLDOWN)
-    except Exception as e:
-        logger.error(f"Signal loss check error: {e}")
+    # Handled by anomaly.check_signal_loss() (runs diagnostics, 4h
+    # reminders). Running both sent two "Tilt offline" alerts per outage.
 
     # ---------------------------------------------------------------
     # 2. TEMPERATURE DEVIATION
@@ -436,7 +445,9 @@ def check_alerts_once() -> None:
                 target_fg = float(get_config("target_fg") or 1.010)
                 logger.info(f"Stall check: drop={daily_drop:.4f} curr={sg_current:.3f} target_fg={target_fg:.3f}")
 
-                if daily_drop < 0.002 and sg_current > (target_fg + 0.005):
+                # Flat, not rising: gravity going *up* means the hydrometer
+                # was moved or is misreading, not a stalled fermentation.
+                if -0.002 < daily_drop < 0.002 and sg_current > (target_fg + 0.005):
                     send_telegram_message(
                         f"⚠️ *STALL DETECTED*\n"
                         f"Gravity dropped only {daily_drop:.3f} pts in 24h.\n"

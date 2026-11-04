@@ -23,6 +23,9 @@ export interface SystemStatus {
     target_fg?: number;
     status?: string;
     last_sync?: string;
+    test_mode?: boolean;
+    brew_active?: boolean;
+    water_test?: boolean;
     // Anomaly detection fields
     anomaly_score?: number;
     anomaly_status?: 'ok' | 'elevated' | 'warning' | 'critical';
@@ -414,4 +417,101 @@ export interface BrewDayCheckResponse {
     score: number;
     checks: BrewDayCheckItem[];
     timestamp: string;
+}
+
+// ============================================
+// FERMENTATION (beta dashboard)
+// ============================================
+
+export type FermentationPhase = 'LAG' | 'ACTIVE' | 'SLOWING' | 'STABLE' | 'STALLED' | 'RISING' | 'WATER TEST' | 'NO DATA';
+
+export interface FermentationStep {
+    name: string;
+    type: string;
+    temp: number | null;
+    days: number;
+    start: string;
+    end: string;
+}
+
+export interface FermentationSchedule {
+    steps: FermentationStep[];
+    current_index: number;
+    current: FermentationStep | null;
+    next: FermentationStep | null;
+    days_to_next: number | null;
+    days_to_crash: number | null;
+    days_to_end: number;
+    end: string;
+}
+
+export interface WaterCalibration {
+    status: 'waiting' | 'settling' | 'ready' | 'calibrated' | 'implausible' | 'error';
+    message?: string;
+    readings?: number;
+    raw_mean?: number;
+    calibrated_mean?: number;
+    spread?: number;
+    current_offset?: number;
+    suggested_offset?: number;
+    settled?: boolean;
+}
+
+export interface FermentationSummary {
+    water_test?: boolean;
+    calibration?: WaterCalibration;
+    batch_name: string;
+    style: string;
+    yeast: string;
+    brew_active: boolean;
+    test_mode: boolean;
+    og: number;
+    target_fg: number;
+    sg: number | null;
+    temp: number | null;
+    temp_unit: string;
+    target_temp: number | null;
+    temp_delta: number | null;
+    velocity: number | null;
+    phase: FermentationPhase;
+    attenuation: number | null;
+    abv: number | null;
+    eta_days: number | null;
+    day: number | null;
+    start: string | null;
+    schedule: FermentationSchedule | null;
+    sensor: {
+        rssi: number | null;
+        last_reading: string | null;
+        last_reading_age_min: number | null;
+        pi_temp: number | null;
+    };
+}
+
+export interface FermentationPoint {
+    ts: number;
+    t: string;
+    sg: number | null;
+    temp: number | null;
+    target: number | null;
+    velocity: number | null;
+    abv: number | null;
+}
+
+export interface FermentationHistory {
+    start: string;
+    og: number;
+    points: FermentationPoint[];
+    /** Set by "Start log from now"; the chart begins here instead of the batch start */
+    log_start?: string | null;
+    /** Chart is showing the whole batch instead of starting at log_start */
+    whole_batch?: boolean;
+}
+
+export interface JournalEntry {
+    id: string;
+    ts: string;
+    kind: 'alert' | 'report' | 'step' | 'phase' | 'note' | 'info';
+    level: 'info' | 'warning' | 'critical';
+    text: string;
 }

@@ -9,3 +9,20 @@ __pycache__/
 influxdb_data/
 grafana_data/
 brew_brain_backup_*
+scratch/
+backups/
+web/public/sw.js
+web/public/workbox-*.js
+data/brew_brain.log
+
+# Autopilot journal (runtime state)
+data/journal.json
+data/journal.lock
+data/config.json.lock
+
+# Brewfather recipe push (local only)
+brewfather-push/
+
+# Runtime brew-day logs and test leftovers
+data/logs/
+test_data_config/

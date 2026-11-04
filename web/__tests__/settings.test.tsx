@@ -35,6 +35,19 @@ vi.mock('react-hot-toast', () => ({
   default: { success: vi.fn(), error: vi.fn() },
 }));
 
+// Mock next/navigation
+vi.mock('next/navigation', () => ({
+  useRouter() {
+    return {
+      prefetch: () => null,
+      push: () => null,
+    };
+  },
+  usePathname() {
+    return '/settings';
+  },
+}));
+
 // Must import after mocks
 import Settings from '@/app/settings/page';
 

@@ -1,0 +1,160 @@
+'use client';
+
+import { useState } from 'react';
+import { LineChart as LineIcon } from 'lucide-react';
+import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { cn } from '@/lib/utils';
+import type { FermentationHistory, FermentationSummary } from '@/types/api';
+import { BetaCard, CardError } from './BetaCard';
+import { num, sg3 } from './format';
+
+type SeriesKey = 'sg' | 'temp' | 'target' | 'velocity' | 'abv';
+
+const SERIES: { key: SeriesKey; label: string; color: string; axis: string; step?: boolean; unit: string }[] = [
+    { key: 'sg', label: 'Gravity', color: 'var(--b-gravity)', axis: 'sg', unit: '' },
+    { key: 'temp', label: 'Beer °C', color: 'var(--b-temp)', axis: 'temp', unit: '°C' },
+    { key: 'target', label: 'Target', color: 'var(--b-target)', axis: 'temp', step: true, unit: '°C' },
+    { key: 'velocity', label: 'Velocity', color: 'var(--b-velocity)', axis: 'vel', unit: ' pts/d' },
+    { key: 'abv', label: 'ABV', color: 'var(--b-abv)', axis: 'abv', unit: '%' },
+];
+
+const dayFmt = (ts: number) => {
+    const d = new Date(ts * 1000);
+    return `${d.getDate()}/${d.getMonth() + 1}`;
+};
+const timeFmt = (ts: number) =>
+    new Date(ts * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+/** Whole-ferment chart since pitch, one colour per series (Grafana-free). */
+export function FermentChart({ history, summary, error, onLogStart }: {
+    history?: FermentationHistory;
+    summary?: FermentationSummary;
+    error?: unknown;
+    /** "start" hides earlier readings from now on; "clear" goes back to the batch start */
+    onLogStart?: (action: 'start' | 'whole_batch' | 'since_log_start') => void;
+}) {
+    const [hidden, setHidden] = useState<Set<SeriesKey>>(new Set());
+    const points = history?.points ?? [];
+    const toggle = (k: SeriesKey) =>
+        setHidden((h) => {
+            const n = new Set(h);
+            if (n.has(k)) n.delete(k); else n.add(k);
+            return n;
+        });
+
+    const og = history?.og ?? summary?.og ?? 1.05;
+    const fg = summary?.target_fg ?? 1.01;
+    const sgDomain: [number, number] = [
+        Math.min(fg, ...points.map((p) => p.sg ?? 9)) - 0.002,
+        Math.max(og, ...points.map((p) => p.sg ?? 0)) + 0.002,
+    ];
+    // Recharts' automatic ticks come out empty over a ~0.06 SG range, so
+    // lay out five explicitly.
+    const sgTicks = Array.from({ length: 5 }, (_, i) => sgDomain[0] + ((sgDomain[1] - sgDomain[0]) * i) / 4);
+    // Under two days of data every tick is the same date, so label times instead
+    const shortSpan = points.length > 1 && points[points.length - 1].ts - points[0].ts < 2 * 86400;
+    const vels = points.map((p) => p.velocity).filter((v): v is number => v != null);
+    const avgVel = vels.length ? vels.reduce((a, b) => a + b, 0) / vels.length : null;
+
+    return (
+        <BetaCard
+            icon={LineIcon}
+            title="Fermentation chart"
+            subtitle={history?.log_start && !history.whole_batch ? `Since ${fmtStart(history.log_start)}` : 'Whole batch'}
+            live={points.length > 0}
+            badge={onLogStart && (
+                <div className="flex flex-col items-end gap-1 shrink-0">
+                    <button
+                        type="button"
+                        onClick={() => onLogStart('start')}
+                        className="text-xs whitespace-nowrap px-2.5 py-1 rounded-full bg-[var(--b-tile)] border border-[var(--b-border)] text-[var(--b-muted)] hover:text-[var(--b-text)]"
+                    >
+                        Start log from now
+                    </button>
+                    {history?.log_start && (
+                        <button
+                            type="button"
+                            onClick={() => onLogStart(history.whole_batch ? 'since_log_start' : 'whole_batch')}
+                            className="text-xs text-[var(--b-muted)] hover:text-[var(--b-text)] underline underline-offset-2"
+                        >
+                            {history.whole_batch ? `Since ${fmtStart(history.log_start)}` : 'Show whole batch'}
+                        </button>
+                    )}
+                </div>
+            )}
+        >
+            <div className="flex flex-wrap gap-x-4 gap-y-1.5 mb-3">
+                {SERIES.map((s) => (
+                    <button
+                        key={s.key}
+                        type="button"
+                        onClick={() => toggle(s.key)}
+                        aria-pressed={!hidden.has(s.key)}
+                        className={cn('flex items-center gap-1.5 text-sm transition-opacity', hidden.has(s.key) && 'opacity-35')}
+                    >
+                        <span className="w-4 h-1 rounded-full" style={{ background: s.color }} />
+                        <span className="text-[var(--b-muted)]">{s.label}</span>
+                    </button>
+                ))}
+            </div>
+
+            {error ? (
+                <CardError message="Chart data unavailable. Is InfluxDB reachable?" />
+            ) : points.length === 0 ? (
+                <CardError message="No readings since pitch yet. The chart fills in once the hydrometer reports." />
+            ) : (
+                <div className="h-64 md:h-72 -mx-2">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={points} margin={{ top: 4, right: 4, bottom: 0, left: 4 }}>
+                            <CartesianGrid stroke="var(--b-border)" strokeDasharray="2 6" vertical={false} />
+                            <XAxis
+                                dataKey="ts" type="number" domain={['dataMin', 'dataMax']} scale="time"
+                                tickFormatter={shortSpan ? timeFmt : dayFmt} stroke="var(--b-faint)" tick={{ fontSize: 11 }} minTickGap={40}
+                            />
+                            <YAxis
+                                yAxisId="sg" domain={sgDomain} ticks={sgTicks} tickFormatter={(v) => v.toFixed(3)}
+                                stroke="var(--b-faint)" tick={{ fontSize: 11 }} width={48}
+                            />
+                            <YAxis
+                                yAxisId="temp" orientation="right" domain={['dataMin - 2', 'dataMax + 2']}
+                                tickFormatter={(v) => `${Math.round(v)}°`} stroke="var(--b-faint)" tick={{ fontSize: 11 }} width={32}
+                            />
+                            <YAxis yAxisId="vel" hide orientation="right" width={0} domain={["dataMin", "dataMax"]} />
+                            <YAxis yAxisId="abv" hide orientation="right" width={0} domain={[0, "dataMax"]} />
+                            <Tooltip
+                                contentStyle={{ background: 'var(--b-card-hi)', border: '1px solid var(--b-border)', borderRadius: 12, fontSize: 12 }}
+                                labelFormatter={(ts) => new Date(Number(ts) * 1000).toLocaleString([], { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                                formatter={(value, name) => {
+                                    const s = SERIES.find((x) => x.label === name);
+                                    const n = Number(value);
+                                    return [s?.key === 'sg' ? n.toFixed(4) : `${n.toFixed(s?.key === 'abv' ? 2 : 1)}${s?.unit ?? ''}`, name];
+                                }}
+                            />
+                            {SERIES.filter((s) => !hidden.has(s.key)).map((s) => (
+                                <Line
+                                    key={s.key} yAxisId={s.axis} dataKey={s.key} name={s.label}
+                                    stroke={s.color} strokeWidth={s.key === 'sg' ? 2.5 : 1.5}
+                                    type={s.step ? 'stepAfter' : 'monotone'} dot={false} connectNulls isAnimationActive={false}
+                                />
+                            ))}
+                        </LineChart>
+                    </ResponsiveContainer>
+                </div>
+            )}
+
+            <div className="flex flex-wrap gap-x-5 gap-y-1 mt-4 text-sm text-[var(--b-muted)]">
+                <span>OG <b className="beta-mono text-[var(--b-text)]">{sg3(og)}</b></span>
+                <span>SG <b className="beta-mono text-[var(--b-text)]">{sg3(summary?.sg)}</b></span>
+                <span>ABV <b className="beta-mono text-[var(--b-text)]">{num(summary?.abv)}%</b></span>
+                <span>Att <b className="beta-mono text-[var(--b-text)]">{num(summary?.attenuation, 0)}%</b></span>
+                <span>Avg vel <b className="beta-mono text-[var(--b-text)]">{num(avgVel)} pts/d</b></span>
+            </div>
+        </BetaCard>
+    );
+}
+
+/** "18 Oct 16:00" in the viewer's time zone */
+function fmtStart(iso: string): string {
+    const d = new Date(iso);
+    return `${d.toLocaleDateString([], { day: 'numeric', month: 'short' })} ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+}

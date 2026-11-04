@@ -3,7 +3,9 @@ import json
 import difflib
 import math
 import re
+import urllib.parse
 import time as std_time
+
 import threading
 from concurrent.futures import ThreadPoolExecutor
 from bs4 import BeautifulSoup
@@ -11,6 +13,35 @@ from core.config import get_config
 from serpapi import GoogleSearch
 
 logger = logging.getLogger(__name__)
+
+import os
+DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'data')
+INGREDIENT_LIBRARY_FILE = os.path.join(DATA_DIR, 'ingredient_library.json')
+
+# Fallback watchlist used if ingredient_library.json is missing/corrupt
+DEFAULT_INGREDIENT_LIBRARY = {
+    "Citra Hops 100g": {"baseline": 7.50, "search_term": "Citra Hops 100g"},
+    "Crisp Extra Pale Malt 25kg": {"baseline": 55.00, "search_term": "Crisp Extra Pale Malt 25kg"},
+    "Simcoe Hops 100g": {"baseline": 7.50, "search_term": "Simcoe Hops 100g"},
+    "Golden Promise Malt 25kg": {"baseline": 52.00, "search_term": "Golden Promise Malt 25kg"}
+}
+
+
+def _load_ingredient_library():
+    """Loads the price-watch ingredient library, seeding the file with
+    defaults on first run so it can be edited without a code change."""
+    try:
+        if not os.path.exists(INGREDIENT_LIBRARY_FILE):
+            if not os.path.exists(DATA_DIR):
+                os.makedirs(DATA_DIR)
+            with open(INGREDIENT_LIBRARY_FILE, 'w') as f:
+                json.dump(DEFAULT_INGREDIENT_LIBRARY, f, indent=2)
+            return dict(DEFAULT_INGREDIENT_LIBRARY)
+        with open(INGREDIENT_LIBRARY_FILE, 'r') as f:
+            return json.load(f)
+    except (OSError, json.JSONDecodeError) as e:
+        logger.warning(f"Failed to load ingredient_library.json, using defaults: {e}")
+        return dict(DEFAULT_INGREDIENT_LIBRARY)
 
 # Lazy import to avoid circular dependency
 def _get_inventory():
@@ -273,16 +304,10 @@ def check_price_watch():
     Triggered by a cron/scheduler (or manual API call for now).
     """
     from services.notifications import send_telegram_message
-    
-    # Library of "Normal Prices" (Baseline)
-    # In a full app, this would be in a DB or ingredient_library.json
-    INGREDIENT_LIBRARY = {
-        "Citra Hops 100g": {"baseline": 7.50, "search_term": "Citra Hops 100g"},
-        "Crisp Extra Pale Malt 25kg": {"baseline": 55.00, "search_term": "Crisp Extra Pale Malt 25kg"},
-        "Simcoe Hops 100g": {"baseline": 7.50, "search_term": "Simcoe Hops 100g"},
-        "Golden Promise Malt 25kg": {"baseline": 52.00, "search_term": "Golden Promise Malt 25kg"}
-    }
-    
+
+    # Library of "Normal Prices" (Baseline), editable at data/ingredient_library.json
+    INGREDIENT_LIBRARY = _load_ingredient_library()
+
     alerts = []
     
     for name, data in INGREDIENT_LIBRARY.items():
@@ -345,6 +370,10 @@ def check_price_watch():
 def compare_recipe_prices(recipe_details, recipe_tag=None, debug_mode=False):
     """
     Compares prices for a recipe's ingredients.
+
+    Takes a full recipe object (from BF) OR a tag to fetch it, and compares
+    basket cost. Uses Google Organic Search + Snippet Parsing for broader
+    coverage than Google Shopping.
     """
     if debug_mode:
         logger.info("DEBUG MODE: Returning mock comparison results.")
@@ -357,10 +386,7 @@ def compare_recipe_prices(recipe_details, recipe_tag=None, debug_mode=False):
             "winner": "The Malt Miller",
             "debug": True
         }
-    """
-    Takes full recipe object (from BF) OR a tag to fetch it, and compares basket cost.
-    Uses Google Organic Search + Snippet Parsing for broader coverage than Google Shopping.
-    """
+
     # 1. Resolve Recipe if Tag provided
     if recipe_tag:
         from services import alerts
@@ -602,13 +628,17 @@ def compare_recipe_prices(recipe_details, recipe_tag=None, debug_mode=False):
         return None
 
     def process_item(item):
+
+        tmm_fallback_link = f"https://www.themaltmiller.co.uk/?s={urllib.parse.quote(item['name'])}&post_type=product"
+        geb_fallback_link = f"https://www.geterbrewed.com/?s={urllib.parse.quote(item['name'])}&post_type=product"
+
         row = {
             "name": item['name'],
             "type": item['type'],
             "amount": f"{item['amount']} {item['unit']}",
             "amount_g": item['amount'] * 1000 if item['unit'] == 'kg' else item['amount'],
-            "tmm_price": "N/A", "tmm_cost": 0.0, "tmm_cost_raw": 0.0, "tmm_link": "#",
-            "geb_price": "N/A", "geb_cost": 0.0, "geb_cost_raw": 0.0, "geb_link": "#",
+            "tmm_price": "N/A", "tmm_cost": 0.0, "tmm_cost_raw": 0.0, "tmm_link": tmm_fallback_link,
+            "geb_price": "N/A", "geb_cost": 0.0, "geb_cost_raw": 0.0, "geb_link": geb_fallback_link,
             "best_vendor": "None",
             "in_stock": False,
             "stock_qty": 0
@@ -657,7 +687,7 @@ def compare_recipe_prices(recipe_details, recipe_tag=None, debug_mode=False):
 
         if res_tmm:
             row['tmm_price'] = res_tmm['price']
-            row['tmm_link'] = res_tmm.get('link', '#')
+            row['tmm_link'] = res_tmm.get('link') or tmm_fallback_link
             if res_tmm.get('weight_g') and res_tmm['weight_g'] > 0:
                 cost_per_g = res_tmm['price'] / res_tmm['weight_g']
                 item_cost = cost_per_g * row['amount_g']
@@ -668,7 +698,7 @@ def compare_recipe_prices(recipe_details, recipe_tag=None, debug_mode=False):
 
         if res_geb:
             row['geb_price'] = res_geb['price']
-            row['geb_link'] = res_geb.get('link', '#')
+            row['geb_link'] = res_geb.get('link') or geb_fallback_link
             if res_geb.get('weight_g') and res_geb['weight_g'] > 0:
                 cost_per_g = res_geb['price'] / res_geb['weight_g']
                 item_cost = cost_per_g * row['amount_g']
@@ -676,6 +706,7 @@ def compare_recipe_prices(recipe_details, recipe_tag=None, debug_mode=False):
                 row['geb_cost'] = round(item_cost, 2)
             else:
                 row['geb_cost'] = "?"
+
         
         # Determine Winner
         try:
@@ -808,7 +839,8 @@ def get_restock_suggestions():
     api_key = get_serpapi_key()
     
     def search_tmm_link(query):
-        if not api_key: return "#"
+        fallback_link = f"https://www.themaltmiller.co.uk/?s={urllib.parse.quote(query)}&post_type=product"
+        if not api_key: return fallback_link
         try:
             params = {
                 "engine": "google_shopping",
@@ -820,9 +852,10 @@ def get_restock_suggestions():
                 "currency": "GBP"
             }
             res = GoogleSearch(params).get_dict().get("shopping_results", [])
-            if res: return res[0].get("link", "#")
+            if res and res[0].get("link"): return res[0].get("link")
         except Exception: pass
-        return "#"
+        return fallback_link
+
 
     # Scan Categories
     for cat, items in inventory.items():

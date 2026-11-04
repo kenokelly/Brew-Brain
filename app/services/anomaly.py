@@ -22,6 +22,39 @@ logger = logging.getLogger(__name__)
 
 # Thresholds
 STALL_THRESHOLD_POINTS_PER_DAY = 1.0  # SG change < 0.001/day
+
+# Minimum minutes between repeat alerts of each kind. These checks run every
+# 5 minutes and a condition (a stall, a moved hydrometer) persists, so
+# without a cooldown each one re-alerted on every run - Telegram got a
+# STALLED + STATISTICAL ANOMALY pair every 5 minutes on 2026-10-11.
+ALERT_COOLDOWN_MIN = {
+    "stalled": 12 * 60,
+    "statistical_anomaly": 6 * 60,
+    "runaway": 6 * 60,
+    "temp_deviation": 60,
+    "frozen_reading": 24 * 60,
+}
+
+# A floating Tilt's reading moves with temperature. Gravity *exactly* flat
+# while the temperature swings means it's stuck at one angle (against the
+# side/bottom, or out of liquid) - on 2026-10-11 it sat at exactly 1.040 while
+# the temperature fell ~5C, still broadcasting, so signal loss couldn't see
+# it. Flat gravity alone isn't enough: calm water or a finished, still beer
+# can legitimately hold one value for hours.
+FROZEN_READING_HOURS = 12
+FROZEN_MIN_READINGS = 60
+FROZEN_MIN_TEMP_SWING_C = 2.0
+
+
+def _alert_due(kind: str) -> bool:
+    """True (and starts the cooldown) if a `kind` alert may be sent now."""
+    key = f"anomaly_alert_ts_{kind}"
+    now = datetime.now(timezone.utc).timestamp()
+    last = cache.get(key)
+    if last is not None and (now - last) / 60 < ALERT_COOLDOWN_MIN[kind]:
+        return False
+    cache.set(key, now, ttl=ALERT_COOLDOWN_MIN[kind] * 60 + 3600)
+    return True
 RUNAWAY_THRESHOLD_POINTS_12H = 20.0   # SG change > 0.020 in 12h
 TEMP_DEVIATION_C = 1.0                 # ±1.0°C from target for 30m
 SIGNAL_LOSS_MINUTES = 60               # No reading for > 60 min
@@ -116,13 +149,14 @@ def calculate_anomaly_score() -> Dict[str, Any]:
                 f"Temp Z: {temp_zscore:.2f} | SG Rate Z: {sg_rate_zscore:.2f}\n\n"
                 f"*Action:* Review current readings"
             )
-            send_telegram_message(alert_msg)
-            broadcast_alert("statistical_anomaly", f"Statistical anomaly detected: {which_anomaly}", "warning", {
-                "anomaly_score": result["anomaly_score"],
-                "temp_zscore": result["temp_zscore"],
-                "sg_rate_zscore": result["sg_rate_zscore"]
-            })
-            result["alert_sent"] = True
+            if _alert_due("statistical_anomaly"):
+                send_telegram_message(alert_msg)
+                broadcast_alert("statistical_anomaly", f"Statistical anomaly detected: {which_anomaly}", "warning", {
+                    "anomaly_score": result["anomaly_score"],
+                    "temp_zscore": result["temp_zscore"],
+                    "sg_rate_zscore": result["sg_rate_zscore"]
+                })
+                result["alert_sent"] = True
             
         elif max_zscore > Z_SCORE_THRESHOLD * 0.8:  # 80% of threshold
             result["status"] = "elevated"
@@ -173,8 +207,10 @@ def check_stalled_fermentation(batch_name: str = "Current Batch") -> Dict[str, A
         sg_change = first_sg - last_sg  # Positive = dropping (fermenting)
         points_per_day = (sg_change * 1000) / (hours_elapsed / 24)
         
-        # Only alert if we're in active fermentation (SG > 1.020)
-        if last_sg > 1.020 and points_per_day < STALL_THRESHOLD_POINTS_PER_DAY:
+        # Only alert if we're in active fermentation (SG > 1.020) and gravity
+        # has flattened. Gravity *rising* by more than noise isn't a stall -
+        # it means the hydrometer was moved or is misreading.
+        if last_sg > 1.020 and -STALL_THRESHOLD_POINTS_PER_DAY < points_per_day < STALL_THRESHOLD_POINTS_PER_DAY:
             alert_msg = (
                 f"🛑 *STALLED FERMENTATION: {batch_name}*\n\n"
                 f"SG Change: {sg_change:.4f} ({points_per_day:.1f} pts/day)\n"
@@ -185,11 +221,13 @@ def check_stalled_fermentation(batch_name: str = "Current Batch") -> Dict[str, A
                 f"• Gently rouse yeast\n"
                 f"• Consider yeast nutrient"
             )
-            send_telegram_message(alert_msg, current_values={"sg": last_sg})
-            broadcast_alert("stalled", f"Stalled fermentation: {batch_name}", "critical", {"sg": last_sg})
+            sent = _alert_due("stalled")
+            if sent:
+                send_telegram_message(alert_msg, current_values={"sg": last_sg})
+                broadcast_alert("stalled", f"Stalled fermentation: {batch_name}", "critical", {"sg": last_sg})
             return {
                 "status": "stalled",
-                "alert_sent": True,
+                "alert_sent": sent,
                 "sg_change": round(sg_change, 4),
                 "points_per_day": round(points_per_day, 2),
                 "current_sg": round(last_sg, 3)
@@ -305,11 +343,13 @@ def check_temperature_deviation(
             f"Profile: {profile_source}\n\n"
             f"*Action:* Check glycol chiller / heating wrap"
         )
-        send_telegram_message(alert_msg, current_values={"temp": avg_temp})
-        broadcast_alert("temp_deviation", f"Temp {direction}: {avg_temp:.1f}°C", "warning", {"temp": avg_temp})
+        sent = _alert_due("temp_deviation")
+        if sent:
+            send_telegram_message(alert_msg, current_values={"temp": avg_temp})
+            broadcast_alert("temp_deviation", f"Temp {direction}: {avg_temp:.1f}°C", "warning", {"temp": avg_temp})
         return {
             "status": "deviation",
-            "alert_sent": True,
+            "alert_sent": sent,
             "current_temp": round(avg_temp, 1),
             "safe_range": range_str,
             "deviation": round(deviation, 1),
@@ -372,11 +412,13 @@ def check_runaway_fermentation(batch_name: str = "Current Batch") -> Dict[str, A
                 f"• Blowoff tube clearance\n"
                 f"• Lower temp if needed"
             )
-            send_telegram_message(alert_msg)
-            broadcast_alert("runaway", f"Runaway fermentation: {batch_name}", "critical", {"sg_drop": sg_drop})
+            sent = _alert_due("runaway")
+            if sent:
+                send_telegram_message(alert_msg)
+                broadcast_alert("runaway", f"Runaway fermentation: {batch_name}", "critical", {"sg_drop": sg_drop})
             return {
                 "status": "runaway",
-                "alert_sent": True,
+                "alert_sent": sent,
                 "sg_drop_12h": round(sg_drop, 4),
                 "points_dropped": round(points_dropped, 1)
             }
@@ -392,6 +434,27 @@ def check_runaway_fermentation(batch_name: str = "Current Batch") -> Dict[str, A
         return {"status": "error", "error": str(e)}
 
 
+SIGNAL_LOSS_REMINDER_MIN = 240  # Once alerted, don't re-alert for 4h while still offline
+
+
+def _should_send_signal_loss_alert() -> bool:
+    """
+    Signal loss is a persistent condition, not a one-off event - it can
+    stay true for hours/days/months (dead battery, no active batch, etc).
+    Alert immediately the first time, then only send reminders at most
+    every SIGNAL_LOSS_REMINDER_MIN, instead of every anomaly-check cycle.
+    """
+    last_alert_ts = cache.get("last_signal_loss_alert")
+    if last_alert_ts is None:
+        return True
+    elapsed_min = (datetime.now(timezone.utc).timestamp() - last_alert_ts) / 60
+    return elapsed_min >= SIGNAL_LOSS_REMINDER_MIN
+
+
+def _mark_signal_loss_alert_sent() -> None:
+    cache.set("last_signal_loss_alert", datetime.now(timezone.utc).timestamp(), ttl=86400 * 2)
+
+
 def check_signal_loss(batch_name: str = "Current Batch") -> Dict[str, Any]:
     """
     Detects Tilt hydrometer signal loss (no reading for > 60 minutes).
@@ -403,64 +466,91 @@ def check_signal_loss(batch_name: str = "Current Batch") -> Dict[str, Any]:
             |> range(start: -24h)
             |> filter(fn: (r) => r["_measurement"] == "sensor_data")
             |> filter(fn: (r) => r["_field"] == "SG")
-            |> last()
+            |> group() |> sort(columns: ["_time"]) |> last()
         '''
+        # sensor_data is tagged with Telegraf's container hostname, which
+        # changes on every redeploy; without group() last() returns one table
+        # per hostname and an old one could make a live Tilt look offline.
         tables = query_api.query(query)
-        
+
         last_reading_time = None
         for table in tables:
             for record in table.records:
-                last_reading_time = record.get_time()
-        
+                t = record.get_time()
+                if last_reading_time is None or t > last_reading_time:
+                    last_reading_time = t
+
         if last_reading_time is None:
             # No readings at all in 24h
-            alert_msg = (
-                f"📡 *TILT OFFLINE: {batch_name}*\n\n"
-                f"No readings in last 24 hours!\n\n"
-                f"*Check:*\n"
-                f"• Tilt battery\n"
-                f"• TiltPi/Bluetooth connection\n"
-                f"• Tilt orientation in wort"
-            )
-            send_telegram_message(alert_msg)
-            return {"status": "offline", "alert_sent": True, "minutes_since": "24h+"}
-        
+            should_alert = _should_send_signal_loss_alert()
+            alert_sent = False
+            if should_alert:
+                alert_msg = (
+                    f"📡 *TILT OFFLINE: {batch_name}*\n\n"
+                    f"No readings in last 24 hours!\n\n"
+                    f"*Check:*\n"
+                    f"• Tilt battery\n"
+                    f"• TiltPi/Bluetooth connection\n"
+                    f"• Tilt orientation in wort"
+                )
+                result = send_telegram_message(alert_msg, force=True)
+                alert_sent = result.get("status") == "success"
+                if alert_sent:
+                    _mark_signal_loss_alert_sent()
+            return {"status": "offline", "alert_sent": alert_sent, "minutes_since": "24h+"}
+
         # Calculate time since last reading
         now = datetime.now(timezone.utc)
         minutes_since = (now - last_reading_time).total_seconds() / 60
-        
+
         timeout_min = int(get_config("tilt_timeout_min") or SIGNAL_LOSS_MINUTES)
-        
+
         if minutes_since > timeout_min:
-            # TRIGGER AUTO-TROUBLESHOOTING FIRST
+            should_alert = _should_send_signal_loss_alert()
+            if not should_alert:
+                return {
+                    "status": "signal_loss",
+                    "alert_sent": False,
+                    "reason": "reminder_throttled",
+                    "minutes_since": round(minutes_since, 1),
+                    "last_reading": last_reading_time.isoformat()
+                }
+
+            # TRIGGER AUTO-TROUBLESHOOTING FIRST (only when we're actually alerting)
             logger.info(f"Signal loss detected ({int(minutes_since)} min). Running automated diagnostics...")
             troubleshoot_result = troubleshoot_tiltpi()
-            
+
             alert_msg = (
                 f"📡 *TILT SIGNAL LOSS: {batch_name}*\n\n"
                 f"Last reading: {int(minutes_since)} minutes ago\n"
                 f"Threshold: {timeout_min} minutes\n\n"
                 f"*Automated Diagnostics:* {troubleshoot_result.get('status', 'unknown')}\n"
-                f"*Action:* Check Tilt battery and Bluetooth bridge."
+                f"*Action:* Check Tilt battery and Bluetooth bridge.\n\n"
+                f"_Next reminder in {SIGNAL_LOSS_REMINDER_MIN // 60}h if still offline._"
             )
-            # Signal loss is ALWAYS immediate (force=True)
-            send_telegram_message(alert_msg, force=True)
+            # First alert (and each subsequent reminder) is immediate - the
+            # reminder cooldown above is what actually prevents spam now,
+            # not the shared/generic verbosity gate.
+            result = send_telegram_message(alert_msg, force=True)
+            alert_sent = result.get("status") == "success"
+            if alert_sent:
+                _mark_signal_loss_alert_sent()
             broadcast_alert("signal_loss", f"Tilt offline: {int(minutes_since)} min", "error")
-            
+
             return {
                 "status": "signal_loss",
-                "alert_sent": True,
+                "alert_sent": alert_sent,
                 "minutes_since": round(minutes_since, 1),
                 "last_reading": last_reading_time.isoformat(),
                 "troubleshoot": troubleshoot_result
             }
-        
+
         return {
             "status": "normal",
             "minutes_since": round(minutes_since, 1),
             "last_reading": last_reading_time.isoformat()
         }
-        
+
     except Exception as e:
         logger.error(f"Signal loss check error: {e}")
         return {"status": "error", "error": str(e)}
@@ -556,6 +646,48 @@ def check_fg_reached(batch_name: str = "Current Batch") -> Dict[str, Any]:
         return {"status": "error", "error": str(e)}
 
 
+def check_frozen_reading(batch_name: str = "Current Batch") -> Dict[str, Any]:
+    """Tilt still broadcasting but its gravity hasn't changed at all."""
+    try:
+        query = f'''
+        from(bucket: "{INFLUX_BUCKET}")
+            |> range(start: -{FROZEN_READING_HOURS}h)
+            |> filter(fn: (r) => r["_measurement"] == "sensor_data")
+            |> filter(fn: (r) => r["_field"] == "SG" or r["_field"] == "Temp")
+        '''
+        values, temps = [], []
+        for t in query_api.query(query):
+            for r in t.records:
+                v = r.get_value()
+                if v is None:
+                    continue
+                if r.get_field() == "SG":
+                    values.append(v)
+                else:
+                    temps.append((v - 32) * 5 / 9 if v > 40 else v)  # Tilt reports °F
+        if len(values) < FROZEN_MIN_READINGS:
+            return {"status": "insufficient_data", "readings": len(values)}
+        temp_swing = (max(temps) - min(temps)) if temps else 0.0
+        if max(values) - min(values) > 1e-9 or temp_swing < FROZEN_MIN_TEMP_SWING_C:
+            return {"status": "normal", "readings": len(values), "temp_swing": round(temp_swing, 1)}
+
+        sent = _alert_due("frozen_reading")
+        if sent:
+            send_telegram_message(
+                f"🧊 *TILT READING FROZEN: {batch_name}*\n\n"
+                f"Gravity has been exactly {values[-1]:.3f} for {FROZEN_READING_HOURS}h "
+                f"while the temperature moved {temp_swing:.1f}°C. A floating Tilt's reading "
+                f"shifts with temperature, so it's probably stuck: touching the side or "
+                f"bottom, or out of liquid.\n\n"
+                f"*Action:* Check it's floating freely."
+            )
+            broadcast_alert("frozen_reading", f"Tilt reading frozen at {values[-1]:.3f}", "warning")
+        return {"status": "frozen", "alert_sent": sent, "value": values[-1], "readings": len(values)}
+    except Exception as e:
+        logger.error(f"Frozen reading check error: {e}")
+        return {"status": "error", "error": str(e)}
+
+
 def run_all_anomaly_checks(batch_name: str = "Current Batch") -> Dict[str, Any]:
     """
     Runs all anomaly detection checks and returns combined results.
@@ -568,12 +700,33 @@ def run_all_anomaly_checks(batch_name: str = "Current Batch") -> Dict[str, Any]:
         "anomaly_score": 0.0,
         "anomaly_status": "ok"
     }
-    
+
+    # Phase 17.8: suppress all Tilt-related checks/alerts when no brew is
+    # active (e.g. between batches) - there's nothing wrong with the Tilt
+    # being "offline" if nobody is fermenting anything on it right now.
+    water_test = bool(get_config("water_test"))
+    if not get_config("brew_active") and not water_test:
+        results["anomaly_status"] = "ok"
+        results["status"] = "ok"
+        results["skipped"] = "brew_inactive"
+        return results
+
+    # Water test: the Tilt is in plain water, so fermentation checks (stall,
+    # runaway, temp, FG, statistical) are meaningless. Keep the Tilt health
+    # checks.
+    if water_test:
+        results["checks"]["signal_loss"] = check_signal_loss(batch_name)
+        results["checks"]["frozen_reading"] = check_frozen_reading(batch_name)
+        results["alerts_sent"] = sum(1 for c in results["checks"].values() if c.get("alert_sent", False))
+        results["status"] = "water_test"
+        return results
+
     # Run rule-based checks
     results["checks"]["stalled"] = check_stalled_fermentation(batch_name)
     results["checks"]["temp_deviation"] = check_temperature_deviation(batch_name=batch_name)
     results["checks"]["runaway"] = check_runaway_fermentation(batch_name)
     results["checks"]["signal_loss"] = check_signal_loss(batch_name)
+    results["checks"]["frozen_reading"] = check_frozen_reading(batch_name)
     results["checks"]["fg_reached"] = check_fg_reached(batch_name)
     
     # Run statistical anomaly detection

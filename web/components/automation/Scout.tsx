@@ -5,6 +5,7 @@ import { Search, ExternalLink, Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import toast from 'react-hot-toast';
 import type { ScoutResult } from '@/types/api';
+import { authHeaders } from '@/lib/api';
 
 export function Scout() {
     const [query, setQuery] = useState('');
@@ -19,11 +20,11 @@ export function Scout() {
         try {
             const res = await fetch('/api/automation/scout', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: authHeaders({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify({ query })
             });
             const data = await res.json();
-            if (data.error) throw new Error(data.error);
+            if (!res.ok || data.error) throw new Error(data.error || data.message || `Search failed (HTTP ${res.status})`);
             const resArray = Array.isArray(data) ? data : (Array.isArray(data.data) ? data.data : []);
             setResults(resArray);
             toast.success(`Found ${resArray.length} results`);

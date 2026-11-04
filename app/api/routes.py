@@ -46,8 +46,13 @@ def health_maintenance():
         cached_maint = cache.get("maintenance_summary")
         if cached_maint:
             return jsonify({"status": "success", "data": cached_maint})
-            
-        return jsonify({"status": "processing", "message": "Gathering maintenance stats"}), 202
+
+        # Nothing pre-fills this cache, so work it out here. It's cheap
+        # (disk usage, Pi temp, SD I/O counters).
+        from services.status import get_maintenance_summary
+        summary = get_maintenance_summary()
+        cache.set("maintenance_summary", summary, ttl=60)
+        return jsonify({"status": "success", "data": summary})
     except Exception as e:
         return handle_error(e, "Maintenance Error")
 

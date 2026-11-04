@@ -30,8 +30,15 @@ export function NavBar() {
                 </header>
 
                 <nav className="flex-1 py-6 flex flex-col gap-2 px-3">
-                    {NAV_ITEMS.map((item) => (
-                        <SidebarItem key={item.href} {...item} />
+                    {NAV_ITEMS.map((item, i) => (
+                        <div key={item.href}>
+                            {item.group !== NAV_ITEMS[i - 1]?.group && (
+                                <div className="hidden lg:block px-3 pt-4 pb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 first:pt-0">
+                                    {item.group}
+                                </div>
+                            )}
+                            <SidebarItem {...item} />
+                        </div>
                     ))}
                 </nav>
 
@@ -68,12 +75,18 @@ export function NavBar() {
             {/* Mobile Menu Overlay */}
             {mobileMenuOpen && (
                 <div className="md:hidden fixed inset-0 z-40 bg-background/95 backdrop-blur-sm animate-in fade-in slide-in-from-top-10 pt-[calc(5rem+env(safe-area-inset-top))] px-6 pb-6 flex flex-col gap-4">
-                    {NAV_ITEMS.map((item) => (
-                        <MobileMenuItem 
-                            key={item.href} 
-                            {...item} 
-                            onClick={() => setMobileMenuOpen(false)} 
-                        />
+                    {NAV_ITEMS.map((item, i) => (
+                        <div key={item.href}>
+                            {item.group !== NAV_ITEMS[i - 1]?.group && (
+                                <div className="px-1 pt-2 pb-2 text-xs font-bold uppercase tracking-wider text-muted-foreground/60 first:pt-0">
+                                    {item.group}
+                                </div>
+                            )}
+                            <MobileMenuItem
+                                {...item}
+                                onClick={() => setMobileMenuOpen(false)}
+                            />
+                        </div>
                     ))}
                 </div>
             )}

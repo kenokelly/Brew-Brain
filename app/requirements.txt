@@ -21,3 +21,4 @@ pyarrow>=14.0.0
 celery>=5.3.4
 redis>=5.0.1
 pydantic>=2.0.0
+anthropic>=1.13.0,<2

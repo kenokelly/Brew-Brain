@@ -12,7 +12,11 @@ def get_taps() -> Tuple[Response, int]:
     """Get active kiosk tap list with dynamic QR codes."""
     try:
         from services.taps import get_tap_list
-        base_url = request.host_url.rstrip('/')
+        # Behind nginx, Host has no port (the web app is on :3001), so use
+        # the host the browser actually asked for.
+        host = request.headers.get('X-Forwarded-Host') or request.host
+        scheme = request.headers.get('X-Forwarded-Proto') or request.scheme
+        base_url = f"{scheme}://{host}"
         taps_data = get_tap_list(base_url)
         return api_response(data={"taps": taps_data})
     except Exception as e:

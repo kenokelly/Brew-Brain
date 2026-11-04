@@ -17,6 +17,10 @@ def make_celery(app_name=__name__):
         include=['ml.tasks', 'services.tasks']
     )
     
+    # Report STARTED (not just PENDING) so polling clients can tell a queued
+    # job from one that's running, e.g. chat "queued" vs "thinking".
+    celery.conf.task_track_started = True
+
     # Configure periodic tasks (Beat schedule)
     from celery.schedules import crontab
     celery.conf.beat_schedule = {
@@ -59,6 +63,14 @@ def make_celery(app_name=__name__):
         'brewfather-sync-daily': {
             'task': 'services.tasks.sync_brewfather',
             'schedule': 86400.0,
+        },
+        'poll-telegram-commands': {
+            'task': 'services.tasks.poll_telegram_commands',
+            'schedule': 10.0,
+        },
+        'track-fermentation-progress': {
+            'task': 'services.tasks.track_fermentation_progress',
+            'schedule': 900.0,
         }
     }
     

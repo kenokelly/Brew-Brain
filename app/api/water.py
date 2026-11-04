@@ -1,7 +1,8 @@
 from flask import Blueprint, request, jsonify
 from services.water_chemistry import calculate_salt_additions, get_all_profiles, get_ro_water_source
+from services.mash_chemistry import predict_mash_ph
 from pydantic import BaseModel, Field
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 water_bp = Blueprint('water', __name__)
 
@@ -10,10 +11,28 @@ class WaterAdjustmentRequest(BaseModel):
     target_profile: str
     volume_liters: float = 23.0
 
+class MashPHRequest(BaseModel):
+    grains: List[Dict]
+    water_profile: Dict[str, float]
+    target_ph: float = 5.4
+    mash_volume_l: float = 20.0
+
 @water_bp.route('/profiles', methods=['GET'])
 def list_profiles():
     """List all available target water profiles."""
     return jsonify({"status": "success", "data": get_all_profiles()})
+
+@water_bp.route('/mash-ph', methods=['POST'])
+def mash_ph():
+    """Predicts mash pH from a grain bill and water chemistry (Kolbach RA)."""
+    try:
+        data = MashPHRequest(**request.json)
+        result = predict_mash_ph(data.grains, data.water_profile, data.target_ph, data.mash_volume_l)
+        if "error" in result:
+            return jsonify({"status": "error", "message": result["error"]}), 400
+        return jsonify({"status": "success", "data": result})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 400
 
 @water_bp.route('/calculate', methods=['POST'])
 @water_bp.route('/<target_profile>', methods=['GET'])

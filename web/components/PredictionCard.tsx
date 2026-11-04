@@ -48,12 +48,12 @@ export function PredictionCard({ className }: PredictionCardProps) {
 
     if (error || !prediction) {
         return (
-            <div className={cn("bg-zinc-900/50 border border-zinc-800 rounded-xl p-6 h-full flex flex-col justify-center items-center gap-2 text-zinc-500", className)}>
+            <div className={cn("bg-card border border-border rounded-xl p-6 h-full flex flex-col justify-center items-center gap-2 text-muted-foreground", className)}>
                 <Brain className="w-6 h-6 mb-2 opacity-50" />
                 <p className="text-sm text-center">{error || 'No active prediction'}</p>
                 <button
                     onClick={() => { setIsLoading(true); fetchPrediction(); }}
-                    className="text-xs text-blue-400 hover:text-blue-300 transition-colors mt-2"
+                    className="text-xs text-primary hover:text-primary/80 transition-colors mt-2"
                 >
                     Retry
                 </button>
@@ -65,18 +65,18 @@ export function PredictionCard({ className }: PredictionCardProps) {
     const isML = prediction_fg.method === 'ml_model';
 
     return (
-        <div className={cn("bg-zinc-900/50 border border-zinc-800 rounded-xl overflow-hidden flex flex-col h-full", className)}>
-            <div className="p-4 border-b border-zinc-800 flex items-center justify-between bg-zinc-900/30">
+        <div className={cn("bg-card border border-border rounded-xl overflow-hidden flex flex-col h-full", className)}>
+            <div className="p-4 border-b border-border flex items-center justify-between bg-secondary/20">
                 <div className="flex items-center gap-2">
                     <div className={cn(
                         "p-1.5 rounded-lg",
-                        isML ? "bg-purple-500/10 text-purple-400" : "bg-zinc-800 text-zinc-400"
+                        isML ? "bg-purple-500/10 text-purple-400" : "bg-secondary text-muted-foreground"
                     )}>
                         <Brain className="w-4 h-4" />
                     </div>
                     <div>
-                        <h3 className="text-sm font-medium text-zinc-200">AI Predictions</h3>
-                        <p className="text-[10px] text-zinc-500 uppercase tracking-wider font-semibold">
+                        <h3 className="text-sm font-medium text-foreground">AI Predictions</h3>
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
                             {isML ? 'Machine Learning Model' : 'Formula Estimator'}
                         </p>
                     </div>
@@ -97,25 +97,25 @@ export function PredictionCard({ className }: PredictionCardProps) {
                 {/* Main Predictions */}
                 <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1">
-                        <span className="text-xs text-zinc-500 flex items-center gap-1">
+                        <span className="text-xs text-muted-foreground flex items-center gap-1">
                             <TrendingDown className="w-3 h-3" /> Predicted FG
                         </span>
-                        <div className="text-2xl font-bold text-zinc-100 tracking-tight">
+                        <div className="text-2xl font-bold text-foreground tracking-tight">
                             {prediction_fg.predicted_fg.toFixed(3)}
                         </div>
-                        <p className="text-[10px] text-zinc-500">
+                        <p className="text-[10px] text-muted-foreground">
                             Est. ABV: {prediction_fg.predicted_abv}%
                         </p>
                     </div>
                     <div className="space-y-1">
-                        <span className="text-xs text-zinc-500 flex items-center gap-1">
+                        <span className="text-xs text-muted-foreground flex items-center gap-1">
                             <Clock className="w-3 h-3" /> Time Remaining
                         </span>
-                        <div className="text-2xl font-bold text-zinc-100 tracking-tight">
-                            {prediction_time.days_remaining} <span className="text-sm font-normal text-zinc-400">days</span>
+                        <div className="text-2xl font-bold text-foreground tracking-tight">
+                            {prediction_time.days_remaining} <span className="text-sm font-normal text-muted-foreground">days</span>
                         </div>
                         {prediction_time.total_estimated_days && (
-                            <p className="text-[10px] text-zinc-500">
+                            <p className="text-[10px] text-muted-foreground">
                                 Total cycle: {prediction_time.total_estimated_days} days
                             </p>
                         )}
@@ -123,32 +123,32 @@ export function PredictionCard({ className }: PredictionCardProps) {
                 </div>
 
                 {/* Live Features / Data Quality */}
-                <div className="space-y-3 pt-2 border-t border-zinc-800/50">
-                    <h4 className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest flex items-center gap-2">
+                <div className="space-y-3 pt-2 border-t border-border/50">
+                    <h4 className="text-[10px] font-bold text-muted-foreground/80 uppercase tracking-widest flex items-center gap-2">
                         <Activity className="w-3 h-3" /> Feature Analysis
                     </h4>
                     <div className="grid grid-cols-3 gap-2">
-                        <div className="bg-zinc-800/30 rounded-lg p-2 border border-zinc-800/30">
-                            <div className="text-[10px] text-zinc-500 flex items-center gap-1 mb-1">
+                        <div className="bg-secondary/30 rounded-lg p-2 border border-border/30">
+                            <div className="text-[10px] text-muted-foreground flex items-center gap-1 mb-1">
                                 <TrendingDown className="w-2.5 h-2.5" /> Velocity
                             </div>
-                            <div className="text-xs font-mono text-zinc-300">
+                            <div className="text-xs font-mono text-foreground/80">
                                 {features.velocity?.toFixed(2) || '--.--'} pts/d
                             </div>
                         </div>
-                        <div className="bg-zinc-800/30 rounded-lg p-2 border border-zinc-800/30">
-                            <div className="text-[10px] text-zinc-500 flex items-center gap-1 mb-1">
+                        <div className="bg-secondary/30 rounded-lg p-2 border border-border/30">
+                            <div className="text-[10px] text-muted-foreground flex items-center gap-1 mb-1">
                                 <Thermometer className="w-2.5 h-2.5" /> Variant
                             </div>
-                            <div className="text-xs font-mono text-zinc-300">
+                            <div className="text-xs font-mono text-foreground/80">
                                 {features.temp_variance?.toFixed(2) || '--.--'}°
                             </div>
                         </div>
-                        <div className="bg-zinc-800/30 rounded-lg p-2 border border-zinc-800/30">
-                            <div className="text-[10px] text-zinc-500 flex items-center gap-1 mb-1">
+                        <div className="bg-secondary/30 rounded-lg p-2 border border-border/30">
+                            <div className="text-[10px] text-muted-foreground flex items-center gap-1 mb-1">
                                 <Database className="w-2.5 h-2.5" /> Data
                             </div>
-                            <div className="text-xs font-mono text-zinc-300">
+                            <div className="text-xs font-mono text-foreground/80">
                                 {batch_metadata.data_points ?? '--'} pts
                             </div>
                         </div>
@@ -156,13 +156,13 @@ export function PredictionCard({ className }: PredictionCardProps) {
                 </div>
             </div>
 
-            <div className="px-4 py-2 bg-zinc-900/50 border-t border-zinc-800 flex items-center justify-between">
-                <span className="text-[10px] text-zinc-600 italic">
+            <div className="px-4 py-2 bg-card border-t border-border flex items-center justify-between">
+                <span className="text-[10px] text-muted-foreground/80 italic">
                     Updated every 10 min
                 </span>
                 <button
                     onClick={() => { setIsLoading(true); fetchPrediction(); }}
-                    className="group flex items-center gap-1 text-[10px] text-blue-400/80 hover:text-blue-400 transition-colors"
+                    className="group flex items-center gap-1 text-[10px] text-primary/80 hover:text-primary transition-colors"
                 >
                     Refresh <ChevronRight className="w-2.5 h-2.5 group-hover:translate-x-0.5 transition-transform" />
                 </button>

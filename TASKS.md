@@ -263,6 +263,113 @@ Transform Brew Brain from a monitoring dashboard into an **Intelligent Fermentat
 
 ---
 
+### Phase 21 — Taproom Telemetry, AI Brew Day Coach & Advanced ML Modeling ✅ / ⏸️
+
+> This master plan had fallen out of sync with `docs/plans/phase2/*.md`, which were still
+> labeled "Proposal/Draft" for streams that were actually already implemented. Reconciled here.
+
+- [x] **21.1 AI Brew Day Coach** (`docs/plans/phase2/02-ai-brewday.md`) — Live brew-day coaching,
+  gravity/volume corrections, auto-logging. Implemented in `app/services/brewday_coach.py` and
+  the `/api/brewday/*` routes.
+- [x] **21.2 Taproom Telemetry** (`docs/plans/phase2/03-taproom-automation.md`) — Keg scale and
+  flow-meter ingestion, Untappd check-ins. Implemented in `app/services/flow_manager.py`,
+  `app/services/scale_processor.py`, `app/api/telemetry_receiver.py`.
+- [x] **21.3 Advanced ML Modeling** (`docs/plans/phase2/04-ml-modeling.md`) — Yeast pitch
+  kinetics, hop-creep prediction, cross-batch DTW correlation. Implemented in
+  `app/ml/kinetic_engine.py`, `app/ml/creep_analyzer.py`, `app/ml/correlation.py`.
+- [ ] **21.4 DIY Temp/Pressure Control** (`docs/plans/phase2/01-diy-control.md`) — MQTT/Tasmota
+  relay control + spunding valve automation. **Not started** — deferred, no hardware available yet.
+
+### Phase 22 — Mash pH Prediction ✅ (MCP server deferred)
+
+- [x] **22.1 Kolbach Residual Alkalinity Formula** (`docs/plans/phase-9.9-mcp-integration.md`) —
+  `app/services/mash_chemistry.py` previously had a no-op bicarbonate→CaCO3 conversion
+  (`bicarbonate / 50 * 50`) which silently produced incorrect Residual Alkalinity values. Fixed
+  to use the correct 50/61 equivalent-weight conversion, and the RA→pH shift coefficient
+  corrected to the published ~0.002 pH/ppm (Palmer, *How to Brew*).
+- [x] **22.1b Mash pH API Route** — `predict_mash_ph()` had no HTTP route at all (dead code, no
+  caller). Added `POST /api/water/mash-ph`.
+- [x] **22.1c Mash Prediction Dashboard Card** — Mash pH card on the Automation → Water Profile tab (commit `4932d29`).
+- [ ] **22.2 MCP Server** — Expose Brew-Brain as an MCP tool provider. **Not started** — deferred.
+
+### Phase 23 — Beta Dashboard (`/beta`) 🧪
+
+Dark instrument-panel dashboard running alongside the production one at `/` until promoted.
+
+- [x] **23.1 Recipe step timeline** — Brewfather sync now stores the fermentation profile
+  (`ferm_steps`, `ferm_start`); `app/services/fermentation.py` lays it on the calendar
+  (current step, next step and countdown, time to cold crash / packaging, target temp).
+- [x] **23.2 Autopilot journal** — `app/services/journal.py`; every alert/report passing through
+  `send_telegram_message()` is logged (even when quiet hours suppress Telegram), plus step
+  changes, "next step in <24h" and phase changes from the `track_fermentation_progress` beat
+  task (15 min), plus manual notes. `GET/POST /api/fermentation/journal`.
+- [x] **23.3 Headline fermentation metrics** — regression velocity (pts/day), phase
+  (LAG/ACTIVE/SLOWING/STABLE/STALLED), attenuation, ABV, ETA to FG. `GET /api/fermentation/summary`.
+- [x] **23.4 Native fermentation chart** — gravity, beer temp, step target, velocity, ABV since
+  pitch (Recharts, replaces the Grafana iframe on the beta page). `GET /api/fermentation/history`.
+- [x] **23.5 Config reload across processes** — celery-worker/beat now pick up `config.json`
+  writes from the web app (they previously kept their startup copy, so e.g. Brew Active changes
+  only reached them after a restart).
+- [ ] **23.6 Promote to production** — replace `/` once validated against a live ferment.
+
+### Ops — 2026-09-29
+
+- [x] Pi dropped off Wi-Fi overnight while still running → Wi-Fi power save disabled
+  persistently, journald made persistent (100 MB cap). See `docs/TROUBLESHOOTING.md` §5.
+- [x] `deploy_and_verify.sh` now fails fast if the Pi is unreachable or rsync fails
+  (previously a bare `wait` masked rsync errors).
+- [ ] Consider wired Ethernet for the Pi (most robust fix for network drops).
+- [x] Deploys keep a week of Docker build cache (pruning all of it forced a ~15 min full
+  rebuild on every deploy).
+- [x] **Dev batch** (`app/tools/dev_batch.py`) for development against the Tilt sitting in water:
+  `docker exec brew-brain python -m tools.dev_batch start|status|restore`. `start` snapshots the
+  real batch settings once, then runs a 4-step, 30-hour schedule with Brew Active on so step
+  changes and the journal fire in real time; `restore` puts the real batch back.
+- [x] **Stale status fix**: `get_status_dict()` took `last()` per tag set (Color, yeast) and kept
+  whichever table came back last, so after a batch/yeast change the dashboard could show stale
+  gravity/temp/last-reading. Now grouped by field and newest wins; RSSI read from `sensor_data`.
+- [ ] `tilt_monitor.poll_tilt_api()` is never called (orphaned, like the Telegram poller was).
+  Status works from InfluxDB without it; wire it in or delete it.
+- [x] **Brewmaster chat reliability**: opening the Dashboard fired a ~2 min AI advice
+  generation on every view; Ollama serves one request at a time, so chat queued behind it and
+  timed out, and `keep_alive: 0` on the other AI calls evicted the model each time. Fixed: chat is
+  a Celery job the page polls (survives screen lock/app switch, resumes after reload), advice is
+  cached 1h with a single-flight lock, all calls share a 10m keep_alive, and reply length is capped.
+- [x] **Self-recovery** (`ops/recovery/`, installed by every deploy): network watchdog
+  (reconnect → radio toggle → NetworkManager restart → reboot, max 3 reboots/6h), app container
+  restarts on failed health checks, hardware watchdog, reboot on kernel panic, and a Telegram +
+  journal report after recovery. Tested against stubbed commands (`tests/test_recovery_watchdog.py`).
+  Installed 2026-10-11 and verified across a reboot.
+- [x] **Outage 2026-10-06 → 10-11, root cause**: the access point rejected Wi-Fi association a few
+  times (ASSOC-REJECT status 16) and NetworkManager gave up for good (default autoconnect-retries),
+  leaving the Pi running but offline until power-cycled. Fixed: retries set to infinite, self-recovery
+  installed. Pi now has a **DHCP reservation at 192.168.155.24**; the deploy script also scans the LAN
+  for host `tiltpi` if that address doesn't answer.
+- [x] **Alert spam fix**: anomaly.py stall/anomaly/runaway/temp checks had no cooldown (re-alerted
+  every 5 min); stall also fired on *rising* gravity. Cooldowns 12h/6h/6h/1h; rising gravity excluded.
+- [x] Brewmaster chat and dashboard advice get the live batch summary (`build_batch_context()`:
+  rounded values, step timeline, velocity, ETA, recent journal). Advice read a non-existent
+  `yeast_name` key (always "Unknown"); now `yeast_strain`.
+- [x] **Tilt monitoring**: frozen-reading alert (flat gravity while temperature moves), signal-loss
+  query fixed for per-deploy Telegraf hostname tags, duplicate signal-loss alert removed from
+  worker.py, and self-recovery restarts the Tilt receiver (Node-RED, then Bluetooth) when it goes quiet.
+- [x] **Water test mode** (beta dashboard → "Water test"): Tilt in plain water without faking a
+  batch. Pauses fermentation alerts (stall/runaway/anomaly/temp/FG, both pipelines) but keeps
+  Tilt offline/frozen alerts and receiver recovery; calibration card shows raw reading vs 1.000,
+  wobble, and suggested offset with an Apply button (refuses corrections > 15 points: that's a
+  tilted Tilt, not calibration). `POST /api/fermentation/water-test {start|stop|apply_offset}`.
+  Supersedes `tools/dev_batch` for water testing.
+- [x] **Cloud AI option** (Settings → Brewmaster AI): run every AI feature on the Pi (Ollama,
+  default) or via the Claude API (Opus 5 default with low effort + server-side refusal fallback;
+  Sonnet 5 / Haiku 4.5 selectable), falling back to the Pi when the cloud call fails. API key stored
+  in config (masked on read), "Test Cloud AI" button, chat header shows which AI answered.
+- [ ] Tilt calibration: reads 0.993 in plain water (should be 1.000), so offset ≈ +0.007.
+  Not applied yet, pending confirmation.
+- [ ] Frontend `__tests__/settings.test.tsx` hangs under vitest (pre-existing, not run in CI);
+  the other three frontend test files pass.
+
+---
+
 ## Reference Docs
 
 | Document | Purpose |

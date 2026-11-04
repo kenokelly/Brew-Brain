@@ -109,3 +109,58 @@ class TestConfig(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def test_get_config_picks_up_writes_from_another_process(tmp_path, monkeypatch):
+    """celery-worker/beat hold their own in-memory config; a setting saved by
+    the web process (e.g. brew_active) must reach them without a restart."""
+    import time
+    from app.core import config as cfg
+    path = tmp_path / "config.json"
+    monkeypatch.setattr(cfg, "CONFIG_PATH", str(path))
+    monkeypatch.setattr(cfg, "_config_instance", cfg.BrewBrainConfig())
+    with patch.object(cfg, "write_api"):
+        cfg.set_config("brew_active", False)
+    assert cfg.get_config("brew_active") is False
+
+    # Another process rewrites the file
+    data = json.loads(path.read_text())
+    data["brew_active"] = True
+    data["ferm_steps"] = [{"name": "Primary", "temp": 19, "days": 7}]
+    path.write_text(json.dumps(data))
+    os.utime(path, (time.time() + 5, time.time() + 5))
+    monkeypatch.setattr(cfg, "_last_mtime_check", 0.0)
+
+    assert cfg.get_config("brew_active") is True
+    assert cfg.get_config("ferm_steps")[0]["name"] == "Primary"
+
+
+def test_ferm_steps_rejects_non_list():
+    from app.core import config as cfg
+    assert cfg.BrewBrainConfig.model_validate({"ferm_steps": "[{'a': 1}]"}).ferm_steps == []
+
+
+def test_set_config_does_not_undo_another_process_write(tmp_path, monkeypatch):
+    """2026-10-12: a batch restore (one process) was overwritten a second
+    later when another process saved water_test from its stale copy."""
+    import time
+    from app.core import config as cfg
+    path = tmp_path / "config.json"
+    monkeypatch.setattr(cfg, "CONFIG_PATH", str(path))
+    monkeypatch.setattr(cfg, "_config_instance", cfg.BrewBrainConfig(batch_name="DEV"))
+    with patch.object(cfg, "write_api"):
+        cfg.set_config("brew_active", True)          # this process's copy: DEV
+
+        # Another process restores the real batch...
+        data = json.loads(path.read_text())
+        data["batch_name"] = "IPA no 1"
+        path.write_text(json.dumps(data))
+        os.utime(path, (time.time() + 5, time.time() + 5))
+
+        # ...and this process saves a different key straight away (no
+        # 2-second reload window has passed).
+        cfg.set_config("water_test", True)
+
+    saved = json.loads(path.read_text())
+    assert saved["batch_name"] == "IPA no 1"
+    assert saved["water_test"] is True

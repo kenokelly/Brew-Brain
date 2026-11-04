@@ -20,6 +20,7 @@ def settings() -> Tuple[Response, int]:
         if "bf_key" in safe_config and safe_config["bf_key"]: safe_config["bf_key"] = "********"
         if "alert_telegram_token" in safe_config and safe_config["alert_telegram_token"]: safe_config["alert_telegram_token"] = "********"
         if "serp_api_key" in safe_config and safe_config["serp_api_key"]: safe_config["serp_api_key"] = "********"
+        if safe_config.get("anthropic_api_key"): safe_config["anthropic_api_key"] = "********"
         return api_response(data=safe_config)
     
     try:
@@ -189,6 +190,23 @@ def test_integration() -> Tuple[Response, int]:
             except requests.exceptions.RequestException as e:
                 return api_response(status="error", error=f"Brewfather Network Error: {str(e)}", code=400)
                 
+        elif integration == 'anthropic':
+            from core.config import get_config
+            api_key = config.get('anthropic_api_key')
+            if not api_key or api_key == "********":
+                api_key = get_config("anthropic_api_key")
+            if not api_key:
+                return api_response(status="error", error="Missing Anthropic API key", code=400)
+            model = config.get('cloud_model') or get_config("cloud_model")
+            try:
+                import time
+                from services.ai import cloud_generate
+                t0 = time.time()
+                reply = cloud_generate("Reply with exactly: OK", "Connection test", api_key=api_key, model=model, max_tokens=2000)
+                return api_response(status="success", message=f"Cloud AI connected ({model}, {time.time() - t0:.1f}s): {reply[:40]}")
+            except Exception as e:
+                return api_response(status="error", error=f"Cloud AI error: {type(e).__name__}: {str(e)[:200]}", code=400)
+
         elif integration == 'serpapi':
             api_key = config.get('serp_api_key')
             

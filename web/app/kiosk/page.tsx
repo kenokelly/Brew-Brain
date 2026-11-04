@@ -100,6 +100,7 @@ export default function KioskPage() {
             <div className="absolute top-6 right-6 flex items-center gap-4 z-50">
                 <button 
                     onClick={() => router.push('/')}
+                    aria-label="Return home"
                     className="p-3 bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-800 rounded-full text-zinc-400 hover:text-white transition-all backdrop-blur-sm"
                     title="Return Home"
                 >
@@ -107,6 +108,7 @@ export default function KioskPage() {
                 </button>
                 <button 
                     onClick={toggleFullscreen}
+                    aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
                     className="p-3 bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-800 rounded-full text-zinc-400 hover:text-white transition-all backdrop-blur-sm"
                     title="Toggle Fullscreen"
                 >

@@ -37,7 +37,7 @@ def poll_tilt_api():
     fallback_urls = [
         "http://172.17.0.1:1880/macid/all",         # Docker gateway (Linux)
         "http://host.docker.internal:1880/macid/all", # Docker Desktop / Mac
-        "http://192.168.155.226:1880/macid/all",     # Last-resort hardcoded IP
+        "http://192.168.155.24:1880/macid/all",     # Last-resort hardcoded IP
     ]
     possible_urls = []
     if configured_url:

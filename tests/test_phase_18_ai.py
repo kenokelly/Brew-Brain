@@ -59,57 +59,70 @@ class TestPhase18AI(unittest.TestCase):
         res = search_yeast_meta("London Ale")
         self.assertEqual(res["name"], "Wyeast 1318 London Ale III")
 
-    @patch('services.ai.requests.post')
+    @patch('services.ai.build_batch_context', return_value="Batch: Test IPA\nGravity falling 5.0 points/day over the last 24 h")
     @patch('services.ai.get_config')
-    @patch('ml.features.query_batch_data')
-    @patch('ml.features.calculate_sg_velocity')
-    def test_get_proactive_advice_resource_control(self, mock_vel, mock_query, mock_config, mock_post):
-        """Verify keep_alive: 0 is present in Ollama calls."""
-        mock_config.return_value = "llama3"
-        mock_query.return_value = {"sg_readings": [1.050, 1.040], "sg_times": [datetime.now(), datetime.now()]}
-        mock_vel.return_value = 5.0
-        
+    @patch('services.ai.requests.post')
+    def test_get_proactive_advice_resource_control(self, mock_post, mock_config, mock_ctx):
+        """Advice keeps the model warm (shared keep_alive) and caps reply length.
+
+        It used keep_alive: 0, which evicted the model after every dashboard
+        view so the next chat message paid a ~23s reload on top of CPU
+        inference."""
+        mock_config.side_effect = lambda k: {"yeast_strain": "Unknown", "test_mode": False,
+                                             "water_test": False, "batch_notes": ""}.get(k, "llama3")
+
         # Mock successful response
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = {"response": "Advice text"}
         mock_post.return_value = mock_response
 
-        with patch('services.status.get_status_dict') as mock_status:
+        import services.ai as ai_mod
+        with patch('services.status.get_status_dict') as mock_status, \
+             patch.object(ai_mod.cache, 'get', return_value=None), \
+             patch.object(ai_mod.cache, 'set') as mock_cache_set, \
+             patch.object(ai_mod.cache, 'redis_client', None):
             mock_status.return_value = {"sg": 1.040, "temp": 20.0}
             get_proactive_advice()
 
-        # Check that keep_alive: 0 was sent
         args, kwargs = mock_post.call_args
         payload = kwargs['json']
-        self.assertEqual(payload['keep_alive'], 0)
-        self.assertIn("Fermentation Velocity: 5.0", payload['prompt'])
+        self.assertEqual(payload['keep_alive'], ai_mod.OLLAMA_KEEP_ALIVE)
+        self.assertEqual(payload['options']['num_predict'], ai_mod.ADVICE_MAX_TOKENS)
+        mock_cache_set.assert_called_once()
+        self.assertIn("Gravity falling 5.0 points/day", payload['prompt'])
+        # Reads the real config key (it used to read a non-existent "yeast_name")
+        self.assertIn(unittest.mock.call("yeast_strain"), mock_config.call_args_list)
 
-    @patch('services.ai.requests.post')
+    @patch('ml.features.calculate_sg_velocity')
     @patch('ml.features.query_batch_data')
-    def test_predict_issues_stall(self, mock_query, mock_post):
+    @patch('services.ai.get_config')
+    @patch('services.ai.requests.post')
+    def test_predict_issues_stall(self, mock_post, mock_config, mock_query, mock_vel):
         """Verify predict_issues detects slowing trends."""
+        mock_config.side_effect = lambda k: "1.010" if k == "target_fg" else "llama3"
+        mock_vel.side_effect = [1.0, 10.0] # 12h vs 48h
         # Simulate significant slowing: 48h avg = 10 pts/day, 12h avg = 1 pt/day
         mock_query.side_effect = [
             {"sg_readings": [1.050, 1.0495], "sg_times": [datetime.now(), datetime.now()]}, # 12h
             {"sg_readings": [1.050, 1.040], "sg_times": [datetime.now(), datetime.now()]}   # 48h
         ]
         
-        # We need to mock calculate_sg_velocity since we are mocking query_batch_data
-        with patch('ml.features.calculate_sg_velocity') as mock_vel:
-            mock_vel.side_effect = [1.0, 10.0] # 12h vs 48h
-            
-            mock_response = MagicMock()
-            mock_response.status_code = 200
-            mock_response.json.return_value = {"response": "High risk of stall"}
-            mock_post.return_value = mock_response
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"response": "High risk of stall"}
+        mock_post.return_value = mock_response
 
-            with patch('services.status.get_status_dict') as mock_status:
-                mock_status.return_value = {"sg": 1.040}
-                res = predict_issues()
-                
-                self.assertIsNotNone(res)
-                self.assertIn("AI PREDICTION", res)
+        with patch('services.status.get_status_dict') as mock_status:
+            mock_status.return_value = {"sg": 1.040}
+            res = predict_issues()
+            
+            self.assertIsNotNone(res)
+            self.assertIn("AI PREDICTION", res)
+
+
+
+
 
 if __name__ == '__main__':
     unittest.main()

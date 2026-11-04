@@ -1,7 +1,7 @@
 import os
 import logging
 import json
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from logging.handlers import RotatingFileHandler
 from datetime import datetime, timezone
 from influxdb_client import Point
@@ -39,6 +39,14 @@ class BrewBrainConfig(BaseModel):
     test_mode: bool = False
     temp_max: float = 28.0
     tilt_timeout_min: int = 60
+    # Gates Tilt-related anomaly checks/alerts (signal loss, stall, runaway,
+    # temp deviation) so they stay silent between batches when the Tilt is
+    # expected to be offline. Phase 17.8.
+    brew_active: bool = False
+    # Water test: Tilt floating in plain water to check calibration. Pauses
+    # fermentation alerts (stall/runaway/anomaly/temp/FG) but keeps the
+    # Tilt health ones (offline, frozen) and receiver recovery.
+    water_test: bool = False
     
     # Active Batch Details
     og: float = 1.050
@@ -59,6 +67,11 @@ class BrewBrainConfig(BaseModel):
     # AI/Services
     ollama_host: str = "127.0.0.1"
     ollama_model: str = "llama3:latest"
+    # "local" = Ollama on the Pi; "cloud" = Claude API, falling back to
+    # Ollama if the cloud call fails (no internet, bad key, outage).
+    ai_provider: str = "local"
+    anthropic_api_key: str = ""
+    cloud_model: str = "claude-opus-5"
     serp_api_key: str = ""
     
     # Simulation Defaults
@@ -82,6 +95,26 @@ class BrewBrainConfig(BaseModel):
     # When set, overrides the yeast-profile-based bounds in temp deviation checks.
     target_temp: Optional[float] = None
 
+    # Fermentation schedule from the Brewfather recipe:
+    # [{"name": str, "type": str, "temp": float (°C), "days": float}, ...]
+    ferm_steps: List[Dict[str, Any]] = []
+    # ISO timestamp the first step started (Brewfather fermentationStartDate,
+    # falling back to brewDate). Empty = use start_date.
+    ferm_start: str = ""
+    # ISO timestamp set by "Start log from now". Charts ignore readings before
+    # it (water tests, a previous batch). Empty = start at the batch start.
+    log_start: str = ""
+    # Chart view only: True shows the whole batch, ignoring log_start. Velocity,
+    # advice and alerts always start at log_start.
+    log_whole_batch: bool = False
+    # ISO timestamp the last water test ended. Readings before it are the Tilt
+    # in water, so velocity and charts start after it.
+    water_test_ended: str = ""
+
+    # Recipe details for the keg label, saved by the Brewfather sync:
+    # recipe_name, batch_no, brewer, abv, ibu, srm, hops, malts, carbonation
+    label_info: Dict[str, Any] = {}
+
     # Prediction
     prediction_end_date: str = ""
     
@@ -102,14 +135,15 @@ class BrewBrainConfig(BaseModel):
     @field_validator('batch_name', 'batch_notes', 'style', 'yeast_strain', 
                      'bf_user', 'bf_key', 'alert_telegram_token', 'alert_telegram_chat', 'tiltpi_url',
                      'ollama_host', 'ollama_model', 'serp_api_key', 'alert_start_time', 'alert_end_time',
-                     'prediction_end_date', 'yeast_flocculation', mode='before')
+                     'prediction_end_date', 'yeast_flocculation', 'ferm_start', 'log_start', 'water_test_ended',
+                     'anthropic_api_key', 'cloud_model', mode='before')
     @classmethod
     def coerce_string(cls, v: Any) -> str:
         if v is None:
             return ""
         return str(v)
 
-    @field_validator('yeast_min_temp', 'yeast_max_temp', 'yeast_attenuation', mode='before')
+    @field_validator('yeast_min_temp', 'yeast_max_temp', 'yeast_attenuation', 'target_temp', mode='before')
     @classmethod
     def coerce_optional_floats(cls, v: Any) -> Optional[float]:
         if v is None or v == "":
@@ -127,6 +161,20 @@ class BrewBrainConfig(BaseModel):
         if isinstance(v, dict):
             return v
         return {}
+
+    @field_validator('ai_provider', mode='before')
+    @classmethod
+    def coerce_provider(cls, v: Any) -> str:
+        return v if v in ("local", "cloud") else "local"
+
+    @field_validator('ferm_steps', mode='before')
+    @classmethod
+    def coerce_steps(cls, v: Any) -> List[Dict[str, Any]]:
+        # InfluxDB mirrors config as str(value); a refresh from Influx hands
+        # back that repr rather than a list, so treat anything else as empty.
+        if isinstance(v, list):
+            return [s for s in v if isinstance(s, dict)]
+        return []
 
     @field_validator('og', mode='before')
     @classmethod
@@ -186,7 +234,7 @@ class BrewBrainConfig(BaseModel):
         except (ValueError, TypeError):
             return fallback
 
-    @field_validator('test_mode', mode='before')
+    @field_validator('test_mode', 'brew_active', 'water_test', 'log_whole_batch', mode='before')
     @classmethod
     def coerce_bool(cls, v: Any) -> bool:
         if v is None:
@@ -203,6 +251,19 @@ _config_instance = BrewBrainConfig()
 # Config Paths
 CONFIG_PATH = os.path.join(DATA_DIR, "config.json")
 
+_config_mtime: float = 0.0
+
+
+def _record_mtime() -> None:
+    """Remember config.json's mtime so _reload_if_changed() only reloads on
+    writes made by *another* process."""
+    global _config_mtime
+    try:
+        _config_mtime = os.stat(CONFIG_PATH).st_mtime
+    except OSError:
+        pass
+
+
 def _save_config_to_file():
     """Save in-memory config to local JSON file using ATOMIC writes."""
     global _config_instance
@@ -217,6 +278,7 @@ def _save_config_to_file():
             
         # Atomic replace
         os.replace(temp_path, CONFIG_PATH)
+        _record_mtime()
     except Exception as e:
         logger.error(f"Failed to atomically save config to local file: {e}")
         # Cleanup temp file if error occurred before replace
@@ -232,7 +294,8 @@ def _load_config_from_file() -> bool:
             with open(CONFIG_PATH, 'r') as f:
                 loaded = json.load(f)
                 _config_instance = BrewBrainConfig.model_validate(loaded)
-                return True
+            _record_mtime()
+            return True
     except Exception as e:
         logger.warning(f"Failed to load config file: {e}")
     return False
@@ -280,27 +343,85 @@ def refresh_config_from_influx() -> None:
     except Exception as e:
         logger.error(f"Failed to refresh config from InfluxDB: {e}")
 
+_last_mtime_check: float = 0.0
+_MTIME_CHECK_INTERVAL = 2.0
+
+
+def _reload_if_changed() -> None:
+    """Pick up config.json writes made by another process.
+
+    brew-brain, celery-worker and celery-beat each hold their own in-memory
+    config. Without this, a setting changed in the UI (e.g. brew_active) never
+    reached the Celery processes until they restarted.
+    """
+    global _last_mtime_check
+    import time
+    now = time.monotonic()
+    if now - _last_mtime_check < _MTIME_CHECK_INTERVAL:
+        return
+    _last_mtime_check = now
+    try:
+        mtime = os.stat(CONFIG_PATH).st_mtime
+    except OSError:
+        return
+    if mtime != _config_mtime:
+        _load_config_from_file()
+
+
 def get_config(key: str) -> Optional[Any]:
+    _reload_if_changed()
     return getattr(_config_instance, key, None)
 
 def get_all_config() -> Dict[str, Any]:
+    _reload_if_changed()
     return _config_instance.model_dump()
+
+from contextlib import contextmanager
+
+
+@contextmanager
+def _config_write_lock():
+    """Cross-process lock around read-modify-write of config.json.
+
+    brew-brain, celery-worker, celery-beat and `docker exec` tools all write
+    the same file. Without this, a process saving one key wrote back its
+    whole in-memory copy, silently undoing another process's change made
+    moments earlier (2026-10-12: a batch restore was overwritten by a
+    water-test toggle a second later).
+    """
+    import fcntl
+    os.makedirs(os.path.dirname(CONFIG_PATH) or ".", exist_ok=True)
+    with open(CONFIG_PATH + ".lock", "a") as lf:
+        fcntl.flock(lf, fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            fcntl.flock(lf, fcntl.LOCK_UN)
+
 
 def set_config(key: str, value: Any) -> None:
     """Updates config in memory, saves to local file, and mirrors to InfluxDB."""
     global _config_instance
-    
-    # Validate the single update by dumping, updating, and re-validating
-    try:
-        current_dict = _config_instance.model_dump()
-        current_dict[key] = value
-        _config_instance = BrewBrainConfig.model_validate(current_dict)
-    except Exception as e:
-        logger.error(f"Config validation failed for key '{key}' with value '{value}': {e}")
-        raise ValueError(f"Invalid config value for {key}: {e}")
-    
-    # Save to local file (Primary)
-    _save_config_to_file()
+
+    with _config_write_lock():
+        # Start from what's on disk, not this process's possibly stale copy
+        try:
+            if os.stat(CONFIG_PATH).st_mtime != _config_mtime:
+                _load_config_from_file()
+        except OSError:
+            pass
+
+        # Validate the single update by dumping, updating, and re-validating
+        try:
+            current_dict = _config_instance.model_dump()
+            current_dict[key] = value
+            _config_instance = BrewBrainConfig.model_validate(current_dict)
+        except Exception as e:
+            logger.error(f"Config validation failed for key '{key}' with value '{value}': {e}")
+            raise ValueError(f"Invalid config value for {key}: {e}")
+
+        # Save to local file (Primary)
+        _save_config_to_file()
     
     try:
         # Mirror to InfluxDB for historical tracking

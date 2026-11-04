@@ -1,0 +1,11 @@
+[Unit]
+Description=Run the Brew Brain self-recovery check every minute
+
+[Timer]
+# Give the network and containers a few minutes after boot before judging
+OnBootSec=3min
+OnUnitActiveSec=1min
+AccuracySec=10s
+
+[Install]
+WantedBy=timers.target

@@ -190,3 +190,64 @@ def run_simulation_task(target_og, yeast_name, mash_temp_c):
     except Exception as e:
         logger.error(f"Monte Carlo simulation failed: {e}")
         return {"status": "error", "message": str(e)}
+
+@celery.task(name="services.tasks.run_price_comparison_task")
+def run_price_comparison_task(recipe_details):
+    """
+    Background task for recipe price comparison. This scrapes multiple
+    vendor sites per ingredient and can take over a minute - running it
+    synchronously in the request thread meant mobile browsers (which
+    suspend in-flight fetches when the tab backgrounds/screen locks)
+    would see a hard "Failed to fetch" on any recipe with more than a
+    few ingredients, even though the backend was working correctly.
+    """
+    try:
+        from services import sourcing
+        result = sourcing.compare_recipe_prices(recipe_details)
+        return {"status": "success", "data": result}
+    except Exception as e:
+        logger.error(f"Price comparison failed: {e}")
+        return {"status": "error", "message": str(e)}
+
+@celery.task(name="services.tasks.poll_telegram_commands")
+def poll_telegram_commands():
+    """
+    Background task to check for and respond to incoming Telegram bot
+    commands (/status, /ping, /help). telegram_poll_once() was already
+    built to fit this exact _once/beat-schedule pattern (short 2s
+    getUpdates timeout, single pass) but was never actually wired into
+    the schedule - a leftover from the app's modularization refactor
+    that silently dropped it.
+    """
+    try:
+        from services.telegram import telegram_poll_once
+        telegram_poll_once()
+    except Exception as e:
+        logger.error(f"Telegram command poll failed: {e}")
+
+
+@celery.task(name="services.tasks.track_fermentation_progress")
+def track_fermentation_progress():
+    """Log recipe step changes and fermentation phase changes to the journal."""
+    try:
+        from services.fermentation import track_progress
+        return {"status": "success", "logged": track_progress()}
+    except Exception as e:
+        logger.error(f"Fermentation progress tracking failed: {e}")
+        return {"status": "error", "message": str(e)}
+
+
+@celery.task(name="services.tasks.run_chat_task")
+def run_chat_task(message, history=None):
+    """Brewmaster chat as a background job.
+
+    A reply takes 1-4 minutes on the Pi's CPU. Holding the HTTP request open
+    that long fails on phones (the browser drops it when the screen locks or
+    the app backgrounds), so the chat page polls for this result instead.
+    """
+    try:
+        from services.ai import generate_chat_response
+        return generate_chat_response(message, history=history)
+    except Exception as e:
+        logger.error(f"Chat task failed: {e}")
+        return {"status": "error", "message": str(e)}

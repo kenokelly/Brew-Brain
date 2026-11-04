@@ -32,21 +32,35 @@ def run_e2e_workflow():
         # ============================
         logger.info("📡 Step 1: Scout - Searching for recipe...")
         
-        from app.services.scout import search_recipes
+        from app.core.config import get_config
+        bf_user = get_config("bf_user")
+        bf_key = get_config("bf_key")
         
-        scout_result = search_recipes("hazy ipa")
-        
-        # search_recipes returns a list directly, or a list with one error dict
-        if scout_result and isinstance(scout_result, list) and "error" not in scout_result[0]:
-            results["scout"]["status"] = "pass"
-            results["scout"]["recipe_count"] = len(scout_result)
-            recipe = scout_result[0]
-            results["scout"]["sample_recipe"] = recipe.get("title")
-            logger.info(f"   ✅ Found {results['scout']['recipe_count']} recipes")
+        if not bf_user or not bf_key:
+            results["scout"]["status"] = "skip"
+            results["scout"]["reason"] = "No Brewfather credentials configured"
+            logger.warning("   ⚠️  Skipped: No Brewfather credentials")
         else:
-            results["scout"]["status"] = "fail"
-            results["scout"]["error"] = scout_result[0].get("title", "Unknown error") if scout_result else "No results"
-            logger.error(f"   ❌ Scout failed: {results['scout']['error']}")
+            from app.services.scout import search_recipes
+            
+            scout_result = search_recipes("hazy ipa")
+            
+            # search_recipes returns a list directly, or a list with one error dict
+            if scout_result and isinstance(scout_result, list) and "error" not in scout_result[0]:
+                results["scout"]["status"] = "pass"
+                results["scout"]["recipe_count"] = len(scout_result)
+                recipe = scout_result[0]
+                results["scout"]["sample_recipe"] = recipe.get("title")
+                logger.info(f"   ✅ Found {results['scout']['recipe_count']} recipes")
+            else:
+                results["scout"]["status"] = "fail"
+                if isinstance(scout_result, list) and len(scout_result) > 0:
+                    results["scout"]["error"] = scout_result[0].get("title", "Unknown error")
+                elif isinstance(scout_result, dict):
+                    results["scout"]["error"] = scout_result.get("error", "Unknown error")
+                else:
+                    results["scout"]["error"] = "No results"
+                logger.error(f"   ❌ Scout failed: {results['scout']['error']}")
             
     except Exception as e:
         results["scout"]["status"] = "error"

@@ -9,8 +9,13 @@ import os
 import logging
 import base64
 import requests
-import pyarrow as pa
-import pyarrow.parquet as pq
+try:
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+except ImportError:
+    pa = None
+    pq = None
+
 from datetime import datetime
 from typing import Dict, List, Optional, Any
 from core.config import get_config
@@ -87,6 +92,9 @@ def export_batch_to_parquet(
         Dict with export status and file path
     """
     ensure_export_dir()
+    if pa is None or pq is None:
+        return {"status": "error", "error": "pyarrow is not installed"}
+
     
     try:
         # Query sensor data from InfluxDB
@@ -167,6 +175,9 @@ def aggregate_training_data(batch_ids: Optional[List[str]] = None) -> Dict[str, 
         Dict with aggregation status and file path
     """
     ensure_export_dir()
+    if pa is None or pq is None:
+        return {"status": "error", "error": "pyarrow is not installed"}
+
     
     try:
         # Get all Parquet files in export directory

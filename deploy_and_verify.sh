@@ -2,7 +2,14 @@
 set -e
 
 # Configuration
-HOST="kokelly@192.168.155.226"
+# The Pi has a DHCP reservation for 192.168.155.24 (set Oct 2026, after its
+# address moved .226 -> .237).
+# Override with BREW_BRAIN_HOST, otherwise try the last known address and
+# fall back to scanning the LAN for the host named "tiltpi".
+PI_USER="kokelly"
+PI_HOSTNAME="tiltpi"
+PI_IP="${BREW_BRAIN_HOST:-192.168.155.24}"
+HOST="$PI_USER@$PI_IP"
 REMOTE_DIR="brew-brain"
 LOCAL_DIR="$(pwd)"
 
@@ -15,6 +22,27 @@ elif [[ "$1" == "--restart-only" ]] || [[ "$1" == "-r" ]]; then
     RESTART_ONLY=true
 fi
 
+# 0. Reachability: fail fast and loudly rather than half-deploying
+is_pi() {
+    [ "$(ssh -o ConnectTimeout=4 -o BatchMode=yes -o StrictHostKeyChecking=accept-new \
+        "$PI_USER@$1" hostname 2>/dev/null)" = "$PI_HOSTNAME" ]
+}
+if ! is_pi "$PI_IP"; then
+    echo "🔎 $PI_HOSTNAME not at $PI_IP; scanning the LAN..."
+    subnet="${PI_IP%.*}"
+    found=""
+    for ip in $(for i in $(seq 1 254); do (nc -z -G 1 "$subnet.$i" 22 2>/dev/null && echo "$subnet.$i") & done; wait); do
+        if is_pi "$ip"; then found="$ip"; break; fi
+    done
+    if [ -z "$found" ]; then
+        echo "❌ Cannot find $PI_HOSTNAME on $subnet.0/24 - is the Pi powered on and on the network?"
+        exit 1
+    fi
+    echo "📍 Found $PI_HOSTNAME at $found (update PI_IP in this script, or reserve it in the router)"
+    PI_IP="$found"
+    HOST="$PI_USER@$PI_IP"
+fi
+
 # 1. Sync & Remote Prep
 echo "📡 Synchronizing configuration..."
 
@@ -24,12 +52,30 @@ p_sync() {
 }
 
 # Sync config and source files
-p_sync ./.env ./docker-compose.yml ./telegraf.conf ./grafana ./app ./web $HOST:$REMOTE_DIR/ &
-wait
+p_sync ./.env ./docker-compose.yml ./telegraf.conf ./grafana ./app ./web ./ops $HOST:$REMOTE_DIR/ &
+# A bare `wait` always returns 0, which hid rsync failures; wait on the PID
+if ! wait $!; then
+    echo "❌ rsync to $HOST failed"
+    exit 1
+fi
+
+# 1b. Self-recovery (network watchdog, hardware watchdog, kernel panic
+#     reboot). Idempotent, so it's safe to re-run on every deploy.
+echo "🛟 Installing self-recovery..."
+if ! ssh $HOST "cd $REMOTE_DIR && sudo -n ops/recovery/install.sh"; then
+    echo "❌ Self-recovery install failed"
+    exit 1
+fi
 
 # 2. Rebuild & Up
 echo "🚀 Rebuilding and Finalizing Deployment..."
 ssh $HOST "cd $REMOTE_DIR && docker compose up -d --build"
+
+# 2b. Prune build layers older than a week and dangling images so the Pi's disk
+#     doesn't fill up, while keeping recent cache so routine deploys stay fast
+#     (pruning everything forced a ~15 min full rebuild every time)
+echo "🧹 Pruning stale build cache & dangling images..."
+ssh $HOST "docker builder prune -f --filter until=168h && docker image prune -f" > /dev/null 2>&1
 
 # 3. Verification (Fast check)
 echo "🔍 Verifying Deployment..."
@@ -49,6 +95,28 @@ if [ "$WEB_CODE" == "200" ]; then
     echo "✅ Frontend Online"
 else
     echo "❌ Frontend Offline (HTTP $WEB_CODE)"
+    exit 1
+fi
+
+# 4. Functional Smoke Tests (liveness above only proves the process is up,
+#    not that the brewing math is correct — verify a couple of known values)
+echo "🧪 Running functional smoke tests..."
+
+echo "   [1/2] IBU calculator (50g @ 10% AA, 60min, 1.050 OG, 23L -> expect 55.2)..."
+IBU_RESULT=$(ssh $HOST "curl -s -X POST http://localhost:5000/api/calculator/ibu -H 'Content-Type: application/json' -d '{\"alpha_acid\":10.0,\"weight_grams\":50,\"boil_time_mins\":60,\"boil_gravity\":1.050,\"batch_volume_liters\":23}'")
+if echo "$IBU_RESULT" | grep -q '"ibu":55.2'; then
+    echo "✅ IBU calculation correct"
+else
+    echo "❌ IBU calculation returned unexpected result: $IBU_RESULT"
+    exit 1
+fi
+
+echo "   [2/2] Water profiles..."
+WATER_RESULT=$(ssh $HOST "curl -s http://localhost:5000/api/water/profiles")
+if echo "$WATER_RESULT" | grep -q '"status":"success"'; then
+    echo "✅ Water chemistry module responding"
+else
+    echo "❌ Water profiles check failed: $WATER_RESULT"
     exit 1
 fi
 

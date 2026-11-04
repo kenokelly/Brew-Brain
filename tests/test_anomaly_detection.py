@@ -5,9 +5,13 @@ import numpy as np
 
 # Mocking InfluxDB Record
 class MockRecord:
-    def __init__(self, value, time=None):
+    def __init__(self, value, time=None, field="SG"):
         self.value = value
         self.time = time
+        self.field = field
+
+    def get_field(self):
+        return self.field
 
     def get_value(self):
         return self.value
@@ -31,6 +35,11 @@ class TestAnomalyDetection(unittest.TestCase):
         self.mock_config = self.patcher_config.start()
         self.mock_telegram = self.patcher_telegram.start()
         self.mock_broadcast = self.patcher_broadcast.start()
+
+        # Alert cooldowns live in the cache; start each test with none active
+        from app.services import anomaly
+        for kind in anomaly.ALERT_COOLDOWN_MIN:
+            anomaly.cache._local_cache.pop(f"anomaly_alert_ts_{kind}", None)
 
         # Default config mock
         self.mock_config.side_effect = lambda k: {
@@ -95,6 +104,68 @@ class TestAnomalyDetection(unittest.TestCase):
         result = check_stalled_fermentation("Stall Test")
         self.assertEqual(result["status"], "stalled")
         self.mock_telegram.assert_called_once()
+
+    def test_stalled_alert_has_cooldown(self):
+        """The check runs every 5 min; a persisting stall alerts once, not every run."""
+        from app.services.anomaly import check_stalled_fermentation
+        now = datetime.now(timezone.utc)
+        self.mock_query.query.return_value = [MockTable([MockRecord(1.040, now - timedelta(hours=i)) for i in range(24, -1, -1)])]
+
+        first = check_stalled_fermentation("Stall Test")
+        second = check_stalled_fermentation("Stall Test")
+        self.assertTrue(first["alert_sent"])
+        self.assertEqual(second["status"], "stalled")
+        self.assertFalse(second["alert_sent"])
+        self.mock_telegram.assert_called_once()
+
+    def test_rising_gravity_is_not_a_stall(self):
+        """Gravity climbing (hydrometer moved/misreading) must not report a stall."""
+        from app.services.anomaly import check_stalled_fermentation
+        now = datetime.now(timezone.utc)
+        # 0.993 -> 1.040 over 24h, as seen with the Tilt in water on 2026-10-11
+        readings = [MockRecord(0.993 + 0.047 * (24 - i) / 24, now - timedelta(hours=i)) for i in range(24, -1, -1)]
+        self.mock_query.query.return_value = [MockTable(readings)]
+
+        result = check_stalled_fermentation("Rise Test")
+        self.assertEqual(result["status"], "normal")
+        self.mock_telegram.assert_not_called()
+
+    def _frozen_input(self, sg_values, temps_f):
+        recs = [MockRecord(v) for v in sg_values] + [MockRecord(t, field="Temp") for t in temps_f]
+        self.mock_query.query.return_value = [MockTable(recs)]
+
+    def test_frozen_reading_alerts_when_temp_moves_but_gravity_doesnt(self):
+        from app.services.anomaly import check_frozen_reading
+        # 2026-10-11: exactly 1.040 while the beer cooled ~22C -> ~17C
+        self._frozen_input([1.040] * 120, [72.0] * 60 + [63.0] * 60)
+        result = check_frozen_reading("Frozen Test")
+        self.assertEqual(result["status"], "frozen")
+        self.mock_telegram.assert_called_once()
+        self.assertIn("1.040", self.mock_telegram.call_args[0][0])
+
+    def test_flat_gravity_at_steady_temp_is_normal(self):
+        """Tilt in calm water (or a finished, still beer): flat is fine."""
+        from app.services.anomaly import check_frozen_reading
+        self._frozen_input([1.000] * 120, [68.0, 68.5] * 60)
+        self.assertEqual(check_frozen_reading("Calm")["status"], "normal")
+        self.mock_telegram.assert_not_called()
+
+    def test_jittering_gravity_is_normal(self):
+        from app.services.anomaly import check_frozen_reading
+        self._frozen_input([1.040, 1.041] * 60, [72.0] * 60 + [63.0] * 60)
+        self.assertEqual(check_frozen_reading("Live")["status"], "normal")
+
+    def test_signal_loss_uses_newest_reading_across_tag_sets(self):
+        """Telegraf's hostname tag changes per deploy; an old table must not
+        make a live Tilt look offline."""
+        from app.services.anomaly import check_signal_loss
+        now = datetime.now(timezone.utc)
+        live = MockTable([MockRecord(1.040, now - timedelta(minutes=1))])
+        stale = MockTable([MockRecord(1.040, now - timedelta(hours=5))])
+        self.mock_query.query.return_value = [live, stale]
+        result = check_signal_loss("Signal Test")
+        self.assertNotIn(result["status"], ("signal_loss", "offline"))
+        self.mock_telegram.assert_not_called()
 
     def test_check_temperature_deviation(self):
         from app.services.anomaly import check_temperature_deviation
@@ -220,17 +291,61 @@ class TestAnomalyDetection(unittest.TestCase):
 
     def test_check_signal_loss(self):
         from app.services.anomaly import check_signal_loss
-        
+
+        self.mock_telegram.return_value = {"status": "success"}
+
         # Last reading was 2 hours ago
         last_time = datetime.now(timezone.utc) - timedelta(minutes=120)
         self.mock_query.query.return_value = [MockTable([MockRecord(1.030, last_time)])]
-        
+
+        mock_cache = MagicMock()
+        mock_cache.get.return_value = None  # No prior alert sent yet
+
         # Mock troubleshoot_tiltpi to avoid network calls
-        with patch('app.services.anomaly.troubleshoot_tiltpi') as mock_trouble:
+        with patch('app.services.anomaly.troubleshoot_tiltpi') as mock_trouble, \
+             patch('app.services.anomaly.cache', mock_cache):
             mock_trouble.return_value = {"status": "checked"}
             result = check_signal_loss("Signal Test")
             self.assertEqual(result["status"], "signal_loss")
+            self.assertTrue(result["alert_sent"])
             self.mock_telegram.assert_called_once()
+            mock_cache.set.assert_called_once()  # Reminder cooldown recorded
+
+    def test_check_signal_loss_reminder_throttled(self):
+        """A second signal-loss check within the reminder window must not re-alert."""
+        from app.services.anomaly import check_signal_loss
+
+        last_time = datetime.now(timezone.utc) - timedelta(minutes=120)
+        self.mock_query.query.return_value = [MockTable([MockRecord(1.030, last_time)])]
+
+        mock_cache = MagicMock()
+        # Simulate an alert already sent 10 minutes ago (well within the 4h cooldown)
+        mock_cache.get.return_value = datetime.now(timezone.utc).timestamp() - 600
+
+        with patch('app.services.anomaly.troubleshoot_tiltpi') as mock_trouble, \
+             patch('app.services.anomaly.cache', mock_cache):
+            result = check_signal_loss("Signal Test")
+            self.assertEqual(result["status"], "signal_loss")
+            self.assertFalse(result["alert_sent"])
+            self.assertEqual(result["reason"], "reminder_throttled")
+            self.mock_telegram.assert_not_called()
+            mock_trouble.assert_not_called()  # Shouldn't run diagnostics if we're not alerting
+
+    def test_run_all_anomaly_checks_skipped_when_brew_inactive(self):
+        """Tilt-related checks/alerts must stay silent when no brew is active (Phase 17.8)."""
+        from app.services.anomaly import run_all_anomaly_checks
+
+        self.mock_config.side_effect = lambda k: {
+            "batch_name": "Idle Batch",
+            "brew_active": False,
+        }.get(k)
+
+        result = run_all_anomaly_checks("Idle Batch")
+
+        self.assertEqual(result.get("skipped"), "brew_inactive")
+        self.assertEqual(result["checks"], {})
+        self.mock_telegram.assert_not_called()
+        self.mock_query.query.assert_not_called()
 
 if __name__ == '__main__':
     unittest.main()

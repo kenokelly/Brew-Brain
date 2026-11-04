@@ -3,6 +3,7 @@
   "test_mode": false,
   "temp_max": 28.0,
   "tilt_timeout_min": 60,
+  "brew_active": false,
   "og": 1.05,
   "target_fg": 1.01,
   "batch_name": "New Batch",
@@ -29,7 +30,7 @@
   "yeast_min_temp": null,
   "yeast_max_temp": null,
   "yeast_attenuation": null,
-  "yeast_flocculation": null,
+  "yeast_flocculation": "",
   "target_temp": null,
   "prediction_end_date": "",
   "taps": {}

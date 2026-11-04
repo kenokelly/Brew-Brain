@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { FlaskConical, Play, Plus, Trash2, AlertTriangle, AlertCircle, TrendingUp, Brain } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { authHeaders } from '@/lib/api';
 import {
   AreaChart,
   Area,
@@ -75,7 +76,7 @@ export function Simulation() {
     const pollStatus = (taskId: string, og: number, warning?: string) => {
         const interval = setInterval(async () => {
             try {
-                const res = await fetch(`/api/automation/simulate/status/${taskId}`);
+                const res = await fetch(`/api/automation/simulate/status/${taskId}`, { headers: authHeaders() });
                 const { data, status, error } = await res.json();
                 
                 if (status === 'error') {
@@ -104,7 +105,7 @@ export function Simulation() {
         try {
             const res = await fetch('/api/automation/simulate', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: authHeaders({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify({
                     efficiency: config.efficiency,
                     volume: config.volume,
@@ -205,6 +206,8 @@ export function Simulation() {
                                         </div>
                                         <button
                                             onClick={() => removeGrain(grain.id)}
+                                            aria-label="Remove grain"
+                                            title={grains.length === 1 ? "A simulation needs at least one grain" : "Remove grain"}
                                             disabled={grains.length === 1}
                                             className="p-2 text-red-400 hover:bg-red-500/20 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                                         >
@@ -251,9 +254,9 @@ export function Simulation() {
                     )}
 
                     {!result && !loading && (
-                        <div className="h-full min-h-[400px] flex flex-col items-center justify-center text-muted-foreground border-2 border-dashed border-white/10 rounded-2xl bg-white/5">
-                            <TrendingUp className="w-12 h-12 mb-4 opacity-50" />
-                            <p>Configure your brew and run the simulation to project Final Gravity probabilities.</p>
+                        <div className="h-full min-h-[240px] flex flex-col items-center justify-center text-center text-muted-foreground border-2 border-dashed border-white/10 rounded-2xl bg-white/5 max-w-sm mx-auto px-6">
+                            <TrendingUp className="w-10 h-10 mb-3 opacity-40" />
+                            <p className="text-sm">Configure your brew on the left, then run the simulation to project Final Gravity probabilities.</p>
                         </div>
                     )}
                     

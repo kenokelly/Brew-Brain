@@ -5,10 +5,13 @@ import { Send, Bot, User, Sparkles, ChevronLeft, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { apiFetch } from '@/lib/api';
+import { renderBold } from '@/lib/text';
 
 interface Message {
     role: 'user' | 'assistant';
     content: string;
+    /** Where an assistant reply came from: "cloud" (Claude) or "ollama" (the Pi) */
+    source?: string;
 }
 
 interface ChatResponse {
@@ -17,49 +20,110 @@ interface ChatResponse {
     source?: string;
 }
 
+const GREETING: Message = { role: 'assistant', content: 'Hello! I am your Brewmaster AI. How can I help with your fermentation today?' };
+const STORE_KEY = 'brewmaster_chat';
+const POLL_MS = 3000;
+// Queued behind another AI call (~2 min) plus its own reply (1-3 min)
+const MAX_WAIT_MS = 7 * 60 * 1000;
+
+type Pending = { taskId: string; since: number };
+type ChatStatus = { status: 'queued' | 'thinking' | ChatResponse['status'] | string; response?: string; message?: string; source?: string };
+
+// Per-tab persistence, so leaving the page or a reload mid-reply picks the
+// conversation (and the pending reply) back up. Storage can throw in
+// private mode; the chat still works without it.
+function loadStore(): { messages: Message[]; pending: Pending | null } {
+    try {
+        const raw = sessionStorage.getItem(STORE_KEY);
+        if (raw) return JSON.parse(raw);
+    } catch { /* ignore */ }
+    return { messages: [GREETING], pending: null };
+}
+function saveStore(messages: Message[], pending: Pending | null) {
+    try { sessionStorage.setItem(STORE_KEY, JSON.stringify({ messages, pending })); } catch { /* ignore */ }
+}
+
 export default function ChatPage() {
-    const [messages, setMessages] = useState<Message[]>([
-        { role: 'assistant', content: 'Hello! I am your Brewmaster AI. How can I help with your fermentation today?' }
-    ]);
+    const [messages, setMessages] = useState<Message[]>([GREETING]);
+    const [pending, setPending] = useState<Pending | null>(null);
+    const [phase, setPhase] = useState<'queued' | 'thinking'>('queued');
     const [input, setInput] = useState('');
-    const [loading, setLoading] = useState(false);
     const scrollRef = useRef<HTMLDivElement>(null);
+    const loading = pending !== null;
+    const lastSource = [...messages].reverse().find((m) => m.role === 'assistant' && m.source)?.source;
+
+    // Restore after mount (sessionStorage isn't available during prerender)
+    useEffect(() => {
+        const stored = loadStore();
+        // Restoring persisted state after mount is the intent here: a lazy
+        // useState initializer would diverge from the static prerender.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setMessages(stored.messages?.length ? stored.messages : [GREETING]);
+        setPending(stored.pending);
+        // ?q= prefills the box (e.g. "Ask Detail" on the advice card); the user sends it
+        const q = new URLSearchParams(window.location.search).get('q');
+        if (q) {
+            setInput(q);
+            window.history.replaceState(null, '', window.location.pathname);
+        }
+    }, []);
+
+    useEffect(() => { saveStore(messages, pending); }, [messages, pending]);
 
     useEffect(() => {
         if (scrollRef.current) {
             scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
         }
-    }, [messages]);
+    }, [messages, loading]);
+
+    // Poll the background job until the reply lands. Replies take minutes on
+    // the Pi, and phones drop long-held requests when the screen locks, so
+    // the reply is fetched with short polls instead of one long request.
+    useEffect(() => {
+        if (!pending) return;
+        let cancelled = false;
+        const finish = (content: string, source?: string) => {
+            if (cancelled) return;
+            setMessages(prev => [...prev, { role: 'assistant', content, source }]);
+            setPending(null);
+        };
+        const tick = async () => {
+            if (Date.now() - pending.since > MAX_WAIT_MS) {
+                finish("The Brewmaster didn't answer in time. The Pi may be busy; try again in a minute.");
+                return;
+            }
+            try {
+                const res = await apiFetch<{ data: ChatStatus }>(`/api/ai/chat/status/${pending.taskId}`);
+                const d = res.data;
+                if (d.status === 'success' || d.status === 'fallback') return finish(d.response || '', d.source);
+                if (d.status === 'error') return finish('Sorry, the Brewmaster hit an error answering that.');
+                if (!cancelled) setPhase(d.status === 'thinking' ? 'thinking' : 'queued');
+            } catch {
+                // Transient (Wi-Fi blip, app resumed from background): keep polling
+            }
+            if (!cancelled) timer = setTimeout(tick, POLL_MS);
+        };
+        let timer = setTimeout(tick, 500);
+        return () => { cancelled = true; clearTimeout(timer); };
+    }, [pending]);
 
     const handleSend = async () => {
         if (!input.trim() || loading) return;
 
         const userMsg = input.trim();
+        const history = messages.slice(1); // Skip the greeting to keep context clean
         setInput('');
         setMessages(prev => [...prev, { role: 'user', content: userMsg }]);
-        setLoading(true);
+        setPhase('queued');
 
         try {
-            const res = await apiFetch<any>('/api/ai/chat', {
+            const res = await apiFetch<{ data: { task_id: string } }>('/api/ai/chat', {
                 method: 'POST',
-                body: { 
-                    message: userMsg,
-                    history: messages.slice(1) // Skip the first greeting to keep context clean
-                }
+                body: { message: userMsg, history },
             });
-
-            // The backend wraps results in a "data" object: { status: "success", data: { response: "...", ... } }
-            const data = res.data || res;
-
-            if (data.status === 'success' || data.status === 'fallback') {
-                setMessages(prev => [...prev, { role: 'assistant', content: data.response }]);
-            } else {
-                setMessages(prev => [...prev, { role: 'assistant', content: 'Sorry, I encountered an error processing your request.' }]);
-            }
-        } catch (_err) {
-            setMessages(prev => [...prev, { role: 'assistant', content: 'Connection to Brewmaster failed. Is Ollama running?' }]);
-        } finally {
-            setLoading(false);
+            setPending({ taskId: res.data.task_id, since: Date.now() });
+        } catch {
+            setMessages(prev => [...prev, { role: 'assistant', content: "Couldn't reach Brew Brain to send that. Check you're on the home network and try again." }]);
         }
     };
 
@@ -78,16 +142,18 @@ export default function ChatPage() {
                         <h1 className="font-bold tracking-tight">Brewmaster AI</h1>
                         <div className="flex items-center gap-1.5">
                             <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                            <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Local Ollama Active</span>
+                            <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">
+                                {lastSource === 'cloud' ? 'Cloud AI (Claude)' : lastSource === 'ollama' ? 'On-device AI (Pi)' : 'Brewmaster AI'}
+                            </span>
                         </div>
                     </div>
                 </div>
             </header>
 
             {/* Chat Window */}
-            <div 
+            <div
                 ref={scrollRef}
-                className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6"
+                className="flex-1 overflow-y-auto p-4 md:p-6 flex flex-col justify-end gap-6"
             >
                 {messages.map((msg, i) => (
                     <div 
@@ -104,12 +170,12 @@ export default function ChatPage() {
                             {msg.role === 'user' ? <User className="w-5 h-5 text-primary" /> : <Sparkles className="w-5 h-5 text-purple-500" />}
                         </div>
                         <div className={cn(
-                            "p-4 rounded-2xl text-sm leading-relaxed",
+                            "p-4 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap",
                             msg.role === 'user' 
                                 ? "bg-primary text-primary-foreground rounded-tr-none" 
                                 : "bg-card border border-border/50 rounded-tl-none shadow-sm"
                         )}>
-                            {msg.content}
+                            {msg.role === 'user' ? msg.content : renderBold(msg.content)}
                         </div>
                     </div>
                 ))}
@@ -118,8 +184,13 @@ export default function ChatPage() {
                         <div className="bg-purple-600/10 p-2 rounded-xl">
                             <Bot className="w-5 h-5 text-purple-500" />
                         </div>
-                        <div className="bg-card border border-border/50 p-4 rounded-2xl rounded-tl-none">
+                        <div className="bg-card border border-border/50 p-4 rounded-2xl rounded-tl-none flex items-center gap-2">
                             <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                            <span className="text-xs text-muted-foreground">
+                                {phase === 'queued'
+                                    ? 'Waiting for the Brewmaster (the Pi may be finishing another AI task)...'
+                                    : 'Thinking... (cloud AI answers in seconds; on the Pi it can take 1-3 minutes). Safe to leave this page.'}
+                            </span>
                         </div>
                     </div>
                 )}
@@ -138,6 +209,7 @@ export default function ChatPage() {
                     />
                     <button
                         onClick={handleSend}
+                        aria-label="Send message"
                         disabled={!input.trim() || loading}
                         className="absolute right-2 top-2 bottom-2 px-4 rounded-xl bg-purple-600 text-white hover:bg-purple-500 transition-colors disabled:opacity-50 disabled:grayscale"
                     >

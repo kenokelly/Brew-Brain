@@ -26,6 +26,21 @@ export class ApiClientError extends Error {
     }
 }
 
+/**
+ * Authorization header for code that calls fetch() directly instead of apiFetch.
+ * Every /api/automation endpoint requires the token.
+ */
+export function authHeaders(extra: Record<string, string> = {}): Record<string, string> {
+    const headers: Record<string, string> = { ...extra };
+    try {
+        const token = window.localStorage.getItem("brew_brain_token");
+        if (token) headers["Authorization"] = `Bearer ${token}`;
+    } catch {
+        // No localStorage (SSR or private mode): send without a token
+    }
+    return headers;
+}
+
 interface FetchOptions extends Omit<RequestInit, 'body'> {
     body?: object | FormData;
 }
@@ -58,8 +73,8 @@ export async function apiFetch<T>(
     }
 
     // Try to get API token from localStorage
-    if (typeof window !== "undefined") {
-        const token = localStorage.getItem("brew_brain_token");
+    if (typeof window !== "undefined" && window.localStorage && typeof window.localStorage.getItem === "function") {
+        const token = window.localStorage.getItem("brew_brain_token");
         if (token) {
             headers["Authorization"] = `Bearer ${token}`;
         }

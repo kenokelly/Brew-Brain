@@ -12,6 +12,9 @@ import type {
     Inventory,
     BrewfatherBatch,
     BrewfatherRecipe,
+    FermentationSummary,
+    FermentationHistory,
+    JournalEntry,
 } from '@/types/api';
 
 // Default fetcher with error handling
@@ -139,4 +142,35 @@ export function useSettings() {
         mutate,
         isValidating
     };
+}
+
+// ============================================
+// FERMENTATION (beta dashboard)
+// ============================================
+
+/** Live fermentation card data: velocity, phase, ETA, step timeline. */
+export function useFermentationSummary() {
+    const { data, error, mutate, isLoading } = useSWR<{ data: FermentationSummary }>(
+        '/api/fermentation/summary', fetcher,
+        { refreshInterval: 15000, revalidateOnFocus: true, keepPreviousData: true },
+    );
+    return { data: data?.data, error, isLoading, mutate };
+}
+
+/** Downsampled series since pitch; slow-moving, so refresh every 5 min. */
+export function useFermentationHistory() {
+    const { data, error, mutate, isLoading } = useSWR<{ data: FermentationHistory }>(
+        '/api/fermentation/history', fetcher,
+        { refreshInterval: 300000, revalidateOnFocus: false, keepPreviousData: true },
+    );
+    return { data: data?.data, error, isLoading, mutate };
+}
+
+/** Autopilot journal, newest first. */
+export function useJournal(limit = 50) {
+    const { data, error, mutate, isLoading } = useSWR<{ data: { entries: JournalEntry[] } }>(
+        `/api/fermentation/journal?limit=${limit}`, fetcher,
+        { refreshInterval: 30000, revalidateOnFocus: true, keepPreviousData: true },
+    );
+    return { entries: data?.data?.entries, error, isLoading, mutate };
 }

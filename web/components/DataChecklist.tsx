@@ -44,7 +44,7 @@ export function DataChecklist({ className, onReady }: DataChecklistProps) {
         return (
             <div className={cn("flex flex-col gap-4 animate-pulse", className)}>
                 {[1, 2, 3, 4].map(i => (
-                    <div key={i} className="h-14 bg-zinc-900/50 rounded-xl border border-zinc-800" />
+                    <div key={i} className="h-14 bg-card rounded-xl border border-border" />
                 ))}
             </div>
         );
@@ -55,11 +55,11 @@ export function DataChecklist({ className, onReady }: DataChecklistProps) {
             <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                     <ClipboardCheck className="w-5 h-5 text-primary" />
-                    <h3 className="font-semibold text-zinc-100 uppercase tracking-wider text-sm">Checks & Balances</h3>
+                    <h3 className="font-semibold text-foreground uppercase tracking-wider text-sm">Checks & Balances</h3>
                 </div>
                 <div className="flex items-center gap-4">
                     <div className="text-right">
-                        <p className="text-[10px] text-zinc-500 uppercase font-bold">Readiness</p>
+                        <p className="text-[10px] text-muted-foreground uppercase font-bold">Readiness</p>
                         <p className={cn("text-xl font-black font-mono leading-none",
                             data?.score === 100 ? "text-emerald-400" : data?.score && data.score > 70 ? "text-amber-400" : "text-rose-400"
                         )}>
@@ -69,10 +69,10 @@ export function DataChecklist({ className, onReady }: DataChecklistProps) {
                     <button
                         onClick={fetchData}
                         disabled={isLoading}
-                        className="p-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 transition-colors focus-visible:ring-2 focus-visible:ring-primary outline-none disabled:opacity-50"
+                        className="p-2 rounded-lg bg-secondary hover:bg-secondary/80 transition-colors focus-visible:ring-2 focus-visible:ring-primary outline-none disabled:opacity-50"
                         aria-label="Refresh data checklist"
                     >
-                        <RefreshCw className={cn("w-4 h-4 text-zinc-400", isLoading && "animate-spin")} />
+                        <RefreshCw className={cn("w-4 h-4 text-muted-foreground", isLoading && "animate-spin")} />
                     </button>
                 </div>
             </div>
@@ -122,8 +122,8 @@ function CheckItem({ check }: { check: BrewDayCheckItem }) {
         <div className={cn("p-4 rounded-xl border flex items-center gap-4 transition-all duration-300", statusBg[check.status])}>
             <div className="shrink-0">{icons[check.status]}</div>
             <div className="flex-1 min-w-0">
-                <p className="text-xs font-bold text-zinc-100 uppercase tracking-tight">{check.name}</p>
-                <p className="text-[11px] text-zinc-500 truncate">{check.message}</p>
+                <p className="text-xs font-bold text-foreground uppercase tracking-tight">{check.name}</p>
+                <p className="text-[11px] text-muted-foreground truncate">{check.message}</p>
             </div>
         </div>
     );

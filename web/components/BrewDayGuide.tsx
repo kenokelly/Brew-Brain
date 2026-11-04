@@ -43,7 +43,7 @@ export function BrewDayGuide({ isOpen, onClose }: BrewDayGuideProps) {
             {/* Sidebar */}
             <div 
                 className={cn(
-                    "absolute top-0 right-0 h-full w-full max-w-xl bg-zinc-950 border-l border-white/10 shadow-2xl transition-transform duration-500 transform flex flex-col",
+                    "absolute top-0 right-0 h-full w-full max-w-xl bg-card border-l border-white/10 shadow-2xl transition-transform duration-500 transform flex flex-col",
                     isOpen ? "translate-x-0" : "translate-x-full"
                 )}
                 role="dialog"
@@ -51,19 +51,19 @@ export function BrewDayGuide({ isOpen, onClose }: BrewDayGuideProps) {
                 aria-labelledby="guide-title"
             >
                 {/* Header */}
-                <header className="p-6 border-b border-white/5 flex items-center justify-between bg-zinc-900/50">
+                <header className="p-6 border-b border-white/5 flex items-center justify-between bg-card">
                     <div className="flex items-center gap-3">
                         <div className="p-2 rounded-xl bg-primary/10 text-primary">
                             <BookOpen className="w-5 h-5" />
                         </div>
                         <div>
                             <h2 id="guide-title" className="text-xl font-bold text-white">Brew Day Command</h2>
-                            <p className="text-xs text-zinc-500">Autonomous Fermentation Setup Guide</p>
+                            <p className="text-xs text-muted-foreground">Autonomous Fermentation Setup Guide</p>
                         </div>
                     </div>
                     <button
                         onClick={onClose}
-                        className="p-2 rounded-full hover:bg-zinc-800 transition-colors text-zinc-400 hover:text-white focus-visible:ring-2 focus-visible:ring-primary outline-none"
+                        className="p-2 rounded-full hover:bg-secondary transition-colors text-muted-foreground hover:text-white focus-visible:ring-2 focus-visible:ring-primary outline-none"
                         aria-label="Close guide"
                     >
                         <X className="w-5 h-5" />
@@ -71,7 +71,7 @@ export function BrewDayGuide({ isOpen, onClose }: BrewDayGuideProps) {
                 </header>
 
                 {/* Tabs */}
-                <div className="flex border-b border-white/5 bg-zinc-950/50">
+                <div className="flex border-b border-white/5 bg-secondary/30">
                     <TabButton
                         active={activeTab === 'checklist'}
                         onClick={() => setActiveTab('checklist')}
@@ -85,11 +85,11 @@ export function BrewDayGuide({ isOpen, onClose }: BrewDayGuideProps) {
                 </div>
 
                 {/* Content */}
-                <div className="flex-1 overflow-y-auto p-8 custom-scrollbar text-zinc-300">
+                <div className="flex-1 overflow-y-auto p-8 custom-scrollbar text-foreground/80">
                     {activeTab === 'checklist' ? (
                         <div className="space-y-8">
                             <section>
-                                <h3 className="text-sm font-bold text-zinc-400 uppercase tracking-widest mb-4">Verification Status</h3>
+                                <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-widest mb-4">Verification Status</h3>
                                 <DataChecklist />
                             </section>
 
@@ -139,7 +139,7 @@ function TabButton({ active, onClick, label }: { active: boolean, onClick: () =>
             onClick={onClick}
             className={cn(
                 "flex-1 py-4 text-xs font-bold uppercase tracking-widest transition-all relative focus-visible:ring-2 focus-visible:ring-primary outline-none",
-                active ? "text-primary" : "text-zinc-500 hover:text-zinc-300"
+                active ? "text-primary" : "text-muted-foreground hover:text-foreground/80"
             )}
         >
             {label}
@@ -152,10 +152,10 @@ function GuideSection({ title, children, icon }: { title: string, children: Reac
     return (
         <div className="space-y-4">
             <div className="flex items-center gap-2 mb-2">
-                <div className="p-1 px-2 rounded-lg bg-zinc-900 border border-white/5">
+                <div className="p-1 px-2 rounded-lg bg-secondary border border-white/5">
                     {icon}
                 </div>
-                <h4 className="font-bold text-zinc-100">{title}</h4>
+                <h4 className="font-bold text-foreground">{title}</h4>
             </div>
             <div className="space-y-3">
                 {children}
@@ -168,9 +168,9 @@ function GuideItem({ text }: { text: string }) {
     return (
         <div className="flex gap-3 group">
             <div className="mt-1">
-                <div className="w-1.5 h-1.5 rounded-full bg-zinc-700 group-hover:bg-primary transition-colors" />
+                <div className="w-1.5 h-1.5 rounded-full bg-secondary/80 group-hover:bg-primary transition-colors" />
             </div>
-            <p className="text-xs text-zinc-400 group-hover:text-zinc-200 transition-colors leading-relaxed">
+            <p className="text-xs text-muted-foreground group-hover:text-foreground transition-colors leading-relaxed">
                 {text}
             </p>
         </div>
